@@ -1090,7 +1090,6 @@ footer {
             <div class="user-dropdown-badge">⭐ Thành Viên &nbsp;·&nbsp; <span id="ddPoints">0</span> điểm</div>
           </div>
           <div class="user-dropdown-menu">
-            <button class="user-dropdown-item" onclick="openMemberDashboardPage();event.stopPropagation()">🏠 Dashboard Của Tôi</button>
             <button class="user-dropdown-item" onclick="openMemberPanel('orders');event.stopPropagation()">📦 Đơn Hàng Của Tôi</button>
             <button class="user-dropdown-item" onclick="openMemberPanel('wishlist');event.stopPropagation()">❤️ Danh Sách Yêu Thích</button>
             <button class="user-dropdown-item" onclick="openMemberPanel('points');event.stopPropagation()">🏆 Điểm Thưởng</button>
@@ -6698,198 +6697,6 @@ select.mp-field-input option { background: #1a1a1a; }
   </div>
 </div>
 
-<!-- ─── MEMBER DASHBOARD ─── -->
-<div class="dashboard-page" id="memberDashboard">
-  <div class="db-header">
-    <div class="db-logo">SNEAKER<span>VN</span></div>
-    <div class="db-header-right">
-      <button class="db-notif-btn" onclick="showToast('Thông Báo 🔔','Bạn có 3 thông báo mới')">🔔<span class="db-notif-dot"></span></button>
-      <div class="db-user">
-        <div class="db-avatar" style="background:rgba(230,32,32,0.2);color:var(--red)">NH</div>
-        <div>
-          <div style="font-weight:600;font-size:13px">Nguyễn Hoàng</div>
-          <div style="font-size:11px;color:var(--gray-light)">Thành Viên Vàng ⭐</div>
-        </div>
-      </div>
-      <span class="db-role-tag" style="background:rgba(240,180,41,0.2);border:1px solid rgba(240,180,41,0.4);color:var(--gold);">👤 Thành Viên</span>
-      <button class="db-back-btn" onclick="logoutDashboard('memberDashboard')" style="color:#f44336;border-color:rgba(244,67,54,0.35)">🚪 Đăng Xuất</button>
-    </div>
-  </div>
-  <div class="db-layout">
-    <div class="db-sidebar">
-      <div class="db-nav-section">
-        <div class="db-nav-section-title">Tài Khoản</div>
-        <div class="db-nav-item active" onclick="switchDbPanel('memberDashboard','panel-member-home',this)"><span class="db-nav-icon">🏠</span> Tổng Quan</div>
-        <div class="db-nav-item" onclick="switchDbPanel('memberDashboard','panel-member-orders',this)"><span class="db-nav-icon">📦</span> Đơn Hàng <span class="db-nav-badge" id="member-orders-badge">0</span></div>
-        <div class="db-nav-item" onclick="switchDbPanel('memberDashboard','panel-member-wishlist',this)"><span class="db-nav-icon">❤️</span> Yêu Thích</div>
-        <div class="db-nav-item" onclick="switchDbPanel('memberDashboard','panel-member-points',this)"><span class="db-nav-icon">🏆</span> Điểm Thưởng</div>
-        <div class="db-nav-item" onclick="switchDbPanel('memberDashboard','panel-member-address',this)"><span class="db-nav-icon">📍</span> Địa Chỉ</div>
-      </div>
-      <div class="db-nav-section">
-        <div class="db-nav-section-title">Cài Đặt</div>
-        <div class="db-nav-item" onclick="switchDbPanel('memberDashboard','panel-member-profile',this)"><span class="db-nav-icon">⚙️</span> Hồ Sơ</div>
-        <div class="db-nav-item" onclick="logoutDashboard('memberDashboard')"><span class="db-nav-icon">🚪</span> Đăng Xuất</div>
-      </div>
-    </div>
-    <div class="db-content">
-      <!-- HOME PANEL -->
-      <div class="db-panel active" id="panel-member-home">
-        <div class="db-page-title">Chào Mừng Trở Lại! 👋</div>
-        <div class="db-page-sub">Nguyễn Hoàng — Thành Viên Vàng kể từ 01/2024</div>
-        <div class="db-stats-grid">
-          <div class="db-stat-card red">
-            <div class="db-stat-label">Đơn Hàng</div>
-            <div class="db-stat-val">24</div>
-            <div class="db-stat-change db-stat-up">↑ 3 đơn trong tháng</div>
-          </div>
-          <div class="db-stat-card gold">
-            <div class="db-stat-label">Điểm Thưởng</div>
-            <div class="db-stat-val">1,240</div>
-            <div class="db-stat-change" style="color:var(--gold)">= 124.000đ</div>
-          </div>
-          <div class="db-stat-card green">
-            <div class="db-stat-label">Tổng Chi Tiêu</div>
-            <div class="db-stat-val">12.4M</div>
-            <div class="db-stat-change db-stat-up">↑ Còn 2.6M lên Kim Cương</div>
-          </div>
-          <div class="db-stat-card blue">
-            <div class="db-stat-label">Yêu Thích</div>
-            <div class="db-stat-val">8</div>
-            <div class="db-stat-change" style="color:#2196f3">2 sản phẩm giảm giá</div>
-          </div>
-        </div>
-        <div class="db-grid-13">
-          <div class="db-table-wrap">
-            <div class="db-table-header"><div class="db-table-title">Đơn Hàng Gần Đây</div><button class="db-btn-sm" onclick="switchDbPanel('memberDashboard','panel-member-orders',document.querySelector('#memberDashboard .db-nav-item:nth-child(2)'))">Xem Tất Cả →</button></div>
-            <table class="db-table">
-              <thead><tr><th>Mã ĐH</th><th>Sản Phẩm</th><th>Ngày</th><th>Tiền</th><th>Trạng Thái</th></tr></thead>
-              <tbody>
-                <tr><td>#SVN-240312</td><td>Nike Air Max 270</td><td>12/03/2026</td><td>3.200.000đ</td><td><span class="db-status status-shipping">🚚 Đang Giao</span></td></tr>
-                <tr><td>#SVN-240298</td><td>Adidas Ultraboost</td><td>28/02/2026</td><td>4.100.000đ</td><td><span class="db-status status-done">✅ Hoàn Thành</span></td></tr>
-                <tr><td>#SVN-240285</td><td>Nike Jordan 1</td><td>14/02/2026</td><td>5.800.000đ</td><td><span class="db-status status-done">✅ Hoàn Thành</span></td></tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="db-widget">
-            <div class="db-widget-title">Cấp Thành Viên</div>
-            <div style="text-align:center;padding:16px 0">
-              <div style="font-size:40px;margin-bottom:8px">⭐</div>
-              <div style="font-family:'Bebas Neue',cursive;font-size:28px;color:var(--gold)">VÀNG</div>
-              <div style="font-size:12px;color:var(--gray-light);margin:8px 0">Chi tiêu 12.400.000đ</div>
-              <div style="background:rgba(255,255,255,0.06);height:6px;margin:12px 0"><div style="height:100%;width:83%;background:var(--gold)"></div></div>
-              <div style="font-size:11px;color:var(--gray-light)">Còn 2.600.000đ → Kim Cương 💎</div>
-            </div>
-            <div class="db-list-item"><span class="db-list-icon">🎁</span><div class="db-list-info"><div class="db-list-name">Voucher Sinh Nhật</div><div class="db-list-sub">200.000đ – hết hạn 15/05</div></div></div>
-            <div class="db-list-item"><span class="db-list-icon">🚚</span><div class="db-list-info"><div class="db-list-name">Free Ship Đặc Biệt</div><div class="db-list-sub">2 lượt miễn phí còn lại</div></div></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ORDERS PANEL -->
-      <div class="db-panel" id="panel-member-orders">
-        <div class="db-page-title">Đơn Hàng Của Tôi</div>
-        <div class="db-page-sub">Theo dõi và quản lý tất cả đơn hàng</div>
-        <div class="db-table-wrap">
-          <div class="db-table-header"><div class="db-table-title">Tất Cả Đơn Hàng (24)</div></div>
-          <table class="db-table">
-            <thead><tr><th>Mã ĐH</th><th>Sản Phẩm</th><th>Size</th><th>Ngày Đặt</th><th>Tổng Tiền</th><th>Trạng Thái</th><th>Hành Động</th></tr></thead>
-            <tbody>
-              <tr><td>#SVN-240312</td><td>👟 Nike Air Max 270 React</td><td>42</td><td>12/03/2026</td><td>3.200.000đ</td><td><span class="db-status status-shipping">🚚 Đang Giao</span></td><td><button class="db-btn-sm" onclick="showToast('Theo Dõi ĐH','J&T Express - JT12345678')">Theo Dõi</button></td></tr>
-              <tr><td>#SVN-240298</td><td>👟 Adidas Ultraboost 22</td><td>41</td><td>28/02/2026</td><td>4.100.000đ</td><td><span class="db-status status-done">✅ Hoàn Thành</span></td><td><button class="db-btn-sm" onclick="showToast('Đánh Giá','Cảm ơn phản hồi của bạn!')">Đánh Giá</button></td></tr>
-              <tr><td>#SVN-240285</td><td>👟 Nike Air Jordan 1 Retro</td><td>42</td><td>14/02/2026</td><td>5.800.000đ</td><td><span class="db-status status-done">✅ Hoàn Thành</span></td><td><button class="db-btn-sm" onclick="showToast('Mua Lại','Đã thêm vào giỏ hàng!')">Mua Lại</button></td></tr>
-              <tr><td>#SVN-240271</td><td>👟 New Balance 550</td><td>40</td><td>01/02/2026</td><td>2.900.000đ</td><td><span class="db-status status-done">✅ Hoàn Thành</span></td><td><button class="db-btn-sm" onclick="showToast('Mua Lại','Đã thêm vào giỏ hàng!')">Mua Lại</button></td></tr>
-              <tr><td>#SVN-240243</td><td>👟 MLB Big Ball Chunky</td><td>39</td><td>15/01/2026</td><td>2.200.000đ</td><td><span class="db-status status-cancel">❌ Đã Hủy</span></td><td><button class="db-btn-sm" onclick="showToast('Hỗ Trợ','Liên hệ 1800 6868')">Liên Hệ</button></td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- WISHLIST PANEL -->
-      <div class="db-panel" id="panel-member-wishlist">
-        <div class="db-page-title">Sản Phẩm Yêu Thích</div>
-        <div class="db-page-sub">8 sản phẩm trong danh sách — 2 đang giảm giá</div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px" id="wishlistGrid"></div>
-      </div>
-
-      <!-- POINTS PANEL -->
-      <div class="db-panel" id="panel-member-points">
-        <div class="db-page-title">Điểm Thưởng</div>
-        <div class="db-page-sub">Tích điểm với mỗi đơn hàng và đổi thành ưu đãi</div>
-        <div class="db-stats-grid">
-          <div class="db-stat-card gold"><div class="db-stat-label">Điểm Hiện Có</div><div class="db-stat-val" style="color:var(--gold)">1,240</div><div class="db-stat-change" style="color:var(--gold)">= 124.000đ</div></div>
-          <div class="db-stat-card green"><div class="db-stat-label">Điểm Đã Dùng</div><div class="db-stat-val">860</div><div class="db-stat-change" style="color:#4caf50">= 86.000đ tiết kiệm</div></div>
-          <div class="db-stat-card red"><div class="db-stat-label">Tổng Tích Lũy</div><div class="db-stat-val">2,100</div><div class="db-stat-change db-stat-up">↑ Hạng Vàng</div></div>
-          <div class="db-stat-card blue"><div class="db-stat-label">Sắp Hết Hạn</div><div class="db-stat-val">200</div><div class="db-stat-change" style="color:orange">⚠️ Hết 30/04</div></div>
-        </div>
-        <div class="db-grid-2">
-          <div class="db-table-wrap">
-            <div class="db-table-header"><div class="db-table-title">Lịch Sử Điểm</div></div>
-            <table class="db-table">
-              <thead><tr><th>Ngày</th><th>Mô Tả</th><th>Điểm</th></tr></thead>
-              <tbody>
-                <tr><td>12/03/2026</td><td>Mua Nike Air Max 270</td><td style="color:#4caf50">+320</td></tr>
-                <tr><td>28/02/2026</td><td>Mua Adidas Ultraboost</td><td style="color:#4caf50">+410</td></tr>
-                <tr><td>20/02/2026</td><td>Đổi điểm (Voucher 50k)</td><td style="color:#f44336">-500</td></tr>
-                <tr><td>14/02/2026</td><td>Mua Air Jordan 1 Retro</td><td style="color:#4caf50">+580</td></tr>
-                <tr><td>01/02/2026</td><td>Bonus sinh nhật 🎂</td><td style="color:var(--gold)">+200</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="db-widget">
-            <div class="db-widget-title">Đổi Điểm Thưởng</div>
-            <div class="db-list-item"><span class="db-list-icon">🎟️</span><div class="db-list-info"><div class="db-list-name">Voucher 50.000đ</div><div class="db-list-sub">500 điểm</div></div><button class="db-btn-sm primary" onclick="showToast('Đổi Điểm','Voucher 50k đã gửi vào email!')">Đổi</button></div>
-            <div class="db-list-item"><span class="db-list-icon">🚚</span><div class="db-list-info"><div class="db-list-name">Miễn Phí Ship 1 Đơn</div><div class="db-list-sub">300 điểm</div></div><button class="db-btn-sm primary" onclick="showToast('Đổi Điểm','Free ship đã được kích hoạt!')">Đổi</button></div>
-            <div class="db-list-item"><span class="db-list-icon">💰</span><div class="db-list-info"><div class="db-list-name">Voucher 100.000đ</div><div class="db-list-sub">1.000 điểm</div></div><button class="db-btn-sm primary" onclick="showToast('Đổi Điểm','Voucher 100k đã gửi vào email!')">Đổi</button></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ADDRESS PANEL -->
-      <div class="db-panel" id="panel-member-address">
-        <div class="db-page-title">Địa Chỉ Giao Hàng</div>
-        <div class="db-page-sub">Quản lý các địa chỉ nhận hàng của bạn</div>
-        <div class="db-grid-2">
-          <div class="db-widget" style="border:1px solid var(--red)">
-            <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
-              <span style="font-size:10px;font-weight:700;letter-spacing:1px;background:var(--red);color:#fff;padding:2px 8px">MẶC ĐỊNH</span>
-              <button class="db-btn-sm" onclick="showToast('Chỉnh Sửa','Mở form chỉnh sửa địa chỉ')">Sửa</button>
-            </div>
-            <div style="font-weight:700;margin-bottom:4px">Nguyễn Hoàng</div>
-            <div style="font-size:13px;color:var(--gray-light);line-height:1.7">📞 0912 345 678<br>📍 128 Hai Bà Trưng, Phường Nguyễn Du<br>Quận Hoàn Kiếm, Hà Nội</div>
-          </div>
-          <div class="db-widget" style="cursor:pointer;border-style:dashed" onclick="showToast('Thêm Địa Chỉ','Form thêm địa chỉ mới')">
-            <div style="text-align:center;padding:24px;color:var(--gray-light)">
-              <div style="font-size:32px;margin-bottom:8px">+</div>
-              <div style="font-size:13px;font-weight:600">Thêm Địa Chỉ Mới</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- PROFILE PANEL -->
-      <div class="db-panel" id="panel-member-profile">
-        <div class="db-page-title">Hồ Sơ Cá Nhân</div>
-        <div class="db-page-sub">Cập nhật thông tin tài khoản</div>
-        <div class="db-widget" style="max-width:600px">
-          <div style="display:flex;align-items:center;gap:20px;margin-bottom:24px">
-            <div style="width:80px;height:80px;border-radius:50%;background:rgba(230,32,32,0.2);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',cursive;font-size:36px;color:var(--red)">NH</div>
-            <div><div style="font-weight:700;font-size:16px">Nguyễn Hoàng</div><div style="font-size:12px;color:var(--gray-light)"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="9ff7f0fef1f8b1f1f8eae6faf1dffaf2fef6f3b1fcf0f2">[email&#160;protected]</a></div><button class="db-btn-sm" style="margin-top:8px" onclick="showToast('Tải Ảnh','Chọn ảnh đại diện từ máy tính')">Đổi Ảnh</button></div>
-          </div>
-          <div class="db-form-grid">
-            <div class="db-field"><label class="db-label">Họ</label><input class="db-input" value="Nguyễn"></div>
-            <div class="db-field"><label class="db-label">Tên</label><input class="db-input" value="Hoàng"></div>
-            <div class="db-field"><label class="db-label">Email</label><input class="db-input" type="email" value="hoang.nguyen@email.com"></div>
-            <div class="db-field"><label class="db-label">Số Điện Thoại</label><input class="db-input" value="0912 345 678"></div>
-            <div class="db-field"><label class="db-label">Ngày Sinh</label><input class="db-input" type="date" value="1995-05-15"></div>
-            <div class="db-field"><label class="db-label">Giới Tính</label><select class="db-select"><option>Nam</option><option>Nữ</option><option>Khác</option></select></div>
-          </div>
-          <button class="db-btn-sm primary" style="margin-top:20px;width:auto;padding:12px 32px" onclick="showToast('Lưu Thành Công ✅','Thông tin đã được cập nhật')">Lưu Thay Đổi</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- ─── ADMIN / SHOP DASHBOARD ─── -->
 <div class="dashboard-page" id="shopDashboard">
   <div class="db-header">
@@ -11227,27 +11034,10 @@ function highlightMatch(text, q) {
 // MEMBER DASHBOARD — KHỞI TẠO & ĐIỀU PHỐI
 // ══════════════════════════════════════════════════════
 
-// Ghi đè switchDbPanel để render dữ liệu thực khi chuyển tab
+// memberDashboard đã bị xóa — switchDbPanel giữ nguyên cho các dashboard khác
 const _origSwitchDbPanel = window.switchDbPanel;
 window.switchDbPanel = function(dashId, panelId, navItem) {
   if (typeof _origSwitchDbPanel === 'function') _origSwitchDbPanel(dashId, panelId, navItem);
-  if (dashId === 'memberDashboard') {
-    setTimeout(() => {
-      if (panelId === 'panel-member-home')    memberRenderHome();
-      if (panelId === 'panel-member-orders')  memberRenderOrders('all');
-      if (panelId === 'panel-member-points')  memberRenderPoints();
-      if (panelId === 'panel-member-address') memberRenderAddresses();
-      if (panelId === 'panel-member-profile') memberLoadProfile();
-      if (panelId === 'panel-member-wishlist') memberRenderWishlist();
-    }, 50);
-  }
-};
-
-// Khởi tạo khi mở memberDashboard
-const _origOpenMemberDB = window.openMemberDashboard || function(){};
-window.openMemberDashboard = function() {
-  if (typeof _origOpenMemberDB === 'function') _origOpenMemberDB();
-  setTimeout(memberRenderHome, 100);
 };
 
 // Patch logoutDashboard để render khi quay lại
@@ -11352,11 +11142,6 @@ function memberRenderHome() {
       : `<div style="font-size:12px;color:var(--gray-light);padding:8px 0;text-align:center">Chưa có voucher nào. Đổi điểm để nhận ngay!</div>`;
   }
 
-  // Update dashboard header
-  const dbAvatar = document.querySelector('#memberDashboard .db-avatar');
-  const dbName   = document.querySelector('#memberDashboard .db-user div div:first-child');
-  if (dbAvatar) dbAvatar.textContent = svnInitials(name);
-  if (dbName)   dbName.textContent   = name;
 }
 
 // ══════════════════════════════════════════════════════
@@ -11848,10 +11633,6 @@ function memberSaveProfile() {
   ['userNavName','ddName'].forEach(id => { const e=document.getElementById(id); if(e) e.textContent=name.split(' ').slice(-2).join(' '); });
   const profileDisplayEl = document.getElementById('profileDisplayName');
   if (profileDisplayEl) profileDisplayEl.textContent = name;
-  const memberNameEl = document.querySelector('#memberDashboard .db-user div div:first-child');
-  if (memberNameEl) memberNameEl.textContent = name;
-  const memberAvatarEl = document.querySelector('#memberDashboard .db-avatar');
-  if (memberAvatarEl && !p.avatarUrl) memberAvatarEl.textContent = initials;
 
   // Cập nhật panel hiển thị
   const nameDispEl  = document.getElementById('member-profile-display-name');
@@ -12000,10 +11781,6 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
     demo.forEach(o => SVN.addOrder(o));
   }
-  // Render member home nếu đang xem dashboard thành viên
-  if (document.getElementById('memberDashboard')?.classList.contains('active')) {
-    memberRenderHome();
-  }
   // Cập nhật điểm trong dropdown
   memberUpdateNavPoints();
 });
@@ -12016,17 +11793,7 @@ function memberUpdateNavPoints() {
 
 // Mở member dashboard toàn trang
 function openMemberDashboardPage() {
-  document.getElementById('userDropdown')?.classList.remove('open');
-  const dash = document.getElementById('memberDashboard');
-  if (!dash) return;
-  dash.classList.add('open');
-  document.body.style.overflow = 'hidden';
-  setTimeout(() => {
-    memberRenderHome();
-    // Badge đơn hàng
-    const badge = document.getElementById('member-orders-badge');
-    if (badge) badge.textContent = SVN.getOrders().length;
-  }, 80);
+  // Dashboard khách hàng đã bị ẩn — không làm gì
 }
 </script>
 <!-- ═══════════════════════════════════════════════════════
@@ -12608,47 +12375,5 @@ Object.defineProperty(window, '_bkRef', {
   set(v){ _bkRef = v; },
 });
 
-// ══════════════════════════════════════════════════════════
-// NÚT QUAY LẠI + SYNC DASHBOARD HEADER
-// ══════════════════════════════════════════════════════════
-(function() {
-  function injectBack() {
-    const hdr = document.querySelector('#memberDashboard .db-header-right');
-    if (!hdr || hdr.querySelector('#mbhb-back')) return;
-    const btn = document.createElement('button');
-    btn.id = 'mbhb-back';
-    btn.innerHTML = '← Về Trang Chủ';
-    btn.onclick = () => {
-      document.getElementById('memberDashboard')?.classList.remove('open');
-      document.body.style.overflow = '';
-      window.scrollTo({ top:0, behavior:'smooth' });
-    };
-    const logoutBtn = hdr.querySelector('.db-back-btn');
-    if (logoutBtn) hdr.insertBefore(btn, logoutBtn); else hdr.prepend(btn);
-  }
-
-  function syncHeader() {
-    const p    = SVN.getProfile();
-    const name = p.name || 'Thành Viên';
-    const ws   = name.trim().split(/\s+/).filter(Boolean);
-    const init = ws.length>=2 ? (ws[0][0]+ws[ws.length-1][0]).toUpperCase() : (ws[0]||'?')[0].toUpperCase();
-    const avt  = document.querySelector('#memberDashboard .db-avatar');
-    const nm   = document.querySelector('#memberDashboard .db-user > div > div:first-child');
-    if (avt) avt.textContent = init;
-    if (nm)  nm.textContent  = name;
-    const ddNm  = document.getElementById('ddName');
-    const ddPts = document.getElementById('ddPoints');
-    if (ddNm)  ddNm.textContent  = name.split(' ').slice(-2).join(' ');
-    if (ddPts) ddPts.textContent = (p.points||0).toLocaleString('vi-VN');
-    const badge = document.getElementById('member-orders-badge');
-    if (badge) badge.textContent = SVN.getOrders().length;
-  }
-
-  const _orig = window.openMemberDashboardPage;
-  window.openMemberDashboardPage = function() {
-    if (typeof _orig === 'function') _orig();
-    setTimeout(() => { injectBack(); syncHeader(); }, 100);
-  };
-  document.addEventListener('DOMContentLoaded', () => setTimeout(() => { injectBack(); syncHeader(); }, 600));
-})();
+// memberDashboard đã bị xóa — patch không cần thiết
 </script>

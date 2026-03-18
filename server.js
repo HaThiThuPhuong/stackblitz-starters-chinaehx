@@ -317,7 +317,7 @@ app.get("/api/sanpham", async (req, res) => {
 // Danh mục & Nhà cung cấp — công khai
 app.get("/api/danhmuc", async (req, res) => {
   const result = await pool.query(
-    "SELECT * FROM DanhMuc WHERE TrangThai='Hoat dong' ORDER BY Ten",
+    "SELECT * FROM DanhMuc WHERE TrangThai='Hoat dong' ORDER BY 1",
   );
   res.json(result.rows);
 });

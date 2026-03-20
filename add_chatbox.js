@@ -1,6 +1,6 @@
-// Chay trong terminal StackBlitz: node add_chatbox.js
-const fs = require('fs');
-let c = fs.readFileSync('index.html', 'utf8');
+// Chay trong terminal: node add_chatbox.js
+import { readFileSync, writeFileSync } from 'fs';
+let c = readFileSync('index.html', 'utf8');
 
 // 1. Fix loi JS (box-drawing, HTML comments, escaped backticks)
 c = c.replace(/<script([^>]*)>([\s\S]*?)<\/script>/g, function(m, attr, code) {
@@ -9,7 +9,6 @@ c = c.replace(/<script([^>]*)>([\s\S]*?)<\/script>/g, function(m, attr, code) {
   code = code.replace(/<!--[\s\S]*?-->/g, '');
   code = code.replace(/\\`/g, '`');
   code = code.replace(/\\\${/g, '${');
-  // Xoa <script> tag lac bên trong JS
   code = code.replace(/^\s*<script>\s*$/gm, '');
   return '<script' + attr + '>' + code + '<\/script>';
 });
@@ -170,6 +169,6 @@ c = c.replace('</head>', css + '</head>');
 var idx = c.lastIndexOf('</body>');
 c = c.slice(0, idx) + html + '\n' + js + '\n' + c.slice(idx);
 
-fs.writeFileSync('index.html', c);
+writeFileSync('index.html', c);
 console.log('✅ Done! Chatbox da duoc them vao index.html');
 console.log('   Chay: git add -A && git commit -m "add chatbox" && git push origin main');

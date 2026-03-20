@@ -1333,6 +1333,174 @@ app.post(
   },
 );
 
+// ============================================================
+// CHAT AI — Dùng Anthropic API để trả lời khách hàng tự động
+// Bảng: Chat_Sessions, Chat_Messages (tạo tự động nếu chưa có)
+// Env: ANTHROPIC_API_KEY
+// ============================================================
+
+(async () => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS Chat_Sessions (
+        id          SERIAL PRIMARY KEY,
+        guest_name  VARCHAR(100) DEFAULT 'Khách',
+        guest_email VARCHAR(200) DEFAULT '',
+        status      VARCHAR(20)  DEFAULT 'open',
+        created_at  TIMESTAMP    DEFAULT NOW(),
+        updated_at  TIMESTAMP    DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS Chat_Messages (
+        id         SERIAL PRIMARY KEY,
+        session_id INT          NOT NULL REFERENCES Chat_Sessions(id) ON DELETE CASCADE,
+        sender     VARCHAR(20)  NOT NULL,
+        message    TEXT         NOT NULL,
+        created_at TIMESTAMP    DEFAULT NOW()
+      );
+    `);
+  } catch(e) { console.error('Chat table init:', e.message); }
+})();
+
+// POST /api/chat/session — Khách tạo phiên chat mới
+app.post('/api/chat/session', async (req, res) => {
+  try {
+    const { guest_name, guest_email } = req.body;
+    const r = await pool.query(
+      `INSERT INTO Chat_Sessions (guest_name, guest_email) VALUES ($1,$2) RETURNING *`,
+      [guest_name || 'Khách', guest_email || '']
+    );
+    res.json({ success: true, session: r.rows[0] });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/chat/session/:id/messages
+app.get('/api/chat/session/:id/messages', async (req, res) => {
+  try {
+    const r = await pool.query(
+      `SELECT * FROM Chat_Messages WHERE session_id=$1 ORDER BY created_at ASC`,
+      [req.params.id]
+    );
+    res.json(r.rows);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/chat/message — Khách gửi tin, AI trả lời ngay
+app.post('/api/chat/message', async (req, res) => {
+  try {
+    const { session_id, message } = req.body;
+    if (!session_id || !message?.trim())
+      return res.status(400).json({ error: 'Thiếu session_id hoặc message' });
+
+    // Lưu tin nhắn của khách
+    await pool.query(
+      `INSERT INTO Chat_Messages (session_id, sender, message) VALUES ($1,'guest',$2)`,
+      [session_id, message.trim()]
+    );
+    await pool.query(
+      `UPDATE Chat_Sessions SET updated_at=NOW() WHERE id=$1`, [session_id]
+    );
+
+    // Lấy lịch sử hội thoại (tối đa 10 tin gần nhất)
+    const histRes = await pool.query(
+      `SELECT sender, message FROM Chat_Messages WHERE session_id=$1 ORDER BY created_at DESC LIMIT 10`,
+      [session_id]
+    );
+    const history = histRes.rows.reverse();
+
+    // Lấy một số sản phẩm từ DB để AI biết context
+    const prodRes = await pool.query(
+      `SELECT TenSanPham, ThuongHieu, GiaBan, SoLuongTon, TinhTrang, DanhMuc
+       FROM SanPham WHERE TinhTrang != 'Ẩn' ORDER BY TenSanPham LIMIT 30`
+    );
+    const products = prodRes.rows;
+    const productList = products.map(p =>
+      `- ${p.tensanpham} (${p.thuonghieu}) | Giá: ${Number(p.giaban).toLocaleString('vi-VN')}đ | Tồn: ${p.soluongton} | Danh mục: ${p.danhmuc}`
+    ).join('\n');
+
+    // Gọi Anthropic API
+    const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+    if (!ANTHROPIC_KEY) {
+      const fallback = 'Xin chào! Hiện tại hệ thống AI chưa được cấu hình. Vui lòng liên hệ shop qua số điện thoại để được hỗ trợ.';
+      await pool.query(
+        `INSERT INTO Chat_Messages (session_id, sender, message) VALUES ($1,'ai',$2)`,
+        [session_id, fallback]
+      );
+      return res.json({ reply: fallback });
+    }
+
+    const messages = history.map(m => ({
+      role: m.sender === 'guest' ? 'user' : 'assistant',
+      content: m.message
+    }));
+    // Đảm bảo bắt đầu bằng user
+    if (messages.length === 0 || messages[0].role !== 'user') {
+      messages.unshift({ role: 'user', content: message.trim() });
+    }
+
+    const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_KEY,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 500,
+        system: `Bạn là trợ lý tư vấn bán hàng của SneakerVN — shop giày sneaker chính hãng.
+Nhiệm vụ: Tư vấn sản phẩm, giải đáp thắc mắc, hỗ trợ đặt hàng cho khách hàng.
+Phong cách: Thân thiện, nhiệt tình, chuyên nghiệp. Dùng tiếng Việt.
+Trả lời ngắn gọn, dưới 150 từ. Không dùng markdown.
+
+Danh sách sản phẩm hiện có:
+${productList}
+
+Nếu khách hỏi sản phẩm không có trong danh sách, hãy gợi ý sản phẩm tương tự hoặc báo sẽ kiểm tra thêm.`,
+        messages
+      })
+    });
+
+    const aiData = await aiRes.json();
+    const reply = aiData?.content?.[0]?.text || 'Xin lỗi, tôi không thể trả lời lúc này. Vui lòng thử lại.';
+
+    // Lưu tin nhắn AI
+    await pool.query(
+      `INSERT INTO Chat_Messages (session_id, sender, message) VALUES ($1,'ai',$2)`,
+      [session_id, reply]
+    );
+    await pool.query(
+      `UPDATE Chat_Sessions SET updated_at=NOW() WHERE id=$1`, [session_id]
+    );
+
+    res.json({ reply });
+  } catch(e) {
+    console.error('Chat AI error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/admin/chat/sessions — Admin xem tất cả phiên
+app.get('/api/admin/chat/sessions', requireRole('shop','admin'), async (req, res) => {
+  try {
+    const r = await pool.query(`
+      SELECT s.*,
+        (SELECT COUNT(*) FROM Chat_Messages m WHERE m.session_id=s.id) as msg_count,
+        (SELECT message FROM Chat_Messages m WHERE m.session_id=s.id ORDER BY created_at DESC LIMIT 1) as last_message
+      FROM Chat_Sessions s
+      ORDER BY s.updated_at DESC
+    `);
+    res.json(r.rows);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// PUT /api/admin/chat/session/:id/close
+app.put('/api/admin/chat/session/:id/close', requireRole('shop','admin'), async (req, res) => {
+  try {
+    await pool.query(`UPDATE Chat_Sessions SET status='closed' WHERE id=$1`, [req.params.id]);
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // Fallback HTML
 app.get("*", (req, res) => {
   if (!req.path.startsWith("/api")) {

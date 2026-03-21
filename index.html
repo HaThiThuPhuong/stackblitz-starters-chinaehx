@@ -8852,28 +8852,21 @@ select.mp-field-input option { background: #1a1a1a; }
       <!-- SA HOME -->
       <div class="db-panel active" id="panel-sa-home">
         <div class="db-page-title">System Overview</div>
-        <div class="db-page-sub">Full system access — Root administrator</div>
+        <div class="db-page-sub" id="sa-home-sub">Full system access — Root administrator</div>
         <div class="db-stats-grid">
-          <div class="db-stat-card red"><div class="db-stat-label">Total Users</div><div class="db-stat-val">26.1K</div><div class="db-stat-change db-stat-up">↑ +342 tháng này</div></div>
-          <div class="db-stat-card" style="border:1px solid rgba(156,39,176,0.3)"><div class="db-stat-label">Staff Accounts</div><div class="db-stat-val" style="color:#9c27b0">48</div><div class="db-stat-change" style="color:#9c27b0">4 roles</div></div>
-          <div class="db-stat-card green"><div class="db-stat-label">System Uptime</div><div class="db-stat-val">99.9%</div><div class="db-stat-change db-stat-up">30 ngày qua</div></div>
-          <div class="db-stat-card gold"><div class="db-stat-label">Security Alerts</div><div class="db-stat-val" style="color:orange">2</div><div class="db-stat-change" style="color:orange">⚠️ Cần xem xét</div></div>
+          <div class="db-stat-card red"><div class="db-stat-label">Khách Hàng</div><div class="db-stat-val" id="sa-stat-kh">--</div><div class="db-stat-change db-stat-up" id="sa-stat-kh-sub">Đang tải...</div></div>
+          <div class="db-stat-card" style="border:1px solid rgba(156,39,176,0.3)"><div class="db-stat-label">Nhân Viên</div><div class="db-stat-val" style="color:#9c27b0" id="sa-stat-staff">--</div><div class="db-stat-change" style="color:#9c27b0" id="sa-stat-staff-sub">Đang tải...</div></div>
+          <div class="db-stat-card green"><div class="db-stat-label">Sản Phẩm</div><div class="db-stat-val" id="sa-stat-sp">--</div><div class="db-stat-change" id="sa-stat-sp-sub">Đang tải...</div></div>
+          <div class="db-stat-card gold"><div class="db-stat-label">Đơn Hàng</div><div class="db-stat-val" id="sa-stat-dh">--</div><div class="db-stat-change" id="sa-stat-dh-sub">Đang tải...</div></div>
         </div>
         <div class="db-grid-2">
           <div class="db-widget">
-            <div class="db-widget-title">Hoạt Động Gần Đây</div>
-            <div class="db-list-item"><span class="db-list-icon">🔑</span><div class="db-list-info"><div class="db-list-name">staff_marketing đăng nhập</div><div class="db-list-sub">03/03/2026 10:28 — IP: 192.168.1.45</div></div></div>
-            <div class="db-list-item"><span class="db-list-icon">✏️</span><div class="db-list-info"><div class="db-list-name">shop_owner cập nhật sản phẩm #142</div><div class="db-list-sub">03/03/2026 09:15 — Nike Air Max 270</div></div></div>
-            <div class="db-list-item"><span class="db-list-icon">⚠️</span><div class="db-list-info"><div class="db-list-name" style="color:orange">Đăng nhập sai mật khẩu 5 lần</div><div class="db-list-sub">02/03/2026 23:47 — IP: 103.72.x.x (VN)</div></div></div>
-            <div class="db-list-item"><span class="db-list-icon">🗑️</span><div class="db-list-info"><div class="db-list-name">accountant xóa hóa đơn nháp #0004</div><div class="db-list-sub">02/03/2026 16:20</div></div></div>
+            <div class="db-widget-title">📦 Đơn Hàng Gần Đây</div>
+            <div id="sa-recent-orders"><div style="color:var(--gray-light);font-size:12px;padding:12px 0">Đang tải...</div></div>
           </div>
           <div class="db-widget">
-            <div class="db-widget-title">Phân Bổ User Theo Role</div>
-            <div class="db-list-item"><span class="db-list-icon">👤</span><div class="db-list-info"><div class="db-list-name">Thành Viên</div></div><div style="font-weight:700">26,047</div></div>
-            <div class="db-list-item"><span class="db-list-icon">👑</span><div class="db-list-info"><div class="db-list-name">Shop Admin</div></div><div style="font-weight:700">8</div></div>
-            <div class="db-list-item"><span class="db-list-icon">📒</span><div class="db-list-info"><div class="db-list-name">Kế Toán</div></div><div style="font-weight:700">5</div></div>
-            <div class="db-list-item"><span class="db-list-icon">🎯</span><div class="db-list-info"><div class="db-list-name">Marketing Staff</div></div><div style="font-weight:700">12</div></div>
-            <div class="db-list-item"><span class="db-list-icon">🛡️</span><div class="db-list-info"><div class="db-list-name">Super Admin</div></div><div style="font-weight:700;color:#9c27b0">2</div></div>
+            <div class="db-widget-title">Phân Bổ Nhân Viên Theo Role</div>
+            <div id="sa-staff-roles"><div style="color:var(--gray-light);font-size:12px;padding:12px 0">Đang tải...</div></div>
           </div>
         </div>
       </div>
@@ -13166,6 +13159,225 @@ function svnStartPoll() {
 
 if (svnSid) {
   document.addEventListener('DOMContentLoaded', function() { svnShowConv(); });
+}
+</script>
+
+<script>
+// ============================================================
+// SUPER ADMIN — Đồng bộ dữ liệu thực từ API
+// ============================================================
+const SA = {
+  h() { return { 'Content-Type':'application/json', 'Authorization':'Bearer '+(sessionStorage.getItem('admin_token')||localStorage.getItem('admin_token')||'') }; },
+
+  async loadHome() {
+    try {
+      const [khRes, spRes, dhRes, staffRes] = await Promise.all([
+        fetch('/api/admin/khachhang?limit=1', {headers:this.h()}),
+        fetch('/api/admin/sanpham?limit=1', {headers:this.h()}),
+        fetch('/api/admin/hoadon?limit=5', {headers:this.h()}),
+        fetch('/api/admin/users', {headers:this.h()}),
+      ]);
+      const [kh, sp, dh, staff] = await Promise.all([khRes.json(), spRes.json(), dhRes.json(), staffRes.json()]);
+      const set = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
+      set('sa-stat-kh',    (kh.total||0).toLocaleString('vi-VN'));
+      set('sa-stat-kh-sub','Tổng khách hàng đã đăng ký');
+      set('sa-stat-sp',    (sp.total||0).toLocaleString('vi-VN'));
+      set('sa-stat-sp-sub','Sản phẩm trong hệ thống');
+      set('sa-stat-dh',    (dh.total||0).toLocaleString('vi-VN'));
+      set('sa-stat-dh-sub','Tổng đơn hàng');
+      const staffList = Array.isArray(staff) ? staff : (staff.data||[]);
+      set('sa-stat-staff', staffList.length);
+      const roleCount = {};
+      staffList.forEach(s => { const r=s.vaitro||s.VaiTro||'other'; roleCount[r]=(roleCount[r]||0)+1; });
+      const roleIcon = {admin:'🛡️',shop:'👑',accountant:'📒',marketing:'🎯'};
+      const rolesEl = document.getElementById('sa-staff-roles');
+      if (rolesEl) rolesEl.innerHTML = staffList.length===0
+        ? '<div style="color:var(--gray-light);font-size:12px">Chưa có nhân viên</div>'
+        : Object.entries(roleCount).map(([r,c])=>`<div class="db-list-item"><span class="db-list-icon">${roleIcon[r]||'👤'}</span><div class="db-list-info"><div class="db-list-name">${r}</div></div><div style="font-weight:700;color:#9c27b0">${c}</div></div>`).join('');
+      const orders = dh.data||[];
+      const ordersEl = document.getElementById('sa-recent-orders');
+      if (ordersEl) ordersEl.innerHTML = orders.length===0
+        ? '<div style="color:var(--gray-light);font-size:12px;padding:8px 0">Chưa có đơn hàng</div>'
+        : orders.map(o=>{
+            const tt=o.trangthai||o.TrangThai||'--';
+            const cls=tt==='Hoàn thành'?'status-done':tt==='Đang giao'?'status-shipping':tt==='Đã hủy'?'status-cancel':'status-pending';
+            return `<div class="db-list-item"><span class="db-list-icon">📦</span><div class="db-list-info"><div class="db-list-name" style="color:var(--red);font-family:monospace">${o.mahoadon||o.MaHoaDon||'--'}</div><div class="db-list-sub">${o.tenkhachhang||o.HoTenNguoiNhan||'Khách lẻ'} · ${typeof fmtMoney==='function'?fmtMoney(o.tongtien||o.TongTien):'--'}</div></div><span class="db-status ${cls}" style="font-size:10px">${tt}</span></div>`;
+          }).join('');
+      const sub = document.getElementById('sa-home-sub');
+      if(sub) sub.textContent = `Full system access — ${staffList.length} nhân viên · ${sp.total||0} sản phẩm · ${kh.total||0} khách hàng`;
+    } catch(e) { console.warn('SA.loadHome:', e.message); }
+  },
+
+  async loadUsers() {
+    const tbody = document.querySelector('#panel-sa-users tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--gray-light)">⏳ Đang tải...</td></tr>';
+    try {
+      const res = await fetch('/api/admin/users', {headers:this.h()});
+      const data = await res.json();
+      const list = Array.isArray(data) ? data : (data.data||[]);
+      const titleEl = document.querySelector('#panel-sa-users .db-table-title');
+      if (titleEl) titleEl.textContent = `Tài Khoản Nhân Viên (${list.length})`;
+      if (!list.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--gray-light)">Chưa có nhân viên</td></tr>'; return; }
+      const roleColors = {admin:'#9c27b0',shop:'var(--red)',accountant:'#2196f3',marketing:'#4caf50'};
+      const roleIcons  = {admin:'🛡️',shop:'👑',accountant:'📒',marketing:'🎯'};
+      tbody.innerHTML = list.map(s => {
+        const role   = s.vaitro||s.VaiTro||'--';
+        const status = s.trangthai||s.TrangThai||'Hoạt động';
+        const active = status === 'Hoạt động';
+        const id     = s.idnguoiquanly||s.IDNguoiQuanLy||'';
+        return `<tr>
+          <td><strong>${s.hoten||s.HoTen||'--'}</strong></td>
+          <td style="font-size:12px">${s.email||s.Email||'--'}</td>
+          <td><span style="color:${roleColors[role]||'var(--gray-light)'};font-weight:700">${roleIcons[role]||'👤'} ${role}</span></td>
+          <td><span class="db-status ${active?'status-done':'status-cancel'}">● ${status}</span></td>
+          <td style="font-size:12px;color:var(--gray-light)">--</td>
+          <td><span style="color:#4caf50">✅ Bật</span></td>
+          <td style="display:flex;gap:4px">
+            <button class="db-btn-sm" onclick="saEditUser(${id},'${(s.hoten||'').replace(/'/g,"\'")}','${s.email||''}','${role}')">Sửa</button>
+            ${role!=='admin'?`<button class="db-btn-sm" style="color:${active?'#f44336':'#4caf50'};border-color:rgba(${active?'244,67,54':'76,175,80'},.3)" onclick="saToggleUser(${id},'${status}')">${active?'Khóa':'Mở Khóa'}</button>`:''}
+          </td>
+        </tr>`;
+      }).join('');
+    } catch(e) { tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#f44336;padding:16px">Lỗi: ${e.message}</td></tr>`; }
+  },
+
+  async loadProducts() {
+    const tbody = document.getElementById('sa-prod-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--gray-light)">⏳ Đang tải...</td></tr>';
+    try {
+      const res  = await fetch('/api/admin/sanpham?limit=50', {headers:this.h()});
+      const json = await res.json();
+      const rows = json.data||[];
+      const cntEl = document.getElementById('sa-prod-count');
+      if (cntEl) cntEl.textContent = json.total||rows.length;
+      if (!rows.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--gray-light)">Chưa có sản phẩm</td></tr>'; return; }
+      tbody.innerHTML = rows.map(p => {
+        const ton = p.soluongton??p.SoLuongTon??0;
+        const tc  = ton===0?'#f44336':ton<10?'orange':'#4caf50';
+        const tt  = p.tinhtrang||p.TinhTrang||'Đang bán';
+        const ma  = p.masanpham||p.MaSanPham||'';
+        return `<tr><td><input type="checkbox" style="accent-color:var(--red)"></td>
+          <td><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px">👟</span>
+            <div><div style="font-weight:600;font-size:13px">${p.tensanpham||p.TenSanPham||'--'}</div>
+            <div style="font-size:11px;color:var(--gray-light)">SKU: ${p.sku||p.SKU||'--'}</div></div></div></td>
+          <td style="font-size:12px">${p.thuonghieu||p.ThuongHieu||'--'}</td>
+          <td style="font-size:12px">${p.danhmuc||p.DanhMuc||'--'}</td>
+          <td style="font-weight:700;color:var(--red)">${typeof fmtMoney==='function'?fmtMoney(p.giaban||p.GiaBan):'--'}</td>
+          <td><span style="color:${tc};font-weight:700">${ton}</span></td>
+          <td><span class="db-status ${tt==='Ẩn'?'status-cancel':'status-done'}">${tt==='Ẩn'?'🙈 Ẩn':'✅ Đang Bán'}</span></td>
+          <td style="display:flex;gap:5px">
+            <button class="db-btn-sm" onclick="saEditProduct('${ma}')">Sửa</button>
+            <button class="db-btn-sm" onclick="adminToggleProduct('${ma}',this)">${tt==='Ẩn'?'Hiện':'Ẩn'}</button>
+          </td></tr>`;
+      }).join('');
+    } catch(e) { tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#f44336;padding:16px">Lỗi: ${e.message}</td></tr>`; }
+  },
+
+  async loadOrders() {
+    const tbody = document.querySelector('#panel-sa-allorders tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--gray-light)">⏳ Đang tải...</td></tr>';
+    try {
+      const res  = await fetch('/api/admin/hoadon?limit=20', {headers:this.h()});
+      const json = await res.json();
+      const rows = json.data||[];
+      const cards = document.querySelectorAll('#panel-sa-allorders .db-stat-val');
+      if(cards[0]) cards[0].textContent = (json.total||rows.length).toLocaleString('vi-VN');
+      if(cards[1]) cards[1].textContent = rows.filter(o=>(o.trangthai||'').includes('Chờ')).length;
+      if(cards[2]) cards[2].textContent = rows.filter(o=>(o.trangthai||'').includes('giao')).length;
+      if(cards[3]) cards[3].textContent = rows.filter(o=>(o.trangthai||'').includes('thành')).length;
+      if (!rows.length) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--gray-light)">Chưa có đơn hàng</td></tr>'; return; }
+      const sm = {'Chờ xử lý':['⏳','status-pending'],'Đã xác nhận':['✅','status-done'],'Đang giao':['🚚','status-shipping'],'Hoàn thành':['✅','status-done'],'Đã hủy':['❌','status-cancel']};
+      tbody.innerHTML = rows.map(o => {
+        const tt = o.trangthai||o.TrangThai||'Chờ xử lý';
+        const [ico,cls] = sm[tt]||['⏳','status-pending'];
+        const ma = o.mahoadon||o.MaHoaDon||'--';
+        return `<tr>
+          <td><input type="checkbox" style="accent-color:var(--red)"></td>
+          <td style="font-size:12px;font-weight:700;color:var(--red);font-family:monospace">${ma}</td>
+          <td><div style="font-size:13px;font-weight:600">${o.tenkhachhang||o.HoTenNguoiNhan||'Khách lẻ'}</div>
+              <div style="font-size:11px;color:var(--gray-light)">${o.sodienthoai||o.SoDienThoaiNhan||''}</div></td>
+          <td style="font-size:12px">--</td>
+          <td style="font-weight:700;color:var(--red)">${typeof fmtMoney==='function'?fmtMoney(o.tongtien||o.TongTien):'--'}</td>
+          <td><span class="db-status ${cls}">${ico} ${tt}</span></td>
+          <td style="font-size:11px;color:var(--gray-light)">${o.ngayban||o.NgayBan?new Date(o.ngayban||o.NgayBan).toLocaleDateString('vi-VN'):'--'}</td>
+          <td colspan="2" style="display:flex;gap:4px;flex-wrap:wrap">
+            <button class="db-btn-sm" onclick="adminOrderDetail('${ma}')">Xem</button>
+            ${tt==='Chờ xử lý'?`<button class="db-btn-sm primary" onclick="adminQuickStatus('${ma}','Đã xác nhận')">✓ Duyệt</button>`:''}
+          </td></tr>`;
+      }).join('');
+    } catch(e) { tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#f44336;padding:16px">Lỗi: ${e.message}</td></tr>`; }
+  },
+
+  async loadCategories() {
+    try {
+      const res  = await fetch('/api/danhmuc', {headers:this.h()});
+      const rows = await res.json();
+      const tbody = document.getElementById('sa-cat-tbody');
+      if (!tbody || !Array.isArray(rows) || !rows.length) return;
+      tbody.innerHTML = rows.map(c => {
+        const ten = c.tendanhmuc||c.TenDanhMuc||'--';
+        const id  = c.madanhmuc||c.MaDanhMuc||'--';
+        const tt  = c.trangthai||c.TrangThai||'Hoat dong';
+        return `<tr><td><span style="font-size:16px">📂</span> <b>${ten}</b></td>
+          <td style="color:var(--gray-light);font-size:12px">${id}</td>
+          <td>--</td><td>--</td>
+          <td><span class="db-status ${tt.includes('Hoat')||tt.includes('Hoạt')?'status-done':'status-cancel'}">● ${tt}</span></td>
+          <td><button class="db-btn-sm" onclick="showToast('Sửa','${ten}')">Sửa</button></td></tr>`;
+      }).join('');
+    } catch(e) { console.warn('SA.loadCategories:', e.message); }
+  },
+};
+
+// Patch switchDbPanel cho SA
+(function(){
+  const _orig = window.switchDbPanel;
+  window.switchDbPanel = function(dashId, panelId, navItem) {
+    if (typeof _orig === 'function') _orig(dashId, panelId, navItem);
+    if (dashId !== 'superAdminDashboard') return;
+    setTimeout(() => {
+      if (panelId === 'panel-sa-home')       SA.loadHome();
+      if (panelId === 'panel-sa-users')      SA.loadUsers();
+      if (panelId === 'panel-sa-products')   SA.loadProducts();
+      if (panelId === 'panel-sa-allorders')  SA.loadOrders();
+      if (panelId === 'panel-sa-categories') SA.loadCategories();
+    }, 80);
+  };
+})();
+
+// Observer: tự load khi SA dashboard mở
+(function(){
+  const saDiv = document.getElementById('superAdminDashboard');
+  if (!saDiv) return;
+  new MutationObserver(() => {
+    if (saDiv.classList.contains('open')) setTimeout(() => SA.loadHome(), 400);
+  }).observe(saDiv, {attributes:true, attributeFilter:['class']});
+})();
+
+async function saEditUser(id, name, email, role) {
+  const newRole = prompt(`Đổi role cho ${name}?\nHiện tại: ${role}\nNhập: admin / shop / accountant`, role);
+  if (!newRole || newRole === role) return;
+  try {
+    const res = await fetch(`/api/admin/users/${id}`, {method:'PUT', headers:SA.h(), body:JSON.stringify({VaiTro:newRole})});
+    const json = await res.json();
+    if (!res.ok) { showToast('Lỗi -', json.error); return; }
+    showToast('Đã Cập Nhật ✅', `${name} → ${newRole}`);
+    SA.loadUsers();
+  } catch(e) { showToast('Lỗi -', e.message); }
+}
+
+async function saToggleUser(id, currentStatus) {
+  const newStatus = currentStatus === 'Hoạt động' ? 'Khóa' : 'Hoạt động';
+  if (!confirm(`${newStatus === 'Khóa' ? 'Khóa' : 'Mở khóa'} tài khoản này?`)) return;
+  try {
+    const res = await fetch(`/api/admin/users/${id}`, {method:'PUT', headers:SA.h(), body:JSON.stringify({TrangThai:newStatus})});
+    const json = await res.json();
+    if (!res.ok) { showToast('Lỗi -', json.error); return; }
+    showToast('Đã Cập Nhật ✅', `Trạng thái → ${newStatus}`);
+    SA.loadUsers();
+  } catch(e) { showToast('Lỗi -', e.message); }
 }
 </script>
 

@@ -1216,27 +1216,27 @@ footer {
   <div class="brands-grid">
     <div class="brand-card" onclick="filterBrand('Nike')">
       <div class="brand-logo">NIKE</div>
-      <div class="brand-count">142 sản phẩm</div>
+      <div class="brand-count" id="count-Nike">-- sản phẩm</div>
     </div>
     <div class="brand-card" onclick="filterBrand('Adidas')">
       <div class="brand-logo">ADIDAS</div>
-      <div class="brand-count">98 sản phẩm</div>
+      <div class="brand-count" id="count-Adidas">-- sản phẩm</div>
     </div>
     <div class="brand-card" onclick="filterBrand('MLB')">
       <div class="brand-logo">MLB</div>
-      <div class="brand-count">67 sản phẩm</div>
+      <div class="brand-count" id="count-MLB">-- sản phẩm</div>
     </div>
     <div class="brand-card" onclick="filterBrand('Puma')">
       <div class="brand-logo">PUMA</div>
-      <div class="brand-count">54 sản phẩm</div>
+      <div class="brand-count" id="count-Puma">-- sản phẩm</div>
     </div>
     <div class="brand-card" onclick="filterBrand('New Balance')">
       <div class="brand-logo">NEW BALANCE</div>
-      <div class="brand-count">45 sản phẩm</div>
+      <div class="brand-count" id="count-New Balance">-- sản phẩm</div>
     </div>
     <div class="brand-card" onclick="filterBrand('Fila')">
       <div class="brand-logo">FILA</div>
-      <div class="brand-count">38 sản phẩm</div>
+      <div class="brand-count" id="count-Fila">-- sản phẩm</div>
     </div>
   </div>
 </section>
@@ -13167,6 +13167,23 @@ function svnStartPoll() {
 if (svnSid) {
   document.addEventListener('DOMContentLoaded', function() { svnShowConv(); });
 }
+</script>
+
+<script>
+// Đếm số sản phẩm thực tế theo brand từ mảng products
+function initBrandCounts() {
+  var brands = ['Nike', 'Adidas', 'MLB', 'Puma', 'New Balance', 'Fila'];
+  brands.forEach(function(brand) {
+    var count = products.filter(function(p) {
+      return p.brand.toLowerCase() === brand.toLowerCase();
+    }).length;
+    var el = document.getElementById('count-' + brand);
+    if (el) el.textContent = count + ' sản phẩm';
+  });
+}
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(initBrandCounts, 100);
+});
 </script>
 </body>
 </html>

@@ -8873,17 +8873,92 @@ select.mp-field-input option { background: #1a1a1a; }
 
       <!-- USERS MANAGEMENT -->
       <div class="db-panel" id="panel-sa-users">
-        <div class="db-page-title">Quản Lý Users & Staff</div>
-        <div class="db-page-sub">Tạo, chỉnh sửa, vô hiệu hóa tài khoản nhân viên</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <div class="db-page-title" style="margin-bottom:0">Quản Lý Users & Staff</div>
+          <div style="display:flex;gap:8px">
+            <button class="db-btn-sm primary" onclick="saOpenCreateUser()">+ Tạo Tài Khoản</button>
+            <button class="db-btn-sm" onclick="saExportUsers()">📊 Xuất CSV</button>
+          </div>
+        </div>
+        <div class="db-page-sub">Tạo, chỉnh sửa, khóa/mở khóa tài khoản nhân viên</div>
+
+        <!-- Form tạo / sửa tài khoản -->
+        <div id="sa-user-form" style="display:none;background:rgba(255,255,255,0.03);border:1px solid rgba(230,32,32,0.25);border-radius:6px;padding:20px;margin-bottom:20px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:16px" id="sa-user-form-title">➕ Tạo Tài Khoản Mới</div>
+          <input type="hidden" id="sa-user-edit-id">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div>
+              <label class="db-label">Họ & Tên *</label>
+              <input class="db-input" id="sa-u-hoten" placeholder="Nguyễn Văn A" style="width:100%">
+            </div>
+            <div>
+              <label class="db-label">Email *</label>
+              <input class="db-input" id="sa-u-email" type="email" placeholder="email@sneakervn.com" style="width:100%">
+            </div>
+            <div>
+              <label class="db-label">Số Điện Thoại</label>
+              <input class="db-input" id="sa-u-sdt" placeholder="0912 345 678" style="width:100%">
+            </div>
+            <div>
+              <label class="db-label">Vai Trò *</label>
+              <select class="db-input" id="sa-u-vaitro" style="width:100%">
+                <option value="shop">👑 Shop Admin</option>
+                <option value="accountant">📒 Kế Toán</option>
+                <option value="admin">🛡️ Super Admin</option>
+              </select>
+            </div>
+            <div>
+              <label class="db-label">Mật Khẩu <span id="sa-u-pw-hint" style="color:var(--gray-light);font-weight:400">(bắt buộc khi tạo mới)</span></label>
+              <input class="db-input" id="sa-u-matkhau" type="password" placeholder="Tối thiểu 6 ký tự" style="width:100%">
+            </div>
+            <div>
+              <label class="db-label">Trạng Thái</label>
+              <select class="db-input" id="sa-u-trangthai" style="width:100%">
+                <option value="Hoạt động">✅ Hoạt Động</option>
+                <option value="Khóa">🔒 Khóa</option>
+              </select>
+            </div>
+          </div>
+          <div id="sa-user-form-error" style="display:none;margin-top:10px;padding:8px 12px;background:rgba(244,67,54,0.1);border:1px solid rgba(244,67,54,0.3);color:#f44336;font-size:12px;border-radius:4px"></div>
+          <div style="display:flex;gap:10px;margin-top:16px">
+            <button class="db-btn-sm primary" onclick="saSubmitUser()" id="sa-user-submit-btn">💾 Lưu Tài Khoản</button>
+            <button class="db-btn-sm" onclick="saCloseUserForm()">Hủy</button>
+          </div>
+        </div>
+
+        <!-- Bộ lọc -->
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+          <input class="db-input" id="sa-user-search" placeholder="🔍 Tìm tên, email..." style="max-width:220px"
+            oninput="saFilterUsersTable(this.value)">
+          <select class="db-input" id="sa-user-role-filter" style="max-width:160px" onchange="SA.loadUsers()">
+            <option value="">Tất Cả Role</option>
+            <option value="admin">🛡️ Admin</option>
+            <option value="shop">👑 Shop</option>
+            <option value="accountant">📒 Kế Toán</option>
+          </select>
+          <span style="font-size:12px;color:var(--gray-light);margin-left:auto">
+            Tổng: <b style="color:var(--white)" id="sa-user-count">--</b> nhân viên
+          </span>
+        </div>
+
         <div class="db-table-wrap">
-          <div class="db-table-header"><div class="db-table-title">Tài Khoản Nhân Viên (48)</div><div class="db-table-actions"><button class="db-btn-sm primary" onclick="showToast('Tạo Tài Khoản','Form tạo staff account mới')">+ Tạo Tài Khoản</button><button class="db-btn-sm" onclick="showToast('Xuất','Danh sách staff đang xuất')">📊 Xuất</button></div></div>
+          <div class="db-table-header">
+            <div class="db-table-title" id="sa-users-title">Danh Sách Nhân Viên</div>
+          </div>
           <table class="db-table">
-            <thead><tr><th>Họ Tên</th><th>Email</th><th>Role</th><th>Trạng Thái</th><th>Đăng Nhập Gần Nhất</th><th>2FA</th><th>Hành Động</th></tr></thead>
-            <tbody>
-              <tr><td><strong>Nguyễn Admin</strong></td><td><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="a7c6c3cacec9e7d4c9c2c6ccc2d5d1c989c4c8ca">[email&#160;protected]</a></td><td><span style="color:#9c27b0;font-weight:700">🛡️ Super Admin</span></td><td><span class="db-status status-done">● Active</span></td><td>03/03/2026 10:40</td><td><span style="color:#4caf50">✅ Bật</span></td><td><button class="db-btn-sm" onclick="showToast('Chỉnh Sửa','Không thể sửa Super Admin')">Xem</button></td></tr>
-              <tr><td>Trần Shop Owner</td><td><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="2c5f44435c435b42495e6c5f42494d47495e5a42024f4341">[email&#160;protected]</a></td><td><span style="color:var(--red);font-weight:700">👑 Shop Admin</span></td><td><span class="db-status status-done">● Active</span></td><td>03/03/2026 09:15</td><td><span style="color:#4caf50">✅ Bật</span></td><td style="display:flex;gap:4px"><button class="db-btn-sm" onclick="showToast('Chỉnh Sửa','Form chỉnh sửa tài khoản')">Sửa</button><button class="db-btn-sm" onclick="showToast('Đổi Role','Form đổi vai trò nhân viên')">Đổi Role</button></td></tr>
-              <tr><td>Lê Kế Toán</td><td><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="3c575948535d527c4f52595d57594e4a52125f5351">[email&#160;protected]</a></td><td><span style="color:#2196f3;font-weight:700">📒 Kế Toán</span></td><td><span class="db-status status-done">● Active</span></td><td>02/03/2026 17:30</td><td><span style="color:orange">⚠️ Tắt</span></td><td style="display:flex;gap:4px"><button class="db-btn-sm" onclick="showToast('Chỉnh Sửa','Form chỉnh sửa tài khoản')">Sửa</button><button class="db-btn-sm" onclick="showToast('Bật 2FA','Email hướng dẫn đã gửi đến ketoan@sneakervn.com')">Bật 2FA</button></td></tr>
-              <tr><td>Phạm Marketing</td><td><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="abc6cad9c0cedfc2c5ccebd8c5cecac0ced9ddc585c8c4c6">[email&#160;protected]</a></td><td><span style="color:#4caf50;font-weight:700">🎯 Marketing</span></td><td><span class="db-status status-cancel">● Suspended</span></td><td>01/02/2026 14:20</td><td><span style="color:var(--gray-light)">— N/A</span></td><td style="display:flex;gap:4px"><button class="db-btn-sm primary" onclick="showToast('Kích Hoạt','Tài khoản đã được kích hoạt lại')">Kích Hoạt</button><button class="db-btn-sm" onclick="showToast('Xóa TK','Tài khoản đã xóa vĩnh viễn')">Xóa</button></td></tr>
+            <thead>
+              <tr>
+                <th>Họ Tên</th>
+                <th>Email</th>
+                <th>SĐT</th>
+                <th>Vai Trò</th>
+                <th>Trạng Thái</th>
+                <th>Ngày Tạo</th>
+                <th>Hành Động</th>
+              </tr>
+            </thead>
+            <tbody id="sa-users-tbody">
+              <tr><td colspan="7" style="text-align:center;padding:20px;color:var(--gray-light)">⏳ Đang tải...</td></tr>
             </tbody>
           </table>
         </div>
@@ -13209,37 +13284,54 @@ const SA = {
   },
 
   async loadUsers() {
-    const tbody = document.querySelector('#panel-sa-users tbody');
+    const tbody = document.getElementById('sa-users-tbody');
     if (!tbody) return;
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--gray-light)">⏳ Đang tải...</td></tr>';
     try {
-      const res = await fetch('/api/admin/users', {headers:this.h()});
+      const roleFilter = document.getElementById('sa-user-role-filter')?.value || '';
+      const res  = await fetch('/api/admin/users', {headers:this.h()});
       const data = await res.json();
-      const list = Array.isArray(data) ? data : (data.data||[]);
-      const titleEl = document.querySelector('#panel-sa-users .db-table-title');
-      if (titleEl) titleEl.textContent = `Tài Khoản Nhân Viên (${list.length})`;
-      if (!list.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--gray-light)">Chưa có nhân viên</td></tr>'; return; }
-      const roleColors = {admin:'#9c27b0',shop:'var(--red)',accountant:'#2196f3',marketing:'#4caf50'};
-      const roleIcons  = {admin:'🛡️',shop:'👑',accountant:'📒',marketing:'🎯'};
+      let list = Array.isArray(data) ? data : (data.data||[]);
+      if (roleFilter) list = list.filter(s => (s.vaitro||s.VaiTro||'') === roleFilter);
+      // Lưu cho xuất CSV
+      window._saUsersList = list;
+      const countEl = document.getElementById('sa-user-count');
+      const titleEl = document.getElementById('sa-users-title');
+      if (countEl) countEl.textContent = list.length;
+      if (titleEl) titleEl.textContent = `Danh Sách Nhân Viên (${list.length})`;
+      if (!list.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--gray-light)">Chưa có nhân viên nào</td></tr>';
+        return;
+      }
+      const roleColors = {admin:'#9c27b0',shop:'var(--red)',accountant:'#2196f3'};
+      const roleIcons  = {admin:'🛡️ Admin',shop:'👑 Shop',accountant:'📒 Kế Toán'};
       tbody.innerHTML = list.map(s => {
         const role   = s.vaitro||s.VaiTro||'--';
         const status = s.trangthai||s.TrangThai||'Hoạt động';
         const active = status === 'Hoạt động';
         const id     = s.idnguoiquanly||s.IDNguoiQuanLy||'';
+        const ngay   = s.ngaytao||s.NgayTao ? new Date(s.ngaytao||s.NgayTao).toLocaleDateString('vi-VN') : '--';
+        const sdt    = s.sodienthoai||s.SoDienThoai||'--';
         return `<tr>
           <td><strong>${s.hoten||s.HoTen||'--'}</strong></td>
           <td style="font-size:12px">${s.email||s.Email||'--'}</td>
-          <td><span style="color:${roleColors[role]||'var(--gray-light)'};font-weight:700">${roleIcons[role]||'👤'} ${role}</span></td>
+          <td style="font-size:12px">${sdt}</td>
+          <td><span style="color:${roleColors[role]||'var(--gray-light)'};font-weight:700">${roleIcons[role]||role}</span></td>
           <td><span class="db-status ${active?'status-done':'status-cancel'}">● ${status}</span></td>
-          <td style="font-size:12px;color:var(--gray-light)">--</td>
-          <td><span style="color:#4caf50">✅ Bật</span></td>
-          <td style="display:flex;gap:4px">
-            <button class="db-btn-sm" onclick="saEditUser(${id},'${(s.hoten||'').replace(/'/g,"\'")}','${s.email||''}','${role}')">Sửa</button>
-            ${role!=='admin'?`<button class="db-btn-sm" style="color:${active?'#f44336':'#4caf50'};border-color:rgba(${active?'244,67,54':'76,175,80'},.3)" onclick="saToggleUser(${id},'${status}')">${active?'Khóa':'Mở Khóa'}</button>`:''}
+          <td style="font-size:12px;color:var(--gray-light)">${ngay}</td>
+          <td style="display:flex;gap:4px;flex-wrap:wrap">
+            <button class="db-btn-sm" onclick="saOpenEditUser(${id})">✏️ Sửa</button>
+            ${role!=='admin'?`
+            <button class="db-btn-sm" style="color:${active?'#f44336':'#4caf50'};border-color:rgba(${active?'244,67,54':'76,175,80'},.35)"
+              onclick="saToggleUser(${id},'${status}')">${active?'🔒 Khóa':'🔓 Mở'}</button>
+            <button class="db-btn-sm" style="color:#f44336;border-color:rgba(244,67,54,.3)"
+              onclick="saDeleteUser(${id},'${(s.hoten||'').replace(/'/g,"\'")}')">🗑️</button>`:''}
           </td>
         </tr>`;
       }).join('');
-    } catch(e) { tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#f44336;padding:16px">Lỗi: ${e.message}</td></tr>`; }
+    } catch(e) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#f44336;padding:16px">Lỗi: ${e.message}</td></tr>`;
+    }
   },
 
   async loadProducts() {
@@ -13356,28 +13448,173 @@ const SA = {
   }).observe(saDiv, {attributes:true, attributeFilter:['class']});
 })();
 
-async function saEditUser(id, name, email, role) {
-  const newRole = prompt(`Đổi role cho ${name}?\nHiện tại: ${role}\nNhập: admin / shop / accountant`, role);
-  if (!newRole || newRole === role) return;
-  try {
-    const res = await fetch(`/api/admin/users/${id}`, {method:'PUT', headers:SA.h(), body:JSON.stringify({VaiTro:newRole})});
-    const json = await res.json();
-    if (!res.ok) { showToast('Lỗi -', json.error); return; }
-    showToast('Đã Cập Nhật ✅', `${name} → ${newRole}`);
-    SA.loadUsers();
-  } catch(e) { showToast('Lỗi -', e.message); }
+// ── MỞ FORM TẠO MỚI ──────────────────────────────────────────
+function saOpenCreateUser() {
+  document.getElementById('sa-user-form-title').textContent = '➕ Tạo Tài Khoản Mới';
+  document.getElementById('sa-user-edit-id').value = '';
+  document.getElementById('sa-u-hoten').value    = '';
+  document.getElementById('sa-u-email').value    = '';
+  document.getElementById('sa-u-sdt').value      = '';
+  document.getElementById('sa-u-matkhau').value  = '';
+  document.getElementById('sa-u-vaitro').value   = 'shop';
+  document.getElementById('sa-u-trangthai').value= 'Hoạt động';
+  document.getElementById('sa-u-pw-hint').textContent = '(bắt buộc khi tạo mới)';
+  document.getElementById('sa-u-matkhau').placeholder = 'Tối thiểu 6 ký tự';
+  document.getElementById('sa-user-form-error').style.display = 'none';
+  document.getElementById('sa-user-submit-btn').textContent = '💾 Tạo Tài Khoản';
+  const form = document.getElementById('sa-user-form');
+  form.style.display = 'block';
+  form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  document.getElementById('sa-u-hoten').focus();
 }
 
+// ── MỞ FORM SỬA ──────────────────────────────────────────────
+async function saOpenEditUser(id) {
+  const list = window._saUsersList || [];
+  const user = list.find(s => (s.idnguoiquanly||s.IDNguoiQuanLy) == id);
+  if (!user) { showToast('Lỗi', 'Không tìm thấy user'); return; }
+
+  document.getElementById('sa-user-form-title').textContent = `✏️ Sửa Tài Khoản — ${user.hoten||user.HoTen}`;
+  document.getElementById('sa-user-edit-id').value  = id;
+  document.getElementById('sa-u-hoten').value        = user.hoten||user.HoTen||'';
+  document.getElementById('sa-u-email').value        = user.email||user.Email||'';
+  document.getElementById('sa-u-sdt').value          = user.sodienthoai||user.SoDienThoai||'';
+  document.getElementById('sa-u-matkhau').value      = '';
+  document.getElementById('sa-u-vaitro').value       = user.vaitro||user.VaiTro||'shop';
+  document.getElementById('sa-u-trangthai').value    = user.trangthai||user.TrangThai||'Hoạt động';
+  document.getElementById('sa-u-pw-hint').textContent = '(để trống = không đổi mật khẩu)';
+  document.getElementById('sa-u-matkhau').placeholder = 'Để trống nếu không đổi';
+  document.getElementById('sa-user-form-error').style.display = 'none';
+  document.getElementById('sa-user-submit-btn').textContent = '💾 Lưu Thay Đổi';
+  const form = document.getElementById('sa-user-form');
+  form.style.display = 'block';
+  form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function saCloseUserForm() {
+  document.getElementById('sa-user-form').style.display = 'none';
+}
+
+// ── LƯU (TẠO / SỬA) ──────────────────────────────────────────
+async function saSubmitUser() {
+  const editId   = document.getElementById('sa-user-edit-id').value;
+  const isEdit   = !!editId;
+  const hoten    = document.getElementById('sa-u-hoten').value.trim();
+  const email    = document.getElementById('sa-u-email').value.trim();
+  const sdt      = document.getElementById('sa-u-sdt').value.trim();
+  const matkhau  = document.getElementById('sa-u-matkhau').value;
+  const vaitro   = document.getElementById('sa-u-vaitro').value;
+  const trangthai= document.getElementById('sa-u-trangthai').value;
+  const errEl    = document.getElementById('sa-user-form-error');
+  const btn      = document.getElementById('sa-user-submit-btn');
+
+  // Validate
+  if (!hoten) { errEl.textContent='Vui lòng nhập Họ & Tên'; errEl.style.display='block'; return; }
+  if (!email || !/\S+@\S+\.\S+/.test(email)) { errEl.textContent='Email không hợp lệ'; errEl.style.display='block'; return; }
+  if (!isEdit && !matkhau) { errEl.textContent='Mật khẩu bắt buộc khi tạo mới'; errEl.style.display='block'; return; }
+  if (matkhau && matkhau.length < 6) { errEl.textContent='Mật khẩu tối thiểu 6 ký tự'; errEl.style.display='block'; return; }
+  errEl.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = '⏳ Đang lưu...';
+
+  try {
+    let url, method, body;
+    if (isEdit) {
+      url    = `/api/admin/users/${editId}`;
+      method = 'PUT';
+      body   = { HoTen:hoten, Email:email, SoDienThoai:sdt, VaiTro:vaitro, TrangThai:trangthai };
+      if (matkhau) body.MatKhau = matkhau;
+    } else {
+      url    = '/api/admin/users';
+      method = 'POST';
+      body   = { HoTen:hoten, Email:email, SoDienThoai:sdt, MatKhau:matkhau, VaiTro:vaitro };
+    }
+    const res  = await fetch(url, { method, headers:SA.h(), body:JSON.stringify(body) });
+    const json = await res.json();
+    if (!res.ok) {
+      errEl.textContent = json.error || 'Có lỗi xảy ra';
+      errEl.style.display = 'block';
+      return;
+    }
+    saCloseUserForm();
+    showToast(isEdit ? 'Đã Cập Nhật ✅' : 'Tạo Thành Công ✅', hoten + ' — ' + vaitro);
+    SA.loadUsers();
+  } catch(e) {
+    errEl.textContent = 'Lỗi kết nối: ' + e.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '💾 ' + (editId ? 'Lưu Thay Đổi' : 'Tạo Tài Khoản');
+  }
+}
+
+// ── KHÓA / MỞ KHÓA ───────────────────────────────────────────
 async function saToggleUser(id, currentStatus) {
   const newStatus = currentStatus === 'Hoạt động' ? 'Khóa' : 'Hoạt động';
-  if (!confirm(`${newStatus === 'Khóa' ? 'Khóa' : 'Mở khóa'} tài khoản này?`)) return;
+  const action = newStatus === 'Khóa' ? 'Khóa' : 'Mở khóa';
+  if (!confirm(`${action} tài khoản này?`)) return;
   try {
-    const res = await fetch(`/api/admin/users/${id}`, {method:'PUT', headers:SA.h(), body:JSON.stringify({TrangThai:newStatus})});
+    const list = window._saUsersList || [];
+    const user = list.find(s => (s.idnguoiquanly||s.IDNguoiQuanLy) == id) || {};
+    const res  = await fetch(`/api/admin/users/${id}`, {
+      method:'PUT', headers:SA.h(),
+      body: JSON.stringify({
+        HoTen: user.hoten||user.HoTen||'',
+        Email: user.email||user.Email||'',
+        SoDienThoai: user.sodienthoai||user.SoDienThoai||'',
+        VaiTro: user.vaitro||user.VaiTro||'shop',
+        TrangThai: newStatus
+      })
+    });
     const json = await res.json();
-    if (!res.ok) { showToast('Lỗi -', json.error); return; }
-    showToast('Đã Cập Nhật ✅', `Trạng thái → ${newStatus}`);
+    if (!res.ok) { showToast('Lỗi', json.error); return; }
+    showToast(newStatus==='Khóa'?'🔒 Đã Khóa':'🔓 Đã Mở Khóa', (user.hoten||user.HoTen||''));
     SA.loadUsers();
-  } catch(e) { showToast('Lỗi -', e.message); }
+  } catch(e) { showToast('Lỗi', e.message); }
+}
+
+// ── XÓA ──────────────────────────────────────────────────────
+async function saDeleteUser(id, name) {
+  if (!confirm(`Xóa vĩnh viễn tài khoản "${name}"?\nHành động này không thể hoàn tác.`)) return;
+  try {
+    const res  = await fetch(`/api/admin/users/${id}`, { method:'DELETE', headers:SA.h() });
+    const json = await res.json();
+    if (!res.ok) { showToast('Lỗi', json.error); return; }
+    showToast('🗑️ Đã Xóa', name);
+    SA.loadUsers();
+  } catch(e) { showToast('Lỗi', e.message); }
+}
+
+// ── XUẤT CSV ─────────────────────────────────────────────────
+function saExportUsers() {
+  const list = window._saUsersList || [];
+  if (!list.length) { showToast('Không có dữ liệu', 'Vui lòng tải danh sách trước'); return; }
+  const headers = ['ID','Họ Tên','Email','Số Điện Thoại','Vai Trò','Trạng Thái','Ngày Tạo'];
+  const rows = list.map(s => [
+    s.idnguoiquanly||s.IDNguoiQuanLy||'',
+    s.hoten||s.HoTen||'',
+    s.email||s.Email||'',
+    s.sodienthoai||s.SoDienThoai||'',
+    s.vaitro||s.VaiTro||'',
+    s.trangthai||s.TrangThai||'',
+    s.ngaytao||s.NgayTao ? new Date(s.ngaytao||s.NgayTao).toLocaleDateString('vi-VN') : ''
+  ]);
+  const csv = '\uFEFF' + [headers, ...rows]
+    .map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(','))
+    .join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = `NhanVien_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  showToast('📊 Xuất Thành Công', `${list.length} tài khoản → NhanVien_${new Date().toISOString().slice(0,10)}.csv`);
+}
+
+// ── LỌC THEO TÊN/EMAIL ───────────────────────────────────────
+function saFilterUsersTable(q) {
+  q = q.toLowerCase();
+  document.querySelectorAll('#sa-users-tbody tr').forEach(tr => {
+    tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
 }
 </script>
 

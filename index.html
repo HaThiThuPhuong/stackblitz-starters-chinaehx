@@ -10393,10 +10393,15 @@ function filterBrand(val) {
   } else {
     // Trang chủ: lọc theo brand từ mảng local
     if (!val) { renderProducts('all'); return; }
-    document.getElementById('products').scrollIntoView({ behavior: 'smooth' });
+    // Reset filter tabs
     document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+    // Lọc sản phẩm
     const filtered = products.filter(p => p.brand.toLowerCase() === val.toLowerCase());
     renderProductList(filtered);
+    // Scroll xuống section sản phẩm
+    setTimeout(() => {
+      document.getElementById('products').scrollIntoView({ behavior: 'smooth' });
+    }, 100);
   }
 }
 function renderProductList(list) {

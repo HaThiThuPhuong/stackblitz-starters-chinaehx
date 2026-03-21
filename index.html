@@ -2115,22 +2115,133 @@ function renderMpWishlist() {
 }
 
 // -- SA MANAGEMENT FUNCTIONS --
-function saShowAddCat() {
-  const f = document.getElementById('sa-add-cat-form');
-  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+// -- SA CATEGORY FUNCTIONS (CRUD thực) --
+function saOpenCreateCat() {
+  document.getElementById('sa-cat-form-title').textContent = '➕ Thêm Danh Mục Mới';
+  document.getElementById('sa-cat-edit-id').value   = '';
+  document.getElementById('sa-cat-ten').value       = '';
+  document.getElementById('sa-cat-ma').value        = '';
+  document.getElementById('sa-cat-mota').value      = '';
+  document.getElementById('sa-cat-trangthai').value = 'Hoat dong';
+  document.getElementById('sa-cat-submit-btn').textContent = '💾 Tạo Danh Mục';
+  document.getElementById('sa-cat-form-error').style.display = 'none';
+  document.getElementById('sa-cat-ma').dataset.manual = '';
+  const form = document.getElementById('sa-cat-form');
+  form.style.display = 'block';
+  form.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  setTimeout(() => document.getElementById('sa-cat-ten').focus(), 100);
 }
-function saFilterCat(val) {
+
+function saOpenEditCat(id) {
+  const list = window._saCatList || [];
+  const cat  = list.find(c => String(c.id||c.ID) === String(id));
+  if (!cat) { showToast('Lỗi','Không tìm thấy danh mục'); return; }
+  document.getElementById('sa-cat-form-title').textContent = '✏️ Sửa: ' + (cat.ten||cat.Ten);
+  document.getElementById('sa-cat-edit-id').value   = id;
+  document.getElementById('sa-cat-ten').value       = cat.ten||cat.Ten||'';
+  document.getElementById('sa-cat-ma').value        = cat.ma||cat.Ma||'';
+  document.getElementById('sa-cat-mota').value      = cat.mota||cat.Mota||'';
+  document.getElementById('sa-cat-trangthai').value = cat.trangthai||cat.TrangThai||'Hoat dong';
+  document.getElementById('sa-cat-submit-btn').textContent = '💾 Lưu Thay Đổi';
+  document.getElementById('sa-cat-form-error').style.display = 'none';
+  document.getElementById('sa-cat-ma').dataset.manual = '1';
+  const form = document.getElementById('sa-cat-form');
+  form.style.display = 'block';
+  form.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+function saCloseCatForm() {
+  document.getElementById('sa-cat-form').style.display = 'none';
+}
+
+// Auto slug từ tên
+document.addEventListener('DOMContentLoaded', function() {
+  const tenEl = document.getElementById('sa-cat-ten');
+  if (!tenEl) return;
+  tenEl.addEventListener('input', function() {
+    const maEl = document.getElementById('sa-cat-ma');
+    if (maEl && !maEl.dataset.manual) {
+      maEl.value = this.value.toLowerCase()
+        .replace(/[àáạảãâầấậẩẫăằắặẳẵ]/g,'a')
+        .replace(/[èéẹẻẽêềếệểễ]/g,'e')
+        .replace(/[ìíịỉĩ]/g,'i')
+        .replace(/[òóọỏõôồốộổỗơờớợởỡ]/g,'o')
+        .replace(/[ùúụủũưừứựửữ]/g,'u')
+        .replace(/[ỳýỵỷỹ]/g,'y').replace(/đ/g,'d')
+        .replace(/[^a-z0-9\s-]/g,'').trim().replace(/\s+/g,'-');
+    }
+  });
+  const maEl = document.getElementById('sa-cat-ma');
+  if (maEl) maEl.addEventListener('input', function() { this.dataset.manual = this.value ? '1' : ''; });
+});
+
+async function saSubmitCat() {
+  const editId = document.getElementById('sa-cat-edit-id').value;
+  const isEdit = !!editId;
+  const ten    = document.getElementById('sa-cat-ten').value.trim();
+  const ma     = document.getElementById('sa-cat-ma').value.trim();
+  const mota   = document.getElementById('sa-cat-mota').value.trim();
+  const tt     = document.getElementById('sa-cat-trangthai').value;
+  const errEl  = document.getElementById('sa-cat-form-error');
+  const btn    = document.getElementById('sa-cat-submit-btn');
+  if (!ten) { errEl.textContent='Vui lòng nhập Tên Danh Mục'; errEl.style.display='block'; return; }
+  errEl.style.display='none';
+  btn.disabled=true; btn.textContent='⏳ Đang lưu...';
+  try {
+    const url    = isEdit ? `/api/admin/danhmuc/${editId}` : '/api/admin/danhmuc';
+    const method = isEdit ? 'PUT' : 'POST';
+    const h      = SA.h();
+    const res    = await fetch(url, { method, headers:h, body:JSON.stringify({Ten:ten,Ma:ma,Mota:mota,TrangThai:tt}) });
+    const json   = await res.json();
+    if (!res.ok) { errEl.textContent=json.error||'Lỗi server'; errEl.style.display='block'; return; }
+    saCloseCatForm();
+    showToast(isEdit?'✅ Đã Cập Nhật':'✅ Đã Tạo', ten);
+    SA.loadCategories();
+  } catch(e) { errEl.textContent='Lỗi: '+e.message; errEl.style.display='block'; }
+  finally { btn.disabled=false; btn.textContent=editId?'💾 Lưu Thay Đổi':'💾 Tạo Danh Mục'; }
+}
+
+async function saDeleteCat(id, ten) {
+  if (!confirm('Xóa danh mục "' + ten + '"?
+Sản phẩm thuộc danh mục này sẽ mất liên kết.')) return;
+  try {
+    const res  = await fetch(`/api/admin/danhmuc/${id}`, { method:'DELETE', headers:SA.h() });
+    const json = await res.json();
+    if (!res.ok) { showToast('Lỗi', json.error); return; }
+    showToast('🗑️ Đã Xóa', ten);
+    SA.loadCategories();
+  } catch(e) { showToast('Lỗi', e.message); }
+}
+
+async function saToggleCat(id, currentStatus) {
+  const newStatus = (currentStatus==='An'||currentStatus==='Ẩn') ? 'Hoat dong' : 'An';
+  const list = window._saCatList || [];
+  const cat  = list.find(c => String(c.id||c.ID) === String(id));
+  if (!cat) return;
+  try {
+    const res = await fetch(`/api/admin/danhmuc/${id}`, {
+      method:'PUT', headers:SA.h(),
+      body: JSON.stringify({Ten:cat.ten||cat.Ten,Ma:cat.ma||cat.Ma||'',Mota:cat.mota||cat.Mota||'',TrangThai:newStatus})
+    });
+    const json = await res.json();
+    if (!res.ok) { showToast('Lỗi', json.error); return; }
+    showToast(newStatus==='An'?'🙈 Đã Ẩn':'✅ Đã Hiện', cat.ten||cat.Ten);
+    SA.loadCategories();
+  } catch(e) { showToast('Lỗi', e.message); }
+}
+
+function saFilterCatTable(q) {
+  q = q.toLowerCase();
   document.querySelectorAll('#sa-cat-tbody tr').forEach(tr => {
-    tr.style.display = tr.textContent.toLowerCase().includes(val.toLowerCase()) ? '' : 'none';
+    tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
   });
 }
-function saSaveCat() {
-  const name = document.getElementById('sa-cat-name').value.trim();
-  if (!name) { showToast('Lỗi','Vui lòng nhập tên danh mục'); return; }
-  showToast('Lưu Danh Mục -', `"${name}" đã được tạo thành công`);
-  document.getElementById('sa-add-cat-form').style.display = 'none';
-  document.getElementById('sa-cat-name').value = '';
-  document.getElementById('sa-cat-slug').value = '';
+
+function saFilterCatStatus(val) {
+  document.querySelectorAll('#sa-cat-tbody tr').forEach(tr => {
+    if (!val) { tr.style.display=''; return; }
+    tr.style.display = tr.textContent.includes(val==='Hoat dong'?'Hoạt Động':'Ẩn') ? '' : 'none';
+  });
 }
 
 function saShowAddProduct() {
@@ -9168,135 +9279,69 @@ select.mp-field-input option { background: #1a1a1a; }
       <!-- SA CATEGORIES — QUẢN LÝ DANH MỤC               -->
       <!-- ═══════════════════════════════════════════════ -->
       <div class="db-panel" id="panel-sa-categories">
-        <div class="db-page-title">Quản Lý Danh Mục</div>
-        <div class="db-page-sub">Cấu trúc danh mục sản phẩm toàn hệ thống</div>
-
-        <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;align-items:center">
-          <button class="db-btn-sm primary" onclick="saShowAddCat()">+ Thêm Danh Mục</button>
-          <input class="db-input" placeholder="🔍 Tìm danh mục..." style="max-width:240px" oninput="saFilterCat(this.value)">
-          <span style="font-size:12px;color:var(--gray-light);margin-left:auto">Tổng: <b style="color:var(--white)">12</b> danh mục &nbsp;·&nbsp; <b style="color:var(--red)">3</b> danh mục gốc</span>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <div class="db-page-title" style="margin-bottom:0">Quản Lý Danh Mục</div>
+          <button class="db-btn-sm primary" onclick="saOpenCreateCat()">+ Thêm Danh Mục</button>
         </div>
+        <div class="db-page-sub">Thêm, sửa, xóa, ẩn/hiện danh mục sản phẩm</div>
 
-        <!-- Add category form -->
-        <div id="sa-add-cat-form" style="display:none;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);padding:20px;margin-bottom:20px">
-          <div style="font-size:13px;font-weight:700;margin-bottom:16px;color:var(--white)">➕ Thêm Danh Mục Mới</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-            <div><label class="db-label">Tên Danh Mục *</label><input class="db-input" id="sa-cat-name" placeholder="VD: Giày Chạy Bộ"></div>
-            <div><label class="db-label">Slug URL *</label><input class="db-input" id="sa-cat-slug" placeholder="giay-chay-bo"></div>
-            <div><label class="db-label">Danh Mục Cha</label>
-              <select class="db-input" id="sa-cat-parent">
-                <option value="">— Danh mục gốc —</option>
-                <option>Giày Sneaker</option><option>Streetwear</option><option>Phụ Kiện</option>
+        <!-- Form tạo / sửa danh mục -->
+        <div id="sa-cat-form" style="display:none;background:rgba(255,255,255,0.03);border:1px solid rgba(230,32,32,0.25);border-radius:6px;padding:20px;margin-bottom:20px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:16px" id="sa-cat-form-title">➕ Thêm Danh Mục Mới</div>
+          <input type="hidden" id="sa-cat-edit-id">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div>
+              <label class="db-label">Tên Danh Mục *</label>
+              <input class="db-input" id="sa-cat-ten" placeholder="VD: Giày Chạy Bộ" style="width:100%">
+            </div>
+            <div>
+              <label class="db-label">Mã (slug)</label>
+              <input class="db-input" id="sa-cat-ma" placeholder="giay-chay-bo" style="width:100%">
+            </div>
+            <div style="grid-column:1/-1">
+              <label class="db-label">Mô Tả</label>
+              <input class="db-input" id="sa-cat-mota" placeholder="Mô tả ngắn về danh mục..." style="width:100%">
+            </div>
+            <div>
+              <label class="db-label">Trạng Thái</label>
+              <select class="db-input" id="sa-cat-trangthai" style="width:100%">
+                <option value="Hoat dong">✅ Hoạt Động</option>
+                <option value="An">🙈 Ẩn</option>
               </select>
             </div>
-            <div><label class="db-label">Icon / Emoji</label><input class="db-input" id="sa-cat-icon" placeholder="👟" style="width:80px;display:inline-block;margin-right:8px"><span style="font-size:12px;color:var(--gray-light)">hoặc URL icon</span></div>
-            <div style="grid-column:1/-1"><label class="db-label">Mô Tả</label><input class="db-input" id="sa-cat-desc" placeholder="Mô tả ngắn gọn về danh mục..."></div>
-            <div><label class="db-label">Thứ Tự Hiển Thị</label><input class="db-input" id="sa-cat-order" type="number" value="0" style="width:80px"></div>
-            <div style="display:flex;align-items:flex-end;gap:16px;padding-bottom:2px">
-              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px"><input type="checkbox" id="sa-cat-active" checked style="accent-color:var(--red)"> Kích Hoạt</label>
-              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px"><input type="checkbox" id="sa-cat-featured" style="accent-color:var(--gold)"> Nổi Bật</label>
-            </div>
           </div>
-          <div style="display:flex;gap:10px">
-            <button class="db-btn-sm primary" onclick="saSaveCat()">Lưu Danh Mục</button>
-            <button class="db-btn-sm" onclick="document.getElementById('sa-add-cat-form').style.display='none'">Hủy</button>
+          <div id="sa-cat-form-error" style="display:none;margin-top:10px;padding:8px 12px;background:rgba(244,67,54,0.1);border:1px solid rgba(244,67,54,0.3);color:#f44336;font-size:12px;border-radius:4px"></div>
+          <div style="display:flex;gap:10px;margin-top:16px">
+            <button class="db-btn-sm primary" id="sa-cat-submit-btn" onclick="saSubmitCat()">💾 Lưu Danh Mục</button>
+            <button class="db-btn-sm" onclick="saCloseCatForm()">Hủy</button>
           </div>
         </div>
 
-        <!-- Category tree table -->
+        <!-- Bộ lọc + tìm kiếm -->
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+          <input class="db-input" placeholder="🔍 Tìm tên, mã danh mục..." style="max-width:240px"
+            oninput="saFilterCatTable(this.value)">
+          <select class="db-input" style="max-width:160px" onchange="saFilterCatStatus(this.value)" id="sa-cat-status-filter">
+            <option value="">Tất Cả Trạng Thái</option>
+            <option value="Hoat dong">✅ Hoạt Động</option>
+            <option value="An">🙈 Ẩn</option>
+          </select>
+          <span style="font-size:12px;color:var(--gray-light);margin-left:auto">
+            Tổng: <b style="color:var(--white)" id="sa-cat-count">--</b> danh mục
+          </span>
+        </div>
+
         <div class="db-widget" style="padding:0;overflow:hidden">
-          <table class="db-table" id="sa-cat-table" style="width:100%">
+          <table class="db-table" style="width:100%">
             <thead><tr>
-              <th>Danh Mục</th><th>Slug</th><th>Sản Phẩm</th><th>Thứ Tự</th><th>Trạng Thái</th><th>Hành Động</th>
+              <th>Tên Danh Mục</th>
+              <th>Mã</th>
+              <th>Mô Tả</th>
+              <th>Trạng Thái</th>
+              <th>Hành Động</th>
             </tr></thead>
             <tbody id="sa-cat-tbody">
-              <tr style="background:rgba(230,32,32,0.04)">
-                <td><span style="font-size:16px">👟</span> <b>Giày Sneaker</b></td>
-                <td style="color:var(--gray-light);font-size:12px">giay-sneaker</td>
-                <td><span style="color:var(--red);font-weight:700">142</span></td>
-                <td>1</td>
-                <td><span class="db-status status-done" style="font-size:11px">● Active</span></td>
-                <td style="display:flex;gap:6px"><button class="db-btn-sm" onclick="showToast('Sửa Danh Mục','Form chỉnh sửa Giày Sneaker')">Sửa</button><button class="db-btn-sm" onclick="showToast('Danh Mục Con','Thêm danh mục con cho Giày Sneaker')">+ Con</button></td>
-              </tr>
-              <tr>
-                <td style="padding-left:28px"><span style="color:var(--gray-light);margin-right:6px">└─</span>🏃 Giày Chạy Bộ</td>
-                <td style="color:var(--gray-light);font-size:12px">giay-chay-bo</td>
-                <td>48</td><td>1</td>
-                <td><span class="db-status status-done" style="font-size:11px">● Active</span></td>
-                <td style="display:flex;gap:6px"><button class="db-btn-sm" onclick="showToast('Sửa','Form chỉnh sửa')">Sửa</button><button class="db-btn-sm" style="color:#f44336;border-color:rgba(244,67,54,0.3)" onclick="showToast('Xóa','Đã xóa danh mục')">Xóa</button></td>
-              </tr>
-              <tr>
-                <td style="padding-left:28px"><span style="color:var(--gray-light);margin-right:6px">└─</span>🏀 Giày Bóng Rổ</td>
-                <td style="color:var(--gray-light);font-size:12px">giay-bong-ro</td>
-                <td>31</td><td>2</td>
-                <td><span class="db-status status-done" style="font-size:11px">● Active</span></td>
-                <td style="display:flex;gap:6px"><button class="db-btn-sm" onclick="showToast('Sửa','Form chỉnh sửa')">Sửa</button><button class="db-btn-sm" style="color:#f44336;border-color:rgba(244,67,54,0.3)" onclick="showToast('Xóa','Đã xóa danh mục')">Xóa</button></td>
-              </tr>
-              <tr>
-                <td style="padding-left:28px"><span style="color:var(--gray-light);margin-right:6px">└─</span>✨ Lifestyle / Thời Trang</td>
-                <td style="color:var(--gray-light);font-size:12px">lifestyle</td>
-                <td>63</td><td>3</td>
-                <td><span class="db-status status-done" style="font-size:11px">● Active</span></td>
-                <td style="display:flex;gap:6px"><button class="db-btn-sm" onclick="showToast('Sửa','Form chỉnh sửa')">Sửa</button><button class="db-btn-sm" style="color:#f44336;border-color:rgba(244,67,54,0.3)" onclick="showToast('Xóa','Đã xóa danh mục')">Xóa</button></td>
-              </tr>
-              <tr style="background:rgba(230,32,32,0.04)">
-                <td><span style="font-size:16px">👕</span> <b>Streetwear</b></td>
-                <td style="color:var(--gray-light);font-size:12px">streetwear</td>
-                <td><span style="color:var(--red);font-weight:700">87</span></td>
-                <td>2</td>
-                <td><span class="db-status status-done" style="font-size:11px">● Active</span></td>
-                <td style="display:flex;gap:6px"><button class="db-btn-sm" onclick="showToast('Sửa Danh Mục','Form chỉnh sửa Streetwear')">Sửa</button><button class="db-btn-sm" onclick="showToast('Danh Mục Con','Thêm danh mục con')">+ Con</button></td>
-              </tr>
-              <tr>
-                <td style="padding-left:28px"><span style="color:var(--gray-light);margin-right:6px">└─</span>🧢 Mũ / Cap</td>
-                <td style="color:var(--gray-light);font-size:12px">mu-cap</td>
-                <td>24</td><td>1</td>
-                <td><span class="db-status status-done" style="font-size:11px">● Active</span></td>
-                <td style="display:flex;gap:6px"><button class="db-btn-sm" onclick="showToast('Sửa','Form chỉnh sửa')">Sửa</button><button class="db-btn-sm" style="color:#f44336;border-color:rgba(244,67,54,0.3)" onclick="showToast('Xóa','Đã xóa')">Xóa</button></td>
-              </tr>
-              <tr>
-                <td style="padding-left:28px"><span style="color:var(--gray-light);margin-right:6px">└─</span>👕 Áo / Hoodie</td>
-                <td style="color:var(--gray-light);font-size:12px">ao-hoodie</td>
-                <td>38</td><td>2</td>
-                <td><span class="db-status status-done" style="font-size:11px">● Active</span></td>
-                <td style="display:flex;gap:6px"><button class="db-btn-sm" onclick="showToast('Sửa','Form chỉnh sửa')">Sửa</button><button class="db-btn-sm" style="color:#f44336;border-color:rgba(244,67,54,0.3)" onclick="showToast('Xóa','Đã xóa')">Xóa</button></td>
-              </tr>
-              <tr>
-                <td style="padding-left:28px"><span style="color:var(--gray-light);margin-right:6px">└─</span>👖 Quần / Jogger</td>
-                <td style="color:var(--gray-light);font-size:12px">quan-jogger</td>
-                <td>25</td><td>3</td>
-                <td><span class="db-status status-cancel" style="font-size:11px">● Ẩn</span></td>
-                <td style="display:flex;gap:6px"><button class="db-btn-sm" onclick="showToast('Sửa','Form chỉnh sửa')">Sửa</button><button class="db-btn-sm primary" onclick="showToast('Kích Hoạt','Danh mục đã kích hoạt')">Kích Hoạt</button></td>
-              </tr>
-              <tr style="background:rgba(230,32,32,0.04)">
-                <td><span style="font-size:16px">👜</span> <b>Phụ Kiện</b></td>
-                <td style="color:var(--gray-light);font-size:12px">phu-kien</td>
-                <td><span style="color:var(--red);font-weight:700">56</span></td>
-                <td>3</td>
-                <td><span class="db-status status-done" style="font-size:11px">● Active</span></td>
-                <td style="display:flex;gap:6px"><button class="db-btn-sm" onclick="showToast('Sửa Danh Mục','Form chỉnh sửa Phụ Kiện')">Sửa</button><button class="db-btn-sm" onclick="showToast('Danh Mục Con','Thêm danh mục con')">+ Con</button></td>
-              </tr>
-              <tr>
-                <td style="padding-left:28px"><span style="color:var(--gray-light);margin-right:6px">└─</span>🧦 Tất / Vớ</td>
-                <td style="color:var(--gray-light);font-size:12px">tat-vo</td>
-                <td>18</td><td>1</td>
-                <td><span class="db-status status-done" style="font-size:11px">● Active</span></td>
-                <td style="display:flex;gap:6px"><button class="db-btn-sm" onclick="showToast('Sửa','Form chỉnh sửa')">Sửa</button><button class="db-btn-sm" style="color:#f44336;border-color:rgba(244,67,54,0.3)" onclick="showToast('Xóa','Đã xóa')">Xóa</button></td>
-              </tr>
-              <tr>
-                <td style="padding-left:28px"><span style="color:var(--gray-light);margin-right:6px">└─</span>💼 Balo / Túi</td>
-                <td style="color:var(--gray-light);font-size:12px">balo-tui</td>
-                <td>22</td><td>2</td>
-                <td><span class="db-status status-done" style="font-size:11px">● Active</span></td>
-                <td style="display:flex;gap:6px"><button class="db-btn-sm" onclick="showToast('Sửa','Form chỉnh sửa')">Sửa</button><button class="db-btn-sm" style="color:#f44336;border-color:rgba(244,67,54,0.3)" onclick="showToast('Xóa','Đã xóa')">Xóa</button></td>
-              </tr>
-              <tr>
-                <td style="padding-left:28px"><span style="color:var(--gray-light);margin-right:6px">└─</span>🩺 Dây Buộc / Insoles</td>
-                <td style="color:var(--gray-light);font-size:12px">phu-kien-khac</td>
-                <td>16</td><td>3</td>
-                <td><span class="db-status status-done" style="font-size:11px">● Active</span></td>
-                <td style="display:flex;gap:6px"><button class="db-btn-sm" onclick="showToast('Sửa','Form chỉnh sửa')">Sửa</button><button class="db-btn-sm" style="color:#f44336;border-color:rgba(244,67,54,0.3)" onclick="showToast('Xóa','Đã xóa')">Xóa</button></td>
-              </tr>
+              <tr><td colspan="5" style="text-align:center;padding:20px;color:var(--gray-light)">⏳ Đang tải...</td></tr>
             </tbody>
           </table>
         </div>
@@ -13404,22 +13449,45 @@ const SA = {
   },
 
   async loadCategories() {
+    const tbody = document.getElementById('sa-cat-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--gray-light)">⏳ Đang tải...</td></tr>';
     try {
       const res  = await fetch('/api/danhmuc', {headers:this.h()});
-      const rows = await res.json();
-      const tbody = document.getElementById('sa-cat-tbody');
-      if (!tbody || !Array.isArray(rows) || !rows.length) return;
+      const raw  = await res.json();
+      const rows = Array.isArray(raw) ? raw : (raw.data||[]);
+      window._saCatList = rows;
+      const countEl = document.getElementById('sa-cat-count');
+      if (countEl) countEl.textContent = rows.length;
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--gray-light)">Chưa có danh mục nào</td></tr>';
+        return;
+      }
       tbody.innerHTML = rows.map(c => {
-        const ten = c.tendanhmuc||c.TenDanhMuc||'--';
-        const id  = c.madanhmuc||c.MaDanhMuc||'--';
+        const id  = String(c.id||c.ID||'');
+        const ten = c.ten||c.Ten||'--';
+        const ma  = c.ma||c.Ma||'--';
+        const mota= c.mota||c.Mota||'';
         const tt  = c.trangthai||c.TrangThai||'Hoat dong';
-        return `<tr><td><span style="font-size:16px">📂</span> <b>${ten}</b></td>
-          <td style="color:var(--gray-light);font-size:12px">${id}</td>
-          <td>--</td><td>--</td>
-          <td><span class="db-status ${tt.includes('Hoat')||tt.includes('Hoạt')?'status-done':'status-cancel'}">● ${tt}</span></td>
-          <td><button class="db-btn-sm" onclick="showToast('Sửa','${ten}')">Sửa</button></td></tr>`;
+        const active = tt.includes('Hoat')||tt.includes('Hoạt');
+        const tenEsc = ten.replace(/'/g,"\'");
+        return `<tr>
+          <td><span style="font-size:15px">📂</span> <b>${ten}</b></td>
+          <td style="color:var(--gray-light);font-size:12px;font-family:monospace">${ma}</td>
+          <td style="font-size:12px;color:var(--gray-light);max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${mota||'—'}</td>
+          <td><span class="db-status ${active?'status-done':'status-cancel'}">● ${active?'Hoạt Động':'Ẩn'}</span></td>
+          <td style="display:flex;gap:5px;flex-wrap:wrap">
+            <button class="db-btn-sm" onclick="saOpenEditCat('${id}')">✏️ Sửa</button>
+            <button class="db-btn-sm" style="color:${active?'#ff9800':'#4caf50'};border-color:rgba(${active?'255,152,0':'76,175,80'},.35)"
+              onclick="saToggleCat('${id}','${tt}')">${active?'🙈 Ẩn':'✅ Hiện'}</button>
+            <button class="db-btn-sm" style="color:#f44336;border-color:rgba(244,67,54,.3)"
+              onclick="saDeleteCat('${id}','${tenEsc}')">🗑️ Xóa</button>
+          </td>
+        </tr>`;
       }).join('');
-    } catch(e) { console.warn('SA.loadCategories:', e.message); }
+    } catch(e) {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#f44336;padding:16px">Lỗi: ${e.message}</td></tr>`;
+    }
   },
 };
 

@@ -10360,7 +10360,10 @@ function updateChatVisibility() {
   if (!chatBtn) return;
   const adminDashes = ['shopDashboard','accountantDashboard','superAdminDashboard'];
   const anyAdminOpen = adminDashes.some(id => document.getElementById(id)?.classList.contains('open'));
-  chatBtn.style.display = anyAdminOpen ? 'none' : 'flex';
+  // Dùng visibility để không mất layout, chỉ ẩn trực quan
+  chatBtn.style.visibility  = anyAdminOpen ? 'hidden' : 'visible';
+  chatBtn.style.opacity     = anyAdminOpen ? '0' : '1';
+  chatBtn.style.pointerEvents = anyAdminOpen ? 'none' : '';
   if (anyAdminOpen && chatBox) chatBox.classList.remove('open');
 }
 

@@ -10480,6 +10480,7 @@ function renderWishlist() {
 }
 </script> 
 
+</div><!-- /superAdminDashboard -->
 <!-- ═══════════ KHÁCH HÀNG MODULE ═══════════ -->
 <script>
 // -- State ------------------------------------
@@ -13467,191 +13468,6 @@ Object.defineProperty(window, '_bkRef', {
 // memberDashboard đã bị xóa -- patch không cần thiết
 </script>
 
-<!-- CHATBOX WIDGET -->
-<button id="svn-chat-btn" onclick="svnToggle()">&#128172;<span id="svn-new-dot"></span></button>
-<div id="svn-chat-box">
-  <div class="svn-chat-hdr">
-    <div class="svn-chat-hdr-left">
-      <div class="svn-chat-hdr-avt">&#129302;</div>
-      <div>
-        <div class="svn-chat-hdr-name">SneakerVN AI</div>
-        <div class="svn-chat-hdr-sub">&#127998; Tu van 24/7 - Phan hoi ngay</div>
-      </div>
-    </div>
-    <button class="svn-chat-close" onclick="svnToggle()">&#10005;</button>
-  </div>
-  <div id="svn-chat-start">
-    <p>&#128075; Xin chao! Toi la AI tu van cua <strong style="color:#e62020">SneakerVN</strong>.<br>Cho toi biet ten ban nhe!</p>
-    <input id="svn-gname" placeholder="Ho ten cua ban" onkeydown="if(event.key==='Enter')svnStart()">
-    <input id="svn-gemail" placeholder="Email (tuy chon)" type="email">
-    <button onclick="svnStart()">Bat Dau Tu Van</button>
-  </div>
-  <div id="svn-conv" style="display:none;flex:1;flex-direction:column;overflow:hidden">
-    <div id="svn-chat-msgs"></div>
-    <div id="svn-inp-wrap">
-      <textarea id="svn-inp" placeholder="Hoi ve san pham, size, gia..." rows="1"
-        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();svnSend()}"
-        oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,80)+'px'"></textarea>
-      <button id="svn-send" onclick="svnSend()">&#10148;</button>
-    </div>
-  </div>
-</div>
-<script>
-var svnSid = localStorage.getItem('svn_sid');
-var svnLastId = 0, svnPoll = null, svnBusy = false;
-
-function svnToggle() {
-  var box = document.getElementById('svn-chat-box');
-  if (box.classList.contains('open')) {
-    box.classList.remove('open');
-    if (svnPoll) { clearInterval(svnPoll); svnPoll = null; }
-  } else {
-    box.classList.add('open');
-    document.getElementById('svn-new-dot').style.display = 'none';
-    if (svnSid) { svnShowConv(); svnLoadHist(); svnStartPoll(); }
-    else {
-      setTimeout(function() {
-        var el = document.getElementById('svn-gname');
-        if (el) el.focus();
-      }, 150);
-    }
-  }
-}
-
-function svnShowConv() {
-  document.getElementById('svn-chat-start').style.display = 'none';
-  var c = document.getElementById('svn-conv');
-  c.style.display = 'flex';
-  c.style.flexDirection = 'column';
-  c.style.flex = '1';
-  c.style.overflow = 'hidden';
-}
-
-function svnStart() {
-  var name = (document.getElementById('svn-gname').value || '').trim() || 'Khach';
-  var email = (document.getElementById('svn-gemail').value || '').trim();
-  fetch('/api/chat/session', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ guest_name: name, guest_email: email })
-  })
-  .then(function(r) { return r.json(); })
-  .then(function(d) {
-    if (!d.session) { alert(d.error || 'Loi ket noi'); return; }
-    svnSid = d.session.id;
-    localStorage.setItem('svn_sid', svnSid);
-    svnShowConv();
-    svnAddMsg('ai', 'Xin chao ' + name + '! Toi la AI tu van SneakerVN. Ban can ho tro gi ve giay sneaker?');
-    svnStartPoll();
-  })
-  .catch(function(e) { alert('Loi: ' + e.message); });
-}
-
-function svnSend() {
-  if (svnBusy || !svnSid) return;
-  var inp = document.getElementById('svn-inp');
-  var msg = (inp.value || '').trim();
-  if (!msg) return;
-  inp.value = '';
-  inp.style.height = 'auto';
-  svnAddMsg('user', msg);
-  svnBusy = true;
-  var t = document.createElement('div');
-  t.className = 'svn-typing';
-  t.id = 'svn-typing';
-  t.textContent = 'AI dang soan...';
-  var msgs = document.getElementById('svn-chat-msgs');
-  msgs.appendChild(t);
-  msgs.scrollTop = 99999;
-  fetch('/api/chat/message', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ session_id: svnSid, message: msg })
-  })
-  .then(function(r) { return r.json(); })
-  .then(function(d) {
-    var ty = document.getElementById('svn-typing');
-    if (ty) ty.remove();
-    svnAddMsg('ai', d.reply || 'Xin loi, thu lai!');
-    svnBusy = false;
-  })
-  .catch(function(e) {
-    var ty = document.getElementById('svn-typing');
-    if (ty) ty.remove();
-    svnAddMsg('ai', 'Loi ket noi!');
-    svnBusy = false;
-  });
-}
-
-function svnLoadHist() {
-  if (!svnSid) return;
-  fetch('/api/chat/session/' + svnSid + '/messages')
-  .then(function(r) { return r.json(); })
-  .then(function(msgs) {
-    if (!Array.isArray(msgs) || !msgs.length) return;
-    document.getElementById('svn-chat-msgs').innerHTML = '';
-    msgs.forEach(function(m) {
-      svnAddMsg(m.sender === 'guest' ? 'user' : 'ai', m.message, m.created_at);
-      if (m.id > svnLastId) svnLastId = m.id;
-    });
-  })
-  .catch(function() {});
-}
-
-function svnAddMsg(who, text, time) {
-  var wrap = document.getElementById('svn-chat-msgs');
-  if (!wrap) return;
-  var d = document.createElement('div');
-  d.style.cssText = 'display:flex;flex-direction:column';
-  if (who === 'ai') {
-    var lbl = document.createElement('div');
-    lbl.className = 'svn-ai-lbl';
-    lbl.textContent = 'SneakerVN AI';
-    d.appendChild(lbl);
-  }
-  var b = document.createElement('div');
-  b.className = 'svn-msg ' + who;
-  var safe = document.createElement('span');
-  safe.textContent = text;
-  b.innerHTML = safe.innerHTML;
-  if (time) {
-    var ts = document.createElement('div');
-    ts.style.cssText = 'font-size:10px;opacity:.5;margin-top:3px';
-    ts.textContent = new Date(time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-    b.appendChild(ts);
-  }
-  d.appendChild(b);
-  wrap.appendChild(d);
-  wrap.scrollTop = wrap.scrollHeight;
-}
-
-function svnStartPoll() {
-  if (svnPoll) clearInterval(svnPoll);
-  svnPoll = setInterval(function() {
-    if (!svnSid || svnBusy) return;
-    fetch('/api/chat/session/' + svnSid + '/messages')
-    .then(function(r) { return r.json(); })
-    .then(function(msgs) {
-      if (!Array.isArray(msgs)) return;
-      msgs.forEach(function(m) {
-        if (m.id > svnLastId) {
-          svnAddMsg(m.sender === 'guest' ? 'user' : 'ai', m.message, m.created_at);
-          svnLastId = m.id;
-          var box = document.getElementById('svn-chat-box');
-          if (!box || !box.classList.contains('open')) {
-            document.getElementById('svn-new-dot').style.display = 'block';
-          }
-        }
-      });
-    })
-    .catch(function() {});
-  }, 5000);
-}
-
-if (svnSid) {
-  document.addEventListener('DOMContentLoaded', function() { svnShowConv(); });
-}
-</script>
 
 <script>
 // ============================================================
@@ -14534,6 +14350,193 @@ function initBrandCounts() {
 document.addEventListener('DOMContentLoaded', function() {
   setTimeout(initBrandCounts, 100);
 });
+</script>
+
+
+<!-- CHATBOX WIDGET -->
+<button id="svn-chat-btn" onclick="svnToggle()">&#128172;<span id="svn-new-dot"></span></button>
+<div id="svn-chat-box">
+  <div class="svn-chat-hdr">
+    <div class="svn-chat-hdr-left">
+      <div class="svn-chat-hdr-avt">&#129302;</div>
+      <div>
+        <div class="svn-chat-hdr-name">SneakerVN AI</div>
+        <div class="svn-chat-hdr-sub">&#127998; Tu van 24/7 - Phan hoi ngay</div>
+      </div>
+    </div>
+    <button class="svn-chat-close" onclick="svnToggle()">&#10005;</button>
+  </div>
+  <div id="svn-chat-start">
+    <p>&#128075; Xin chao! Toi la AI tu van cua <strong style="color:#e62020">SneakerVN</strong>.<br>Cho toi biet ten ban nhe!</p>
+    <input id="svn-gname" placeholder="Ho ten cua ban" onkeydown="if(event.key==='Enter')svnStart()">
+    <input id="svn-gemail" placeholder="Email (tuy chon)" type="email">
+    <button onclick="svnStart()">Bat Dau Tu Van</button>
+  </div>
+  <div id="svn-conv" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+    <div id="svn-chat-msgs"></div>
+    <div id="svn-inp-wrap">
+      <textarea id="svn-inp" placeholder="Hoi ve san pham, size, gia..." rows="1"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();svnSend()}"
+        oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,80)+'px'"></textarea>
+      <button id="svn-send" onclick="svnSend()">&#10148;</button>
+    </div>
+  </div>
+</div>
+<script>
+var svnSid = localStorage.getItem('svn_sid');
+var svnLastId = 0, svnPoll = null, svnBusy = false;
+
+function svnToggle() {
+  var box = document.getElementById('svn-chat-box');
+  if (box.classList.contains('open')) {
+    box.classList.remove('open');
+    if (svnPoll) { clearInterval(svnPoll); svnPoll = null; }
+  } else {
+    box.classList.add('open');
+    document.getElementById('svn-new-dot').style.display = 'none';
+    if (svnSid) { svnShowConv(); svnLoadHist(); svnStartPoll(); }
+    else {
+      setTimeout(function() {
+        var el = document.getElementById('svn-gname');
+        if (el) el.focus();
+      }, 150);
+    }
+  }
+}
+
+function svnShowConv() {
+  document.getElementById('svn-chat-start').style.display = 'none';
+  var c = document.getElementById('svn-conv');
+  c.style.display = 'flex';
+  c.style.flexDirection = 'column';
+  c.style.flex = '1';
+  c.style.overflow = 'hidden';
+}
+
+function svnStart() {
+  var name = (document.getElementById('svn-gname').value || '').trim() || 'Khach';
+  var email = (document.getElementById('svn-gemail').value || '').trim();
+  fetch('/api/chat/session', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ guest_name: name, guest_email: email })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    if (!d.session) { alert(d.error || 'Loi ket noi'); return; }
+    svnSid = d.session.id;
+    localStorage.setItem('svn_sid', svnSid);
+    svnShowConv();
+    svnAddMsg('ai', 'Xin chao ' + name + '! Toi la AI tu van SneakerVN. Ban can ho tro gi ve giay sneaker?');
+    svnStartPoll();
+  })
+  .catch(function(e) { alert('Loi: ' + e.message); });
+}
+
+function svnSend() {
+  if (svnBusy || !svnSid) return;
+  var inp = document.getElementById('svn-inp');
+  var msg = (inp.value || '').trim();
+  if (!msg) return;
+  inp.value = '';
+  inp.style.height = 'auto';
+  svnAddMsg('user', msg);
+  svnBusy = true;
+  var t = document.createElement('div');
+  t.className = 'svn-typing';
+  t.id = 'svn-typing';
+  t.textContent = 'AI dang soan...';
+  var msgs = document.getElementById('svn-chat-msgs');
+  msgs.appendChild(t);
+  msgs.scrollTop = 99999;
+  fetch('/api/chat/message', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ session_id: svnSid, message: msg })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    var ty = document.getElementById('svn-typing');
+    if (ty) ty.remove();
+    svnAddMsg('ai', d.reply || 'Xin loi, thu lai!');
+    svnBusy = false;
+  })
+  .catch(function(e) {
+    var ty = document.getElementById('svn-typing');
+    if (ty) ty.remove();
+    svnAddMsg('ai', 'Loi ket noi!');
+    svnBusy = false;
+  });
+}
+
+function svnLoadHist() {
+  if (!svnSid) return;
+  fetch('/api/chat/session/' + svnSid + '/messages')
+  .then(function(r) { return r.json(); })
+  .then(function(msgs) {
+    if (!Array.isArray(msgs) || !msgs.length) return;
+    document.getElementById('svn-chat-msgs').innerHTML = '';
+    msgs.forEach(function(m) {
+      svnAddMsg(m.sender === 'guest' ? 'user' : 'ai', m.message, m.created_at);
+      if (m.id > svnLastId) svnLastId = m.id;
+    });
+  })
+  .catch(function() {});
+}
+
+function svnAddMsg(who, text, time) {
+  var wrap = document.getElementById('svn-chat-msgs');
+  if (!wrap) return;
+  var d = document.createElement('div');
+  d.style.cssText = 'display:flex;flex-direction:column';
+  if (who === 'ai') {
+    var lbl = document.createElement('div');
+    lbl.className = 'svn-ai-lbl';
+    lbl.textContent = 'SneakerVN AI';
+    d.appendChild(lbl);
+  }
+  var b = document.createElement('div');
+  b.className = 'svn-msg ' + who;
+  var safe = document.createElement('span');
+  safe.textContent = text;
+  b.innerHTML = safe.innerHTML;
+  if (time) {
+    var ts = document.createElement('div');
+    ts.style.cssText = 'font-size:10px;opacity:.5;margin-top:3px';
+    ts.textContent = new Date(time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    b.appendChild(ts);
+  }
+  d.appendChild(b);
+  wrap.appendChild(d);
+  wrap.scrollTop = wrap.scrollHeight;
+}
+
+function svnStartPoll() {
+  if (svnPoll) clearInterval(svnPoll);
+  svnPoll = setInterval(function() {
+    if (!svnSid || svnBusy) return;
+    fetch('/api/chat/session/' + svnSid + '/messages')
+    .then(function(r) { return r.json(); })
+    .then(function(msgs) {
+      if (!Array.isArray(msgs)) return;
+      msgs.forEach(function(m) {
+        if (m.id > svnLastId) {
+          svnAddMsg(m.sender === 'guest' ? 'user' : 'ai', m.message, m.created_at);
+          svnLastId = m.id;
+          var box = document.getElementById('svn-chat-box');
+          if (!box || !box.classList.contains('open')) {
+            document.getElementById('svn-new-dot').style.display = 'block';
+          }
+        }
+      });
+    })
+    .catch(function() {});
+  }, 5000);
+}
+
+if (svnSid) {
+  document.addEventListener('DOMContentLoaded', function() { svnShowConv(); });
+}
 </script>
 </body>
 </html>

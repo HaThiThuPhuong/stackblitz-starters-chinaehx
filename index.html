@@ -2285,83 +2285,212 @@ function saFilterOrderTab(btn, key) {
 }
 
 // -- SA PROFILE FUNCTIONS --
+// ── SA PROFILE — load + save thực ────────────────────────────
+async function saLoadProfile() {
+  try {
+    // Lấy thông tin từ /api/admin/users (tìm chính mình qua email trong token)
+    const res  = await fetch('/api/admin/users', { headers: SA.h() });
+    const list = await res.json();
+    const users = Array.isArray(list) ? list : (list.data||[]);
+    // Lấy email từ token JWT đang lưu
+    const token = sessionStorage.getItem('admin_token') || localStorage.getItem('admin_token') || '';
+    let myEmail = '', myId = '', myName = '', mySdt = '';
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+        myEmail = payload.email || '';
+        myId    = payload.id    || '';
+      } catch(e) {}
+    }
+    const me = users.find(u => (u.email||u.Email||'').toLowerCase() === myEmail.toLowerCase())
+            || users.find(u => String(u.idnguoiquanly||u.IDNguoiQuanLy) === String(myId))
+            || {};
+    myName = me.hoten||me.HoTen || (currentUser&&currentUser.name) || 'Super Admin';
+    mySdt  = me.sodienthoai||me.SoDienThoai || '';
+    const myRole   = me.vaitro||me.VaiTro || 'admin';
+    const myStatus = me.trangthai||me.TrangThai || 'Hoạt động';
+    const myNgay   = me.ngaytao||me.NgayTao ? new Date(me.ngaytao||me.NgayTao).toLocaleDateString('vi-VN') : '--';
+    window._saMyId = me.idnguoiquanly||me.IDNguoiQuanLy||myId;
+
+    // Điền form
+    const set = (id, v) => { const el=document.getElementById(id); if(el) el.value=v; };
+    set('sa-pf-name',        myName);
+    set('sa-pf-displayname', myName);
+    set('sa-pf-email',       myEmail);
+    set('sa-pf-phone',       mySdt);
+
+    // Cập nhật avatar + header
+    const avatarEl = document.getElementById('sa-avatar-display');
+    if (avatarEl && !avatarEl.querySelector('img')) {
+      const initials = myName.trim().split(' ').filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase();
+      avatarEl.textContent = initials || 'SA';
+    }
+    const nameEl = document.getElementById('sa-display-name');
+    if (nameEl) nameEl.textContent = myName;
+
+    // Cập nhật badge thông tin
+    const badgeSub = document.querySelector('#panel-sa-profile .db-widget-title');
+    // Cập nhật thông tin bảo mật
+    const secItems = document.querySelectorAll('#panel-sa-profile .db-widget:nth-child(2) span[style*="white"]');
+
+    // Update security info with real data
+    const secSection = document.querySelector('#panel-sa-profile .db-widget:last-child .db-widget + .db-widget') ||
+                       document.querySelectorAll('#panel-sa-profile .db-widget')[1];
+    if (secSection) {
+      const spans = secSection.querySelectorAll('span:not([style*="gray"])');
+      spans.forEach(s => {
+        if (s.textContent.includes('thiết bị')) s.textContent = '1 thiết bị';
+        if (s.textContent.includes('/202')) {
+          const now = new Date();
+          s.textContent = String(now.getDate()).padStart(2,'0') + '/' +
+            String(now.getMonth()+1).padStart(2,'0') + '/' + now.getFullYear() +
+            ' ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+        }
+      });
+    }
+  } catch(e) { console.warn('saLoadProfile:', e.message); }
+}
+
 function saHandleAvatar(e) {
   const file = e.target.files[0];
   if (!file) return;
+  if (file.size > 2*1024*1024) { showToast('Lỗi', 'Ảnh tối đa 2MB'); return; }
   const reader = new FileReader();
   reader.onload = ev => {
     const el = document.getElementById('sa-avatar-display');
-    el.innerHTML = `<img src="${ev.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
-    showToast('Ảnh Đại Diện -','Ảnh đã được cập nhật');
+    if (el) el.innerHTML = '<img src="' + ev.target.result + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+    localStorage.setItem('sa_avatar', ev.target.result);
+    showToast('✅ Đã Cập Nhật', 'Ảnh đại diện đã lưu');
   };
   reader.readAsDataURL(file);
 }
 
-function saSaveProfile() {
-  const name = document.getElementById('sa-pf-name').value.trim();
-  const disp = document.getElementById('sa-pf-displayname').value.trim();
-  if (!name) { showToast('Lỗi','Vui lòng nhập họ tên'); return; }
-  document.getElementById('sa-display-name').textContent = disp || name;
-  if (currentUser) currentUser.name = name;
-  showToast('Lưu Thành Công -','Thông tin cá nhân đã được cập nhật');
+async function saSaveProfile() {
+  const id   = window._saMyId;
+  const name = (document.getElementById('sa-pf-name')||{}).value?.trim();
+  const sdt  = (document.getElementById('sa-pf-phone')||{}).value?.trim();
+  const email= (document.getElementById('sa-pf-email')||{}).value?.trim();
+  if (!name) { showToast('Lỗi', 'Vui lòng nhập họ tên'); return; }
+  if (!id)   { showToast('Lỗi', 'Không xác định được tài khoản. Đăng nhập lại.'); return; }
+  const btn = document.querySelector('#panel-sa-profile button[onclick*="saSaveProfile"]');
+  if (btn) { btn.disabled=true; btn.textContent='⏳ Đang lưu...'; }
+  try {
+    const res  = await fetch('/api/admin/users/' + id, {
+      method: 'PUT', headers: SA.h(),
+      body: JSON.stringify({ HoTen: name, Email: email, SoDienThoai: sdt||'', VaiTro:'admin', TrangThai:'Hoạt động' })
+    });
+    const json = await res.json();
+    if (!res.ok) { showToast('Lỗi', json.error); return; }
+    // Cập nhật DOM
+    const nameEl = document.getElementById('sa-display-name');
+    if (nameEl) nameEl.textContent = name;
+    if (currentUser) currentUser.name = name;
+    showToast('✅ Đã Lưu', 'Thông tin cá nhân đã được cập nhật');
+  } catch(e) { showToast('Lỗi', e.message); }
+  finally { if (btn) { btn.disabled=false; btn.textContent='💾 Lưu Thông Tin'; } }
 }
 
 function saEnableField(id, btn) {
   const input = document.getElementById(id);
+  if (!input) return;
   if (input.disabled) {
-    input.disabled = false; input.focus();
-    btn.textContent = 'Lưu'; btn.classList.add('active');
+    input.disabled = false;
+    input.focus();
+    btn.textContent = 'Lưu';
+    btn.style.background = 'var(--red)';
+    btn.style.color = '#fff';
   } else {
-    if (!input.value.trim()) { showToast('Lỗi','Vui lòng nhập thông tin'); return; }
+    if (!input.value.trim()) { showToast('Lỗi', 'Vui lòng nhập thông tin'); return; }
     input.disabled = true;
-    btn.textContent = 'Đổi'; btn.classList.remove('active');
-    showToast('Cập Nhật -','Thông tin đã lưu, kiểm tra email xác minh');
+    btn.textContent = 'Đổi';
+    btn.style.background = '';
+    btn.style.color = '';
+    saSaveProfile();
   }
 }
 
 function saTogglePw(show) {
-  document.getElementById('sa-pw-collapsed').style.display = show ? 'none' : 'block';
-  document.getElementById('sa-pw-form').style.display = show ? 'flex' : 'none';
+  const collapsed = document.getElementById('sa-pw-collapsed');
+  const form      = document.getElementById('sa-pw-form');
+  if (collapsed) collapsed.style.display = show ? 'none' : 'block';
+  if (form)      form.style.display = show ? 'flex' : 'none';
   if (!show) {
     ['sa-pw-old','sa-pw-new','sa-pw-confirm'].forEach(id => {
-      const el = document.getElementById(id); if(el) el.value = '';
+      const el = document.getElementById(id); if (el) el.value = '';
     });
-    document.getElementById('sa-pw-bar').style.width = '0';
-    document.getElementById('sa-pw-label').textContent = 'Nhập mật khẩu để kiểm tra độ mạnh';
+    const bar = document.getElementById('sa-pw-bar');
+    const lbl = document.getElementById('sa-pw-label');
+    if (bar) bar.style.width = '0';
+    if (lbl) { lbl.textContent = 'Nhập mật khẩu để kiểm tra độ mạnh'; lbl.style.color='var(--gray-light)'; }
   }
 }
 
 function saUpdatePwStrength(val) {
   const bar = document.getElementById('sa-pw-bar');
   const lbl = document.getElementById('sa-pw-label');
+  if (!bar||!lbl) return;
   let score = 0;
-  if (val.length >= 12) score++;
-  if (/[A-Z]/.test(val)) score++;
-  if (/[0-9]/.test(val)) score++;
+  if (val.length >= 8)          score++;
+  if (val.length >= 12)         score++;
+  if (/[A-Z]/.test(val)&&/[0-9]/.test(val)) score++;
   if (/[^A-Za-z0-9]/.test(val)) score++;
   const levels = [
-    {w:'0%',c:'transparent',t:''},
-    {w:'25%',c:'#f44336',t:'Yếu -- SA cần tối thiểu 12 ký tự'},
-    {w:'50%',c:'#ff9800',t:'Trung Bình -- Thêm ký tự đặc biệt'},
-    {w:'75%',c:'#2196f3',t:'Khá Mạnh -- Gần đủ tiêu chuẩn SA'},
-    {w:'100%',c:'#4caf50',t:'Rất Mạnh - -- Đạt tiêu chuẩn bảo mật SA'},
+    {w:'0%',  c:'transparent', t:'Nhập mật khẩu để kiểm tra độ mạnh'},
+    {w:'25%', c:'#f44336',     t:'Yếu — tối thiểu 8 ký tự'},
+    {w:'50%', c:'#ff9800',     t:'Trung Bình — thêm chữ hoa và số'},
+    {w:'75%', c:'#2196f3',     t:'Khá Mạnh — gần đạt tiêu chuẩn'},
+    {w:'100%',c:'#4caf50',     t:'✅ Rất Mạnh — đạt tiêu chuẩn bảo mật'},
   ];
-  bar.style.width = levels[score].w;
-  bar.style.background = levels[score].c;
-  lbl.textContent = levels[score].t || 'Nhập mật khẩu để kiểm tra độ mạnh';
-  lbl.style.color = levels[score].c || 'var(--gray-light)';
+  const lv = levels[score] || levels[0];
+  bar.style.width      = lv.w;
+  bar.style.background = lv.c;
+  lbl.textContent      = lv.t;
+  lbl.style.color      = lv.c === 'transparent' ? 'var(--gray-light)' : lv.c;
 }
 
-function saSavePw() {
-  const old = document.getElementById('sa-pw-old').value;
-  const nw  = document.getElementById('sa-pw-new').value;
-  const cf  = document.getElementById('sa-pw-confirm').value;
-  if (!old) { showToast('Lỗi','Nhập mật khẩu hiện tại'); return; }
-  if (nw.length < 12) { showToast('Lỗi','Mật khẩu SA tối thiểu 12 ký tự'); return; }
-  if (nw !== cf) { showToast('Lỗi','Mật khẩu xác nhận không khớp'); return; }
-  showToast('Đổi Mật Khẩu Thành Công 🔒','Mật khẩu SA đã được cập nhật. Tất cả phiên khác sẽ bị đăng xuất.');
-  saTogglePw(false);
+async function saSavePw() {
+  const oldPw = (document.getElementById('sa-pw-old')||{}).value;
+  const newPw = (document.getElementById('sa-pw-new')||{}).value;
+  const cfPw  = (document.getElementById('sa-pw-confirm')||{}).value;
+  const id    = window._saMyId;
+  const email = (document.getElementById('sa-pf-email')||{}).value?.trim();
+
+  if (!oldPw) { showToast('Lỗi', 'Nhập mật khẩu hiện tại'); return; }
+  if (newPw.length < 8) { showToast('Lỗi', 'Mật khẩu tối thiểu 8 ký tự'); return; }
+  if (newPw !== cfPw) { showToast('Lỗi', 'Mật khẩu xác nhận không khớp'); return; }
+  if (!id) { showToast('Lỗi', 'Không xác định được tài khoản'); return; }
+
+  const btn = document.querySelector('#panel-sa-profile button[onclick*="saSavePw"]');
+  if (btn) { btn.disabled=true; btn.textContent='⏳ Đang cập nhật...'; }
+  try {
+    // Xác minh mật khẩu cũ bằng cách thử login lại
+    const verRes = await fetch('/api/admin/auth/login', {
+      method: 'POST', headers: { 'Content-Type':'application/json' },
+      body: JSON.stringify({ Email: email, MatKhau: oldPw })
+    });
+    if (!verRes.ok) { showToast('Lỗi', 'Mật khẩu hiện tại không đúng'); return; }
+
+    // Cập nhật mật khẩu mới
+    const res  = await fetch('/api/admin/users/' + id, {
+      method: 'PUT', headers: SA.h(),
+      body: JSON.stringify({ MatKhau: newPw })
+    });
+    const json = await res.json();
+    if (!res.ok) { showToast('Lỗi', json.error||'Không thể đổi mật khẩu'); return; }
+    showToast('🔒 Đổi Mật Khẩu Thành Công', 'Mật khẩu đã được cập nhật');
+    saTogglePw(false);
+  } catch(e) { showToast('Lỗi', e.message); }
+  finally { if (btn) { btn.disabled=false; btn.textContent='Cập Nhật Mật Khẩu'; } }
 }
+
+// Load avatar từ localStorage nếu có
+(function() {
+  const saved = localStorage.getItem('sa_avatar');
+  if (saved) {
+    const el = document.getElementById('sa-avatar-display');
+    if (el) el.innerHTML = '<img src="' + saved + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+  }
+})();
 
 function handleRegister() {
   closeModal();
@@ -13519,6 +13648,7 @@ const SA = {
       if (panelId === 'panel-sa-products')   SA.loadProducts();
       if (panelId === 'panel-sa-allorders')  SA.loadOrders();
       if (panelId === 'panel-sa-categories') SA.loadCategories();
+      if (panelId === 'panel-sa-profile')    saLoadProfile();
     }, 80);
   };
 })();

@@ -9165,98 +9165,79 @@ select.mp-field-input option { background: #1a1a1a; }
 
       <!-- SA ORDERS (clone summary) -->
       <div class="db-panel" id="panel-sa-orders">
-        <div class="db-page-title">All Orders — Super Admin View</div>
-        <div class="db-page-sub">Toàn quyền xem và chỉnh sửa mọi đơn hàng trên toàn hệ thống</div>
-        <div style="background:rgba(156,39,176,0.1);border:1px solid rgba(156,39,176,0.3);padding:12px 16px;margin-bottom:20px;font-size:13px;color:#9c27b0">🛡️ Super Admin mode — Mọi thay đổi được ghi log và không thể hoàn tác</div>
-        <div class="db-stats-grid">
-          <div class="db-stat-card red"><div class="db-stat-label">Tổng Đơn Tháng</div><div class="db-stat-val">1,247</div><div class="db-stat-change db-stat-up">↑ +18.2% vs T2</div></div>
-          <div class="db-stat-card green"><div class="db-stat-label">Doanh Thu</div><div class="db-stat-val">2.84 Tỷ</div><div class="db-stat-change db-stat-up">↑ +18.4%</div></div>
-          <div class="db-stat-card gold"><div class="db-stat-label">Tỷ Lệ Hoàn Thành</div><div class="db-stat-val">94.2%</div><div class="db-stat-change db-stat-up">↑ +0.4%</div></div>
-          <div class="db-stat-card blue"><div class="db-stat-label">Tỷ Lệ Hủy</div><div class="db-stat-val">5.8%</div><div class="db-stat-change db-stat-down">↑ +0.2%</div></div>
-        </div>
-        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
-          <button class="db-btn-sm primary">Tất Cả (1,247)</button>
-          <button class="db-btn-sm" onclick="showToast('Lọc','Đơn chờ xử lý')">Chờ XL (12)</button>
-          <button class="db-btn-sm" onclick="showToast('Lọc','Đơn đang giao')">Đang Giao (156)</button>
-          <button class="db-btn-sm" onclick="showToast('Lọc','Đơn hoàn thành')">Hoàn Thành (1,006)</button>
-          <button class="db-btn-sm" onclick="showToast('Lọc','Đơn đã hủy')">Đã Hủy (73)</button>
-          <div style="flex:1;display:flex;gap:8px;justify-content:flex-end">
-            <input class="db-input" placeholder="🔍 Mã ĐH, tên KH..." style="max-width:180px">
-            <button class="db-btn-sm" onclick="showToast('Xuất Full','Toàn bộ đơn hàng đang xuất...')">📊 Xuất All</button>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <div class="db-page-title" style="margin-bottom:0">Đơn Hàng — SA Mode</div>
+          <div style="display:flex;gap:8px">
+            <input class="db-input" id="sa-orders-search" placeholder="🔍 Mã ĐH, tên KH..." style="max-width:200px"
+              oninput="saOrderSearch(this.value)">
+            <button class="db-btn-sm" onclick="saExportAllOrders()">📊 Xuất All</button>
           </div>
         </div>
+        <div class="db-page-sub" id="sa-orders-sub">Đang tải...</div>
+
+        <!-- Filter tabs -->
+        <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap" id="sa-orders-tabs">
+          <button class="db-btn-sm primary" onclick="saOrderFilter('',this)">Tất Cả</button>
+          <button class="db-btn-sm" onclick="saOrderFilter('Chờ xử lý',this)">Chờ XL</button>
+          <button class="db-btn-sm" onclick="saOrderFilter('Đang giao',this)">Đang Giao</button>
+          <button class="db-btn-sm" onclick="saOrderFilter('Hoàn thành',this)">Hoàn Thành</button>
+          <button class="db-btn-sm" onclick="saOrderFilter('Đã hủy',this)">Đã Hủy</button>
+        </div>
+
         <div class="db-table-wrap">
-          <div class="db-table-header"><div class="db-table-title">Danh Sách Đơn Hàng (SA Mode)</div></div>
+          <div class="db-table-header">
+            <div class="db-table-title" id="sa-orders-title">Danh Sách Đơn Hàng</div>
+          </div>
           <table class="db-table">
-            <thead><tr><th><input type="checkbox" style="accent-color:var(--red)"></th><th>Mã ĐH</th><th>Khách Hàng</th><th>Chi Nhánh</th><th>Sản Phẩm</th><th>Giá Trị</th><th>Kênh</th><th>Ngày</th><th>Trạng Thái</th><th>SA Actions</th></tr></thead>
-            <tbody>
-              <tr><td><input type="checkbox" style="accent-color:var(--red)"></td><td>#SVN-240401</td><td>Minh Tuấn<br><span style="font-size:10px;color:var(--gray-light)">0912-111-222</span></td><td>HCM — Q1</td><td>Nike Dunk Low × 1</td><td>4.800.000đ</td><td><span class="db-status status-pending">Online</span></td><td>03/03 10:41</td><td><span class="db-status status-pending">⏳ Chờ XL</span></td><td style="display:flex;gap:3px"><button class="db-btn-sm primary" onclick="showToast('SA Duyệt ✅','#SVN-240401 được SA duyệt thủ công')">✓</button><button class="db-btn-sm" onclick="showToast('SA Hủy','Nhập lý do hủy...')">✗</button><button class="db-btn-sm" onclick="showToast('Xem Log','Audit trail của đơn hàng này')">Log</button></td></tr>
-              <tr><td><input type="checkbox" style="accent-color:var(--red)"></td><td>#SVN-240400</td><td>Thu Hà<br><span style="font-size:10px;color:var(--gray-light)">0933-222-333</span></td><td>HN — HBT</td><td>Adidas Stan Smith × 1</td><td>3.500.000đ</td><td><span class="db-status status-done">Online</span></td><td>03/03 09:28</td><td><span class="db-status status-shipping">🚚 Đang Giao</span></td><td style="display:flex;gap:3px"><button class="db-btn-sm" onclick="showToast('Cập Nhật SA','Form cập nhật trạng thái')">Sửa</button><button class="db-btn-sm" onclick="showToast('Log','Audit trail #SVN-240400')">Log</button></td></tr>
-              <tr><td><input type="checkbox" style="accent-color:var(--red)"></td><td>#SVN-240399</td><td>Quang Anh<br><span style="font-size:10px;color:var(--gray-light)">0944-333-444</span></td><td>HCM — Q3</td><td>MLB Big Ball × 2</td><td>4.400.000đ</td><td><span class="db-status status-done">Tại Cửa Hàng</span></td><td>02/03 16:15</td><td><span class="db-status status-done">✅ Hoàn Thành</span></td><td style="display:flex;gap:3px"><button class="db-btn-sm" onclick="showToast('Hoàn Tiền','Form hoàn tiền thủ công SA')">Hoàn</button><button class="db-btn-sm" onclick="showToast('Log','Audit trail #SVN-240399')">Log</button></td></tr>
-              <tr><td><input type="checkbox" style="accent-color:var(--red)"></td><td>#SVN-240395</td><td>Hải Đăng<br><span style="font-size:10px;color:var(--gray-light)">0977-444-555</span></td><td>HN — Đống Đa</td><td>Puma RS-X × 1</td><td>2.800.000đ</td><td><span class="db-status status-pending">Online</span></td><td>01/03 14:22</td><td><span class="db-status status-cancel">❌ Đã Hủy</span></td><td style="display:flex;gap:3px"><button class="db-btn-sm primary" onclick="showToast('Khôi Phục SA','Đơn hàng đã được SA khôi phục')">Khôi Phục</button><button class="db-btn-sm" onclick="showToast('Log','Audit trail #SVN-240395')">Log</button></td></tr>
+            <thead><tr>
+              <th><input type="checkbox" style="accent-color:var(--red)" onclick="saSelectAllOrders(this)"></th>
+              <th>Mã ĐH</th><th>Khách Hàng</th><th>Giá Trị</th>
+              <th>Thanh Toán</th><th>Ngày Đặt</th><th>Trạng Thái</th><th>SA Actions</th>
+            </tr></thead>
+            <tbody id="sa-orders-tbody">
+              <tr><td colspan="8" style="text-align:center;padding:30px;color:var(--gray-light)">⏳ Đang tải...</td></tr>
             </tbody>
           </table>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:12px;color:var(--gray-light)">
-          <span>Hiển thị 4 / 1,247 đơn hàng</span>
-          <div style="display:flex;gap:6px"><button class="db-btn-sm">← Trước</button><button class="db-btn-sm" style="background:var(--red);color:#fff;border-color:var(--red)">1</button><button class="db-btn-sm">2</button><button class="db-btn-sm">3</button><span>...</span><button class="db-btn-sm">312</button><button class="db-btn-sm">Tiếp →</button></div>
-        </div>
+        <div id="sa-orders-pager" style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:12px;color:var(--gray-light)"></div>
       </div>
 
       <!-- SA FINANCE -->
       <div class="db-panel" id="panel-sa-finance">
-        <div class="db-page-title">Finance — Super Admin View</div>
-        <div class="db-page-sub">Báo cáo tài chính toàn hệ thống, full access</div>
-        <div style="background:rgba(156,39,176,0.1);border:1px solid rgba(156,39,176,0.3);padding:12px 16px;margin-bottom:20px;font-size:13px;color:#9c27b0">🛡️ Super Admin có thể xem, chỉnh sửa, và xóa mọi dữ liệu tài chính — Mọi hành động được audit log</div>
-        <div class="db-stats-grid">
-          <div class="db-stat-card red"><div class="db-stat-label">Revenue MTD</div><div class="db-stat-val">2.84 Tỷ</div><div class="db-stat-change db-stat-up">↑ +18.4%</div></div>
-          <div class="db-stat-card green"><div class="db-stat-label">Net Profit</div><div class="db-stat-val">534M</div><div class="db-stat-change db-stat-up">Margin 18.8%</div></div>
-          <div class="db-stat-card gold"><div class="db-stat-label">Cash Balance</div><div class="db-stat-val">1.54 Tỷ</div><div class="db-stat-change db-stat-up">↑ +700M</div></div>
-          <div class="db-stat-card blue"><div class="db-stat-label">VAT Collected</div><div class="db-stat-val">28.4M</div></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <div class="db-page-title" style="margin-bottom:0">Finance — Super Admin View</div>
+          <button class="db-btn-sm" onclick="saLoadFinance()">🔄 Làm Mới</button>
         </div>
+        <div class="db-page-sub" id="sa-fin-sub">Đang tải dữ liệu tài chính...</div>
+        <div style="background:rgba(156,39,176,0.1);border:1px solid rgba(156,39,176,0.3);padding:10px 16px;margin-bottom:16px;font-size:12px;color:#9c27b0;border-radius:4px">
+          🛡️ Super Admin — full access tài chính hệ thống
+        </div>
+
+        <!-- KPI -->
+        <div class="db-stats-grid" style="margin-bottom:20px">
+          <div class="db-stat-card red"><div class="db-stat-label">Tổng Doanh Thu</div><div class="db-stat-val" id="sa-fin-revenue">--</div><div class="db-stat-change db-stat-up" id="sa-fin-rev-sub">Đang tải</div></div>
+          <div class="db-stat-card green"><div class="db-stat-label">Tổng Đơn Hàng</div><div class="db-stat-val" id="sa-fin-orders">--</div><div class="db-stat-change" id="sa-fin-ord-sub">--</div></div>
+          <div class="db-stat-card gold"><div class="db-stat-label">Giá Trị TB / Đơn</div><div class="db-stat-val" id="sa-fin-avg">--</div><div class="db-stat-change" id="sa-fin-avg-sub">--</div></div>
+          <div class="db-stat-card blue"><div class="db-stat-label">Sản Phẩm Hết Hàng</div><div class="db-stat-val" id="sa-fin-oos">--</div><div class="db-stat-change" id="sa-fin-oos-sub">cần nhập kho</div></div>
+        </div>
+
         <div class="db-grid-2">
-          <div>
-            <div class="db-table-wrap" style="margin-bottom:16px">
-              <div class="db-table-header"><div class="db-table-title">P&L Tổng Hợp YTD 2026</div><button class="db-btn-sm" onclick="showToast('Xuất Báo Cáo','Full financial report đang tạo...')">📊 Xuất Full</button></div>
-              <table class="db-table">
-                <thead><tr><th>Khoản Mục</th><th>T1</th><th>T2</th><th>T3 (MTD)</th><th>YTD</th></tr></thead>
-                <tbody>
-                  <tr><td style="font-weight:700">Doanh Thu</td><td>2.40T</td><td>2.20T</td><td>2.84T</td><td style="color:#4caf50;font-weight:700">7.44 Tỷ</td></tr>
-                  <tr><td style="color:var(--gray-light);padding-left:16px">COGS</td><td style="color:#f44336">(1.68T)</td><td style="color:#f44336">(1.54T)</td><td style="color:#f44336">(1.99T)</td><td style="color:#f44336">(5.21T)</td></tr>
-                  <tr><td style="font-weight:700">Lợi Nhuận Gộp</td><td>720M</td><td>660M</td><td>854M</td><td style="color:#4caf50;font-weight:700">2.23 Tỷ</td></tr>
-                  <tr><td style="color:var(--gray-light);padding-left:16px">Chi Phí VH</td><td style="color:#f44336">(310M)</td><td style="color:#f44336">(295M)</td><td style="color:#f44336">(320M)</td><td style="color:#f44336">(925M)</td></tr>
-                  <tr><td style="font-weight:700;font-size:14px">EBITDA</td><td>410M</td><td>365M</td><td>534M</td><td style="color:var(--gold);font-weight:700;font-size:14px">1.31 Tỷ</td></tr>
-                </tbody>
-              </table>
-            </div>
-            <div class="db-widget">
-              <div class="db-widget-title">🏦 Tài Khoản Ngân Hàng (SA Only)</div>
-              <div class="db-list-item"><span class="db-list-icon">🏦</span><div class="db-list-info"><div class="db-list-name">Vietcombank — TK Doanh Nghiệp</div><div class="db-list-sub">••••7890</div></div><div style="font-weight:700;color:#4caf50">842M</div></div>
-              <div class="db-list-item"><span class="db-list-icon">🏦</span><div class="db-list-info"><div class="db-list-name">Techcombank — TK Lương</div><div class="db-list-sub">••••2341</div></div><div style="font-weight:700">185M</div></div>
-              <div class="db-list-item"><span class="db-list-icon">🏦</span><div class="db-list-info"><div class="db-list-name">MBBank — TK Dự Phòng</div><div class="db-list-sub">••••5567</div></div><div style="font-weight:700">513M</div></div>
+          <!-- Phân bổ trạng thái đơn hàng -->
+          <div class="db-widget">
+            <div class="db-widget-title">📊 Phân Bổ Trạng Thái Đơn Hàng</div>
+            <div id="sa-fin-status-breakdown">
+              <div style="color:var(--gray-light);font-size:12px;padding:12px 0">Đang tải...</div>
             </div>
           </div>
-          <div>
-            <div class="db-widget" style="margin-bottom:16px">
-              <div class="db-widget-title">⚙️ Cài Đặt Tài Chính (SA Only)</div>
-              <div style="display:flex;flex-direction:column;gap:10px">
-                <div><label class="db-label">Ngưỡng Tự Động Duyệt Chi Phí</label>
-                  <div style="display:flex;gap:8px;align-items:center"><input class="db-input" value="5000000" type="number" style="flex:1"><span style="font-size:12px;color:var(--gray-light);white-space:nowrap">đồng</span></div>
-                </div>
-                <div><label class="db-label">Kỳ Báo Cáo Tài Chính</label>
-                  <select class="db-input"><option>Tháng (Monthly)</option><option>Quý (Quarterly)</option><option>Năm (Annual)</option></select>
-                </div>
-                <div><label class="db-label">Email Nhận Báo Cáo</label>
-                  <input class="db-input" value="finance@sneakervn.com" type="email">
-                </div>
-                <button class="db-btn-sm primary" style="width:fit-content" onclick="showToast('Lưu Cài Đặt ✅','Cài đặt tài chính đã được cập nhật')">💾 Lưu Cài Đặt</button>
-              </div>
+
+          <!-- Đơn hàng gần đây -->
+          <div class="db-widget">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+              <div class="db-widget-title" style="margin-bottom:0">📦 Đơn Hàng Mới Nhất</div>
+              <button class="db-btn-sm" onclick="switchDbPanel('superAdminDashboard','panel-sa-orders',document.querySelectorAll('#superAdminDashboard .db-nav-item')[4])">Xem Tất Cả →</button>
             </div>
-            <div class="db-widget">
-              <div class="db-widget-title">📋 Phê Duyệt Tài Chính Đang Chờ</div>
-              <div class="db-list-item"><span class="db-list-icon">📊</span><div class="db-list-info"><div class="db-list-name">Báo Cáo Tài Chính T2/2026</div><div class="db-list-sub" style="color:orange">Chờ ký duyệt SA</div></div><button class="db-btn-sm primary" onclick="showToast('Ký Duyệt ✅','Báo cáo T2 đã được SA phê duyệt')">Ký Duyệt</button></div>
-              <div class="db-list-item"><span class="db-list-icon">🏛️</span><div class="db-list-info"><div class="db-list-name">Quyết Toán Thuế Q4/2025</div><div class="db-list-sub" style="color:#f44336">Hạn: 31/03/2026</div></div><button class="db-btn-sm" onclick="showToast('Xem','Hồ sơ thuế Q4/2025 đang tải...')">Xem</button></div>
-              <div class="db-list-item"><span class="db-list-icon">💰</span><div class="db-list-info"><div class="db-list-name">Ngân Sách Q2/2026</div><div class="db-list-sub" style="color:orange">Cần duyệt trước 15/03</div></div><button class="db-btn-sm" onclick="showToast('Xem','Budget plan Q2 đang tải...')">Xem</button></div>
+            <div id="sa-fin-recent-orders">
+              <div style="color:var(--gray-light);font-size:12px;padding:12px 0">Đang tải...</div>
             </div>
           </div>
         </div>
@@ -13931,6 +13912,239 @@ function accExportOrders() {
   new MutationObserver(function() {
     if (div.classList.contains('open')) setTimeout(function() { accLoadOverview(); }, 400);
   }).observe(div, { attributes: true, attributeFilter: ['class'] });
+})();
+
+// ============================================================
+// SA ORDERS + FINANCE — load dữ liệu thực
+// ============================================================
+
+let _saOrdPage = 1, _saOrdStatus = '', _saOrdSearch = '';
+
+async function saLoadOrders() {
+  const tbody = document.getElementById('sa-orders-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--gray-light)">⏳ Đang tải...</td></tr>';
+  try {
+    const params = new URLSearchParams({ page: _saOrdPage, limit: 20 });
+    if (_saOrdStatus) params.append('status', _saOrdStatus);
+    if (_saOrdSearch) params.append('search', _saOrdSearch);
+    const res  = await fetch('/api/admin/hoadon?' + params, { headers: SA.h() });
+    const json = await res.json();
+    if (!res.ok) { tbody.innerHTML = '<tr><td colspan="8" style="color:#f44;text-align:center;padding:20px">' + (json.error||'Lỗi') + '</td></tr>'; return; }
+
+    const rows  = json.data || [];
+    const total = json.total || 0;
+
+    // Update tabs with counts
+    const tabRes = await fetch('/api/admin/thongke', { headers: SA.h() });
+    if (tabRes.ok) {
+      const tk = await tabRes.json();
+      const tt = tk.theoTrangThai || {};
+      const tabs = document.querySelectorAll('#sa-orders-tabs .db-btn-sm');
+      if (tabs[0]) tabs[0].textContent = 'Tất Cả (' + total + ')';
+      if (tabs[1]) tabs[1].textContent = 'Chờ XL (' + (tt['Chờ xử lý']||0) + ')';
+      if (tabs[2]) tabs[2].textContent = 'Đang Giao (' + (tt['Đang giao']||0) + ')';
+      if (tabs[3]) tabs[3].textContent = 'Hoàn Thành (' + (tt['Hoàn thành']||0) + ')';
+      if (tabs[4]) tabs[4].textContent = 'Đã Hủy (' + (tt['Đã hủy']||0) + ')';
+    }
+
+    const sub = document.getElementById('sa-orders-sub');
+    if (sub) sub.textContent = total.toLocaleString('vi-VN') + ' đơn hàng' + (_saOrdStatus ? ' · ' + _saOrdStatus : '');
+    const title = document.getElementById('sa-orders-title');
+    if (title) title.textContent = 'Danh Sách Đơn Hàng (' + total + ')';
+
+    window._saOrdersList = rows;
+
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--gray-light)">📭 Không có đơn hàng nào</td></tr>';
+    } else {
+      const sm = {
+        'Chờ xử lý':   ['⏳ Chờ XL',     'status-pending'],
+        'Đã xác nhận': ['✅ Xác Nhận',   'status-done'],
+        'Đang giao':   ['🚚 Đang Giao',  'status-shipping'],
+        'Hoàn thành':  ['✅ Hoàn Thành', 'status-done'],
+        'Đã hủy':      ['❌ Đã Hủy',    'status-cancel'],
+        'Hoàn trả':    ['↩️ Hoàn Trả',   'status-cancel'],
+      };
+      tbody.innerHTML = rows.map(o => {
+        const ma   = o.mahoadon||o.MaHoaDon||'--';
+        const ten  = o.tenkhachhang||o.HoTenNguoiNhan||'Khách lẻ';
+        const sdt  = o.sodienthoai||o.SoDienThoaiNhan||'';
+        const tts  = o.trangthai||o.TrangThai||'--';
+        const [lbl, cls] = sm[tts] || [tts, 'status-pending'];
+        const pttt = o.phuongthuctt||o.PhuongThucTT||'--';
+        const ngay = fmtDate(o.ngayban||o.NgayBan);
+
+        // SA action buttons theo trạng thái
+        let actions = '';
+        if (tts === 'Chờ xử lý')
+          actions += '<button class="db-btn-sm primary" title="Duyệt" onclick="saQuickOrderStatus(\'' + ma + '\',\'Đã xác nhận\')">✓</button>' +
+                     '<button class="db-btn-sm" style="color:#f44" title="Hủy" onclick="saQuickOrderStatus(\'' + ma + '\',\'Đã hủy\')">✗</button>';
+        else if (tts === 'Đã xác nhận')
+          actions += '<button class="db-btn-sm primary" onclick="saQuickOrderStatus(\'' + ma + '\',\'Đang giao\')">🚚 Giao</button>';
+        else if (tts === 'Đang giao')
+          actions += '<button class="db-btn-sm primary" onclick="saQuickOrderStatus(\'' + ma + '\',\'Hoàn thành\')">✅ Xong</button>';
+        else if (tts === 'Đã hủy')
+          actions += '<button class="db-btn-sm" onclick="saQuickOrderStatus(\'' + ma + '\',\'Chờ xử lý\')">♻️ Khôi Phục</button>';
+        actions += '<button class="db-btn-sm" onclick="adminOrderDetail(\'' + ma + '\')">🔍</button>';
+
+        return '<tr id="sa-order-row-' + ma + '">' +
+          '<td><input type="checkbox" style="accent-color:var(--red)" class="sa-order-cb" value="' + ma + '"></td>' +
+          '<td style="font-family:monospace;font-size:12px;color:var(--red);font-weight:700">' + ma + '</td>' +
+          '<td>' + ten + (sdt ? '<br><span style="font-size:10px;color:var(--gray-light)">' + sdt + '</span>' : '') + '</td>' +
+          '<td style="font-weight:700">' + fmtMoney(o.tongtien||o.TongTien) + '</td>' +
+          '<td style="font-size:12px">' + pttt + '</td>' +
+          '<td style="font-size:12px;color:var(--gray-light)">' + ngay + '</td>' +
+          '<td><span class="db-status ' + cls + '">' + lbl + '</span></td>' +
+          '<td style="display:flex;gap:3px;flex-wrap:wrap">' + actions + '</td>' +
+          '</tr>';
+      }).join('');
+    }
+
+    // Pager
+    const pager = document.getElementById('sa-orders-pager');
+    if (pager) {
+      const totalPages = Math.ceil(total / 20);
+      if (totalPages <= 1) { pager.innerHTML = '<span>Hiển thị ' + rows.length + ' / ' + total + ' đơn hàng</span>'; }
+      else {
+        pager.innerHTML = '<span>Hiển thị ' + rows.length + ' / ' + total + ' đơn hàng</span>' +
+          '<div style="display:flex;gap:6px">' +
+          (_saOrdPage > 1 ? '<button class="db-btn-sm" onclick="_saOrdPage--;saLoadOrders()">← Trước</button>' : '') +
+          '<button class="db-btn-sm" style="background:var(--red);color:#fff;border-color:var(--red)">Trang ' + _saOrdPage + ' / ' + totalPages + '</button>' +
+          (_saOrdPage < totalPages ? '<button class="db-btn-sm" onclick="_saOrdPage++;saLoadOrders()">Tiếp →</button>' : '') +
+          '</div>';
+      }
+    }
+  } catch(e) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#f44;padding:20px">Lỗi: ' + e.message + '</td></tr>';
+  }
+}
+
+async function saQuickOrderStatus(ma, status) {
+  const row = document.getElementById('sa-order-row-' + ma);
+  if (row) row.style.opacity = '0.5';
+  try {
+    const res  = await fetch('/api/admin/hoadon/' + ma + '/status', { method:'PUT', headers:SA.h(), body:JSON.stringify({TrangThai:status}) });
+    const json = await res.json();
+    if (!res.ok) { showToast('Lỗi', json.error); if (row) row.style.opacity='1'; return; }
+    showToast('✅ Cập Nhật', 'Đơn ' + ma + ' → ' + status);
+    saLoadOrders();
+  } catch(e) { showToast('Lỗi', e.message); if (row) row.style.opacity='1'; }
+}
+
+function saOrderFilter(status, btn) {
+  _saOrdStatus = status;
+  _saOrdPage   = 1;
+  document.querySelectorAll('#sa-orders-tabs .db-btn-sm').forEach(b => b.classList.remove('primary'));
+  if (btn) btn.classList.add('primary');
+  saLoadOrders();
+}
+
+function saOrderSearch(q) {
+  _saOrdSearch = q;
+  _saOrdPage   = 1;
+  saLoadOrders();
+}
+
+function saSelectAllOrders(cb) {
+  document.querySelectorAll('.sa-order-cb').forEach(c => c.checked = cb.checked);
+}
+
+function saExportAllOrders() {
+  const rows = document.querySelectorAll('#sa-orders-tbody tr');
+  let csv = '\uFEFFMã ĐH,Khách Hàng,SĐT,Giá Trị,Thanh Toán,Ngày Đặt,Trạng Thái\n';
+  rows.forEach(tr => {
+    const cells = tr.querySelectorAll('td');
+    if (cells.length < 7) return;
+    // cols: checkbox(0), mã(1), khách(2), giá(3), pttt(4), ngày(5), trạng thái(6)
+    const vals = [1,2,3,4,5,6].map(i => '"' + (cells[i]?.textContent||'').trim().replace(/\n/g,' ').replace(/"/g,'""') + '"');
+    csv += vals.join(',') + '\n';
+  });
+  const a = document.createElement('a');
+  a.href     = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'DonHang_SA_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  showToast('📊 Xuất Thành Công', 'File CSV đã tải xuống');
+}
+
+// ── SA FINANCE ───────────────────────────────────────────────
+async function saLoadFinance() {
+  try {
+    const [tkRes, dhRes] = await Promise.all([
+      fetch('/api/admin/thongke',        { headers: SA.h() }),
+      fetch('/api/admin/hoadon?limit=5', { headers: SA.h() }),
+    ]);
+    if (!tkRes.ok) return;
+    const d  = await tkRes.json();
+    const dh = dhRes.ok ? await dhRes.json() : { data:[] };
+    const tt = d.theoTrangThai || {};
+
+    const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+    set('sa-fin-revenue',  fmtMoney(d.doanhThu || 0));
+    set('sa-fin-rev-sub',  d.tongHoaDon + ' đơn · ' + d.tongKhachHang + ' khách');
+    set('sa-fin-orders',   (d.tongHoaDon||0).toLocaleString('vi-VN'));
+    set('sa-fin-ord-sub',  (tt['Hoàn thành']||0) + ' hoàn thành');
+    set('sa-fin-avg',      d.tongHoaDon ? fmtMoney(Math.round((d.doanhThu||0)/d.tongHoaDon)) : '--');
+    set('sa-fin-avg-sub',  'Giá trị trung bình');
+    set('sa-fin-oos',      d.hetHang || 0);
+    set('sa-fin-oos-sub',  'sản phẩm hết hàng');
+
+    const now = new Date();
+    set('sa-fin-sub', 'Cập nhật ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ' — Dữ liệu thực từ database');
+
+    // Phân bổ trạng thái
+    const breakdown = document.getElementById('sa-fin-status-breakdown');
+    if (breakdown && Object.keys(tt).length) {
+      const total = Object.values(tt).reduce((s,v) => s+v, 0) || 1;
+      const colors = { 'Chờ xử lý':'#ff9800','Đã xác nhận':'#2196f3','Đang giao':'#9c27b0','Hoàn thành':'#4caf50','Đã hủy':'#f44336','Hoàn trả':'#607d8b' };
+      breakdown.innerHTML = Object.entries(tt).map(([k,v]) => {
+        const pct = Math.round(v/total*100);
+        const col = colors[k] || '#888';
+        return '<div class="db-list-item">' +
+          '<div class="db-list-info"><div class="db-list-name">' + k + '</div>' +
+          '<div style="background:rgba(255,255,255,0.06);border-radius:3px;height:6px;margin-top:4px;overflow:hidden">' +
+          '<div style="width:' + pct + '%;height:100%;background:' + col + ';border-radius:3px"></div></div></div>' +
+          '<div style="text-align:right;min-width:60px"><div style="font-weight:700;color:' + col + '">' + v + '</div>' +
+          '<div style="font-size:10px;color:var(--gray-light)">' + pct + '%</div></div>' +
+          '</div>';
+      }).join('');
+    }
+
+    // Recent orders
+    const rows = dh.data || [];
+    const recentEl = document.getElementById('sa-fin-recent-orders');
+    if (recentEl) {
+      if (!rows.length) {
+        recentEl.innerHTML = '<div style="color:var(--gray-light);font-size:12px">Chưa có đơn hàng</div>';
+      } else {
+        const sm = { 'Chờ xử lý':'status-pending','Đang giao':'status-shipping','Hoàn thành':'status-done','Đã hủy':'status-cancel' };
+        recentEl.innerHTML = rows.map(o => {
+          const tts = o.trangthai||o.TrangThai||'--';
+          return '<div class="db-list-item">' +
+            '<span class="db-list-icon">📦</span>' +
+            '<div class="db-list-info">' +
+              '<div class="db-list-name" style="font-family:monospace;color:var(--red)">' + (o.mahoadon||o.MaHoaDon||'--') + '</div>' +
+              '<div class="db-list-sub">' + (o.tenkhachhang||o.HoTenNguoiNhan||'Khách lẻ') + ' · ' + fmtMoney(o.tongtien||o.TongTien) + '</div>' +
+            '</div>' +
+            '<span class="db-status ' + (sm[tts]||'status-pending') + '" style="font-size:10px">' + tts + '</span>' +
+            '</div>';
+        }).join('');
+      }
+    }
+  } catch(e) { console.warn('saLoadFinance:', e.message); }
+}
+
+// Patch SA switchDbPanel để thêm 2 panel mới
+(function() {
+  const _prev = window.switchDbPanel;
+  window.switchDbPanel = function(dashId, panelId, navItem) {
+    if (typeof _prev === 'function') _prev(dashId, panelId, navItem);
+    if (dashId !== 'superAdminDashboard') return;
+    setTimeout(() => {
+      if (panelId === 'panel-sa-orders')  { _saOrdPage=1; saLoadOrders(); }
+      if (panelId === 'panel-sa-finance') saLoadFinance();
+    }, 80);
+  };
 })();
 
 // Đếm số sản phẩm thực tế theo brand từ mảng products

@@ -2202,8 +2202,7 @@ async function saSubmitCat() {
 }
 
 async function saDeleteCat(id, ten) {
-  if (!confirm('Xóa danh mục "' + ten + '"?
-Sản phẩm thuộc danh mục này sẽ mất liên kết.')) return;
+  if (!confirm('Xóa danh mục "' + ten + '"? Sản phẩm thuộc danh mục này sẽ mất liên kết.')) return;
   try {
     const res  = await fetch(`/api/admin/danhmuc/${id}`, { method:'DELETE', headers:SA.h() });
     const json = await res.json();

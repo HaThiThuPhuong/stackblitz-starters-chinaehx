@@ -10260,6 +10260,7 @@ async function confirmRole() {
   if (selectedRole === 'member') {
     document.getElementById('roleModalOverlay').classList.remove('open');
     currentUser = { role: 'member', name: 'Thành Viên' };
+    updateChatVisibility();
     const loginBtn = document.getElementById('navLoginBtn');
     loginBtn.style.display = 'none';
     const wrap = document.getElementById('userNavWrap');
@@ -10327,6 +10328,7 @@ async function confirmRole() {
       document.getElementById(dashId).classList.add('open');
       document.body.style.overflow = 'hidden';
       if (dashId === 'shopDashboard') { initAdminChart(); setTimeout(adminLoadDashboard, 300); }
+      updateChatVisibility();
     }
 
     showToast('Đăng Nhập Thành Công 👋', 'Chào mừng -- ' + (roleLabels[actualRole] || actualRole));
@@ -10351,6 +10353,17 @@ function closeDashboard(id) {
   if (wrap) wrap.classList.remove('visible');
 }
 
+// Ẩn/hiện chatbox: chỉ hiện khi KHÔNG đang trong dashboard admin
+function updateChatVisibility() {
+  const chatBtn = document.getElementById('svn-chat-btn');
+  const chatBox = document.getElementById('svn-chat-box');
+  if (!chatBtn) return;
+  const adminDashes = ['shopDashboard','accountantDashboard','superAdminDashboard'];
+  const anyAdminOpen = adminDashes.some(id => document.getElementById(id)?.classList.contains('open'));
+  chatBtn.style.display = anyAdminOpen ? 'none' : 'flex';
+  if (anyAdminOpen && chatBox) chatBox.classList.remove('open');
+}
+
 function logoutDashboard(id) {
   document.getElementById(id).classList.remove('open');
   document.body.style.overflow = '';
@@ -10364,6 +10377,7 @@ function logoutDashboard(id) {
   // Ẩn user nav wrap nếu có
   const wrap = document.getElementById('userNavWrap');
   if (wrap) wrap.classList.remove('visible');
+  updateChatVisibility();
   showToast('Đã Đăng Xuất 👋', 'Hẹn gặp lại! Cảm ơn bạn đã sử dụng SneakerVN.');
 }
 
@@ -14484,6 +14498,21 @@ async function saLoadFinance() {
       if (panelId === 'panel-sa-finance') saLoadFinance();
     }, 80);
   };
+})();
+
+// Observer theo dõi dashboard admin mở/đóng → cập nhật chatbox
+(function() {
+  var dashIds = ['shopDashboard','accountantDashboard','superAdminDashboard'];
+  dashIds.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    new MutationObserver(function() { updateChatVisibility(); })
+      .observe(el, { attributes: true, attributeFilter: ['class'] });
+  });
+  // Chạy ngay lúc load
+  document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(updateChatVisibility, 300);
+  });
 })();
 
 // Đếm số sản phẩm thực tế theo brand từ mảng products

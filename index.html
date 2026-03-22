@@ -8349,10 +8349,10 @@ select.mp-field-input option { background: #1a1a1a; }
         <div class="db-page-title">Báo Cáo Lãi Lỗ (P&L)</div>
         <div class="db-page-sub">Tháng 03/2026 — Cập nhật đến 03/03/2026</div>
         <div class="db-stats-grid">
-          <div class="db-stat-card red"><div class="db-stat-label">Tổng Doanh Thu</div><div class="db-stat-val">2.84 Tỷ</div><div class="db-stat-change db-stat-up">↑ +18.4%</div></div>
-          <div class="db-stat-card blue"><div class="db-stat-label">Giá Vốn Hàng Bán</div><div class="db-stat-val">1.99 Tỷ</div><div class="db-stat-change">69.9% doanh thu</div></div>
-          <div class="db-stat-card green"><div class="db-stat-label">Lợi Nhuận Gộp</div><div class="db-stat-val">854M</div><div class="db-stat-change db-stat-up">Margin 30.1%</div></div>
-          <div class="db-stat-card gold"><div class="db-stat-label">EBITDA</div><div class="db-stat-val">534M</div><div class="db-stat-change db-stat-up">Margin 18.8%</div></div>
+          <div class="db-stat-card red"><div class="db-stat-label">Tổng Doanh Thu</div><div class="db-stat-val" id="acc-ov-revenue">--</div><div class="db-stat-change db-stat-up" id="acc-ov-revenue-sub">Đang tải</div></div>
+          <div class="db-stat-card blue"><div class="db-stat-label">Tổng Đơn Hàng</div><div class="db-stat-val" id="acc-ov-orders">--</div><div class="db-stat-change" id="acc-ov-orders-sub">--</div></div>
+          <div class="db-stat-card green"><div class="db-stat-label">Giá Trị TB / Đơn</div><div class="db-stat-val" id="acc-ov-avg">--</div><div class="db-stat-change db-stat-up" id="acc-ov-avg-sub">--</div></div>
+          <div class="db-stat-card gold"><div class="db-stat-label">Chờ Xử Lý</div><div class="db-stat-val" id="acc-ov-pending">--</div><div class="db-stat-change db-stat-up" id="acc-ov-pending-sub">--</div></div>
         </div>
         <div class="db-grid-2">
           <div class="db-table-wrap">
@@ -8514,57 +8514,45 @@ select.mp-field-input option { background: #1a1a1a; }
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
           <div class="db-page-title" style="margin-bottom:0">Đơn Hàng Đã Thanh Toán</div>
           <div style="display:flex;gap:8px">
-            <select style="background:var(--surface);border:1px solid rgba(255,255,255,0.1);color:var(--white);padding:6px 10px;font-size:12px;cursor:pointer">
-              <option>Tháng 03/2026</option><option>Tháng 02/2026</option><option>Tháng 01/2026</option><option>Quý 1/2026</option>
+            <select id="acc-order-status-filter" class="db-input" style="max-width:160px" onchange="accLoadOrders()">
+              <option value="">Tất Cả Trạng Thái</option>
+              <option value="Hoàn thành">✅ Hoàn Thành</option>
+              <option value="Đang giao">🚚 Đang Giao</option>
+              <option value="Đã xác nhận">✅ Đã Xác Nhận</option>
+              <option value="Đã hủy">❌ Đã Hủy</option>
             </select>
-            <button class="db-btn-sm" onclick="showToast('Xuất Excel','Đang xuất danh sách đơn hàng...')">📥 Xuất Excel</button>
+            <button class="db-btn-sm" onclick="accExportOrders()">📥 Xuất CSV</button>
           </div>
         </div>
-        <div class="db-page-sub">Toàn bộ đơn hàng đã xác nhận thanh toán — Tháng 03/2026</div>
+        <div class="db-page-sub" id="acc-orders-sub">Đang tải dữ liệu...</div>
+
+        <!-- KPI stats -->
         <div class="db-stats-grid" style="margin-bottom:16px">
-          <div class="db-stat-card green"><div class="db-stat-label">Tổng Đã Thanh Toán</div><div class="db-stat-val">1,174</div><div class="db-stat-change db-stat-up">94.1% tổng đơn</div></div>
-          <div class="db-stat-card red"><div class="db-stat-label">Doanh Thu Xác Nhận</div><div class="db-stat-val">2.67 Tỷ</div><div class="db-stat-change db-stat-up">↑ +16.8%</div></div>
-          <div class="db-stat-card blue"><div class="db-stat-label">Giá Trị TB / Đơn</div><div class="db-stat-val">2.27M</div><div class="db-stat-change db-stat-up">↑ +4.6%</div></div>
-          <div class="db-stat-card gold"><div class="db-stat-label">Chuyển Khoản / QR</div><div class="db-stat-val">58%</div><div class="db-stat-change">682 đơn</div></div>
+          <div class="db-stat-card green"><div class="db-stat-label">Tổng Đơn</div><div class="db-stat-val" id="acc-stat-total">--</div><div class="db-stat-change" id="acc-stat-total-sub">Đang tải</div></div>
+          <div class="db-stat-card red"><div class="db-stat-label">Doanh Thu</div><div class="db-stat-val" id="acc-stat-revenue">--</div><div class="db-stat-change db-stat-up" id="acc-stat-rev-sub">--</div></div>
+          <div class="db-stat-card gold"><div class="db-stat-label">Giá Trị TB / Đơn</div><div class="db-stat-val" id="acc-stat-avg">--</div><div class="db-stat-change" id="acc-stat-avg-sub">--</div></div>
+          <div class="db-stat-card blue"><div class="db-stat-label">Chờ Xử Lý</div><div class="db-stat-val" id="acc-stat-pending">--</div><div class="db-stat-change" id="acc-stat-pending-sub">đơn</div></div>
         </div>
-        <!-- Filter bar -->
+
+        <!-- Filter -->
         <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-          <input style="background:var(--surface);border:1px solid rgba(255,255,255,0.1);color:var(--white);padding:7px 12px;font-size:12px;flex:1;min-width:180px" placeholder="🔍 Tìm mã đơn, tên khách...">
-          <select style="background:var(--surface);border:1px solid rgba(255,255,255,0.1);color:var(--white);padding:7px 10px;font-size:12px">
-            <option>Tất Cả Kênh</option><option>Website</option><option>Shopee</option><option>TikTok Shop</option><option>Cửa Hàng</option>
-          </select>
-          <select style="background:var(--surface);border:1px solid rgba(255,255,255,0.1);color:var(--white);padding:7px 10px;font-size:12px">
-            <option>Tất Cả PTTT</option><option>Chuyển Khoản</option><option>QR Code</option><option>Tiền Mặt</option><option>Ví Điện Tử</option><option>Thẻ Tín Dụng</option>
-          </select>
+          <input class="db-input" id="acc-order-search" placeholder="🔍 Tìm mã đơn, tên khách..." style="flex:1;min-width:180px"
+            oninput="accFilterOrderTable(this.value)">
         </div>
+
         <div class="db-table-wrap">
           <table class="db-table" style="width:100%">
             <thead><tr>
-              <th><input type="checkbox" style="accent-color:var(--red)"></th>
-              <th>Mã Đơn</th><th>Khách Hàng</th><th>Sản Phẩm</th><th>Giá Trị</th><th>PTTT</th><th>Kênh</th><th>Ngày TT</th><th>Mã GD Ngân Hàng</th><th>Hành Động</th>
+              <th>Mã Đơn</th><th>Khách Hàng</th><th>SĐT</th><th>Tổng Tiền</th>
+              <th>Thanh Toán</th><th>Ngày Đặt</th><th>Trạng Thái</th><th>Hành Động</th>
             </tr></thead>
-            <tbody>
-              <tr><td><input type="checkbox" style="accent-color:var(--red)"></td><td><strong>#SVN-240401</strong></td><td>Nguyễn Minh Tuấn</td><td>Nike Dunk Low × 1</td><td style="font-weight:700;color:#4caf50">4.800.000đ</td><td><span style="background:rgba(33,150,243,0.15);color:#2196f3;padding:2px 7px;font-size:11px;font-weight:700">QR</span></td><td>Shopee</td><td>03/03 09:14</td><td style="font-size:11px;color:var(--gray-light)">VCB240301914</td><td><button class="db-btn-sm" onclick="showToast('Chi Tiết','Đơn #SVN-240401 — đã thanh toán lúc 09:14')">Xem</button></td></tr>
-              <tr><td><input type="checkbox" style="accent-color:var(--red)"></td><td><strong>#SVN-240400</strong></td><td>Trần Thu Hà</td><td>Adidas Stan Smith × 1</td><td style="font-weight:700;color:#4caf50">3.500.000đ</td><td><span style="background:rgba(76,175,80,0.15);color:#4caf50;padding:2px 7px;font-size:11px;font-weight:700">CK</span></td><td>Website</td><td>03/03 08:52</td><td style="font-size:11px;color:var(--gray-light)">TCB240308520</td><td><button class="db-btn-sm" onclick="showToast('Chi Tiết','Đơn #SVN-240400 — chuyển khoản TCB')">Xem</button></td></tr>
-              <tr><td><input type="checkbox" style="accent-color:var(--red)"></td><td><strong>#SVN-240399</strong></td><td>Lê Quang Anh</td><td>MLB Chunky × 2</td><td style="font-weight:700;color:#4caf50">4.400.000đ</td><td><span style="background:rgba(255,152,0,0.15);color:orange;padding:2px 7px;font-size:11px;font-weight:700">COD</span></td><td>Cửa Hàng HCM</td><td>02/03 15:30</td><td style="font-size:11px;color:var(--gray-light)">—</td><td><button class="db-btn-sm" onclick="showToast('Chi Tiết','Đơn COD — nhận tiền mặt tại quầy')">Xem</button></td></tr>
-              <tr><td><input type="checkbox" style="accent-color:var(--red)"></td><td><strong>#SVN-240398</strong></td><td>Phạm Lan Anh</td><td>New Balance 550 × 1</td><td style="font-weight:700;color:#4caf50">3.100.000đ</td><td><span style="background:rgba(33,150,243,0.15);color:#2196f3;padding:2px 7px;font-size:11px;font-weight:700">QR</span></td><td>TikTok Shop</td><td>02/03 12:18</td><td style="font-size:11px;color:var(--gray-light)">VCB240212181</td><td><button class="db-btn-sm" onclick="showToast('Chi Tiết','Đơn #SVN-240398')">Xem</button></td></tr>
-              <tr><td><input type="checkbox" style="accent-color:var(--red)"></td><td><strong>#SVN-240397</strong></td><td>Hoàng Minh Nam</td><td>Nike Air Jordan 1 × 1</td><td style="font-weight:700;color:#4caf50">6.500.000đ</td><td><span style="background:rgba(76,175,80,0.15);color:#4caf50;padding:2px 7px;font-size:11px;font-weight:700">CK</span></td><td>Website</td><td>02/03 10:05</td><td style="font-size:11px;color:var(--gray-light)">MBB240210050</td><td><button class="db-btn-sm" onclick="showToast('Chi Tiết','Đơn #SVN-240397 — chuyển khoản MBB')">Xem</button></td></tr>
-              <tr><td><input type="checkbox" style="accent-color:var(--red)"></td><td><strong>#SVN-240396</strong></td><td>Vũ Thị Mai</td><td>Adidas Gazelle × 1</td><td style="font-weight:700;color:#4caf50">2.800.000đ</td><td><span style="background:rgba(156,39,176,0.15);color:#9c27b0;padding:2px 7px;font-size:11px;font-weight:700">Ví</span></td><td>Shopee</td><td>01/03 20:44</td><td style="font-size:11px;color:var(--gray-light)">MOMO01032044</td><td><button class="db-btn-sm" onclick="showToast('Chi Tiết','Đơn #SVN-240396 — thanh toán qua MoMo')">Xem</button></td></tr>
-              <tr><td><input type="checkbox" style="accent-color:var(--red)"></td><td><strong>#SVN-240395</strong></td><td>Đinh Quốc Huy</td><td>Nike AF1 × 1, Tất Nike × 3</td><td style="font-weight:700;color:#4caf50">5.200.000đ</td><td><span style="background:rgba(76,175,80,0.15);color:#4caf50;padding:2px 7px;font-size:11px;font-weight:700">CK</span></td><td>Website</td><td>01/03 14:20</td><td style="font-size:11px;color:var(--gray-light)">VCB240114200</td><td><button class="db-btn-sm" onclick="showToast('Chi Tiết','Đơn #SVN-240395 — bundle')">Xem</button></td></tr>
+            <tbody id="acc-orders-tbody">
+              <tr><td colspan="8" style="text-align:center;padding:30px;color:var(--gray-light)">⏳ Đang tải...</td></tr>
             </tbody>
           </table>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:12px;color:var(--gray-light)">
-          <span>Hiển thị 7 / 1,174 đơn</span>
-          <div style="display:flex;gap:6px">
-            <button class="db-btn-sm" onclick="showToast('Trang Trước','...')">← Trước</button>
-            <span style="padding:5px 10px;background:var(--red);font-size:12px;font-weight:700">1</span>
-            <button class="db-btn-sm">2</button><button class="db-btn-sm">3</button>
-            <button class="db-btn-sm">Sau →</button>
-          </div>
-        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:12px;color:var(--gray-light)" id="acc-orders-pager"></div>
       </div>
-
       <!-- TRẠNG THÁI THANH TOÁN -->
       <div class="db-panel" id="panel-acc-payment-status">
         <div class="db-page-title">Theo Dõi Trạng Thái Thanh Toán</div>
@@ -13734,6 +13722,217 @@ function saFilterUsersTable(q) {
 </script>
 
 <script>
+// ============================================================
+// ACCOUNTANT DASHBOARD — Đồng bộ dữ liệu thực từ API
+// ============================================================
+
+let _accOrderPage = 1, _accOrderStatus = '', _accOrderSearch = '';
+
+function accHeaders() {
+  return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (sessionStorage.getItem('admin_token') || localStorage.getItem('admin_token') || '') };
+}
+
+async function accLoadOverview() {
+  try {
+    const res  = await fetch('/api/admin/thongke', { headers: accHeaders() });
+    if (!res.ok) return;
+    const d  = await res.json();
+    const tt = d.theoTrangThai || {};
+    const pending = tt['Ch\u1edd x\u1eed l\u00fd'] || 0;
+    const done    = tt['Ho\u00e0n th\u00e0nh'] || 0;
+
+    const set = function(id, v) { var el = document.getElementById(id); if (el) el.textContent = v; };
+    set('acc-ov-revenue',      fmtMoney(d.doanhThu || 0));
+    set('acc-ov-revenue-sub',  d.tongHoaDon + ' \u0111\u01a1n · ' + d.tongKhachHang + ' kh\u00e1ch');
+    set('acc-ov-orders',       (d.tongHoaDon || 0).toLocaleString('vi-VN'));
+    set('acc-ov-orders-sub',   done + ' ho\u00e0n th\u00e0nh');
+    set('acc-ov-avg',          d.tongHoaDon ? fmtMoney(Math.round((d.doanhThu||0) / d.tongHoaDon)) : '--');
+    set('acc-ov-avg-sub',      'Gi\u00e1 tr\u1ecb trung b\u00ecnh');
+    set('acc-ov-pending',      pending);
+    set('acc-ov-pending-sub',  '\u0111\u01a1n ch\u1edd x\u1eed l\u00fd');
+
+    const sub = document.querySelector('#panel-acc-overview .db-page-sub');
+    if (sub) {
+      var now = new Date();
+      sub.textContent = 'C\u1eadp nh\u1eadt ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ' \u2014 ' + d.tongHoaDon + ' \u0111\u01a1n · ' + (d.hetHang||0) + ' SP h\u1ebft h\u00e0ng';
+    }
+  } catch(e) { console.warn('accLoadOverview:', e.message); }
+}
+
+async function accLoadOrders() {
+  var tbody = document.getElementById('acc-orders-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--gray-light)">\u23f3 \u0110ang t\u1ea3i...</td></tr>';
+
+  var statusFilter = (document.getElementById('acc-order-status-filter') || {}).value || '';
+  _accOrderStatus  = statusFilter;
+
+  try {
+    var params = new URLSearchParams({ page: _accOrderPage, limit: 20 });
+    if (_accOrderStatus) params.append('status', _accOrderStatus);
+    if (_accOrderSearch) params.append('search', _accOrderSearch);
+
+    var res  = await fetch('/api/admin/hoadon?' + params, { headers: accHeaders() });
+    var json = await res.json();
+    if (!res.ok) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#f44;padding:20px">' + (json.error||'L\u1ed7i') + '</td></tr>'; return; }
+
+    var rows    = json.data || [];
+    var total   = json.total || 0;
+    var revenue = rows.reduce(function(s,o) { return s + (parseFloat(o.tongtien||o.TongTien)||0); }, 0);
+    var pending = rows.filter(function(o) { return (o.trangthai||'').includes('Ch\u1edd'); }).length;
+    var avg     = rows.length ? Math.round(revenue / rows.length) : 0;
+
+    var set = function(id,v) { var el=document.getElementById(id); if(el) el.textContent=v; };
+    set('acc-stat-total',       total.toLocaleString('vi-VN'));
+    set('acc-stat-total-sub',   rows.length + ' hi\u1ec3n th\u1ecb trang n\u00e0y');
+    set('acc-stat-revenue',     fmtMoney(revenue));
+    set('acc-stat-rev-sub',     'T\u1ed5ng trang n\u00e0y');
+    set('acc-stat-avg',         fmtMoney(avg));
+    set('acc-stat-avg-sub',     'Gi\u00e1 tr\u1ecb TB');
+    set('acc-stat-pending',     pending);
+    set('acc-stat-pending-sub', '\u0111\u01a1n ch\u1edd');
+
+    var sub = document.getElementById('acc-orders-sub');
+    if (sub) sub.textContent = total.toLocaleString('vi-VN') + ' \u0111\u01a1n h\u00e0ng' + (statusFilter ? ' · ' + statusFilter : '');
+
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--gray-light)">\ud83d\udceb Kh\u00f4ng c\u00f3 \u0111\u01a1n h\u00e0ng n\u00e0o</td></tr>';
+    } else {
+      var sm = {
+        'Ch\u1edd x\u1eed l\u00fd':   ['\u23f3 Ch\u1edd XL',   'status-pending'],
+        '\u0110\u00e3 x\u00e1c nh\u1eadn': ['\u2705 X\u00e1c Nh\u1eadn', 'status-done'],
+        '\u0110ang giao':   ['\ud83d\ude9a \u0110ang Giao', 'status-shipping'],
+        'Ho\u00e0n th\u00e0nh':  ['\u2705 Ho\u00e0n Th\u00e0nh','status-done'],
+        '\u0110\u00e3 h\u1ee7y':  ['\u274c \u0110\u00e3 H\u1ee7y', 'status-cancel'],
+        'Ho\u00e0n tr\u1ea3':   ['\u21a9\ufe0f Ho\u00e0n Tr\u1ea3', 'status-cancel'],
+      };
+      tbody.innerHTML = rows.map(function(o) {
+        var ma  = o.mahoadon||o.MaHoaDon||'--';
+        var ten = o.tenkhachhang||o.HoTenNguoiNhan||'Kh\u00e1ch l\u1ebb';
+        var sdt = o.sodienthoai||o.SoDienThoaiNhan||'--';
+        var tts = o.trangthai||o.TrangThai||'--';
+        var inf = sm[tts] || [tts, 'status-pending'];
+        var pttt= o.phuongthuctt||o.PhuongThucTT||'--';
+        var ngay= fmtDate(o.ngayban||o.NgayBan);
+        return '<tr id="acc-order-row-' + ma + '">' +
+          '<td style="font-family:monospace;font-size:12px;color:var(--red);font-weight:700">' + ma + '</td>' +
+          '<td>' + ten + '</td>' +
+          '<td style="font-size:12px">' + sdt + '</td>' +
+          '<td style="font-weight:700">' + fmtMoney(o.tongtien||o.TongTien) + '</td>' +
+          '<td style="font-size:12px">' + pttt + '</td>' +
+          '<td style="font-size:12px;color:var(--gray-light)">' + ngay + '</td>' +
+          '<td><span class="db-status ' + inf[1] + '">' + inf[0] + '</span></td>' +
+          '<td style="display:flex;gap:4px">' +
+            '<button class="db-btn-sm" onclick="accOrderDetail(\'' + ma + '\')">\ud83d\udd0d Chi Ti\u1ebft</button>' +
+            (tts === 'Ch\u1edd x\u1eed l\u00fd' ? '<button class="db-btn-sm primary" onclick="accQuickStatus(\'' + ma + '\',\'\u0110\u00e3 x\u00e1c nh\u1eadn\')">\u2713 Duy\u1ec7t</button>' : '') +
+          '</td>' +
+          '</tr>';
+      }).join('');
+    }
+
+    // Pager
+    var pager = document.getElementById('acc-orders-pager');
+    if (pager) {
+      var totalPages = Math.ceil(total / 20);
+      if (totalPages <= 1) { pager.innerHTML = ''; }
+      else {
+        pager.innerHTML = '<span>Hi\u1ec3n th\u1ecb ' + rows.length + ' / ' + total + ' \u0111\u01a1n</span>' +
+          '<div style="display:flex;gap:6px">' +
+          (_accOrderPage > 1 ? '<button class="db-btn-sm" onclick="_accOrderPage--;accLoadOrders()">&larr; Tr\u01b0\u1edbc</button>' : '') +
+          '<span style="padding:5px 10px;background:var(--red);font-size:12px;font-weight:700">Trang ' + _accOrderPage + ' / ' + totalPages + '</span>' +
+          (_accOrderPage < totalPages ? '<button class="db-btn-sm" onclick="_accOrderPage++;accLoadOrders()">Sau &rarr;</button>' : '') +
+          '</div>';
+      }
+    }
+  } catch(e) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#f44;padding:20px">L\u1ed7i: ' + e.message + '</td></tr>';
+  }
+}
+
+async function accQuickStatus(ma, status) {
+  try {
+    var res  = await fetch('/api/admin/hoadon/' + ma + '/status', { method:'PUT', headers:accHeaders(), body:JSON.stringify({TrangThai:status}) });
+    var json = await res.json();
+    if (!res.ok) { showToast('L\u1ed7i', json.error); return; }
+    showToast('\u2705 C\u1eadp Nh\u1eadt', '\u0110\u01a1n ' + ma + ' \u2192 ' + status);
+    accLoadOrders();
+  } catch(e) { showToast('L\u1ed7i', e.message); }
+}
+
+async function accOrderDetail(ma) {
+  try {
+    var res  = await fetch('/api/admin/hoadon?search=' + ma, { headers: accHeaders() });
+    var json = await res.json();
+    var o    = (json.data||[]).find(function(x){ return (x.mahoadon||x.MaHoaDon) === ma; }) || {};
+    var tts  = o.trangthai||o.TrangThai||'--';
+    var html = '<div id="acc-modal-detail" style="position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)this.remove()">' +
+      '<div style="background:#1a1a1a;border:1px solid rgba(255,255,255,0.12);width:100%;max-width:520px;padding:28px;max-height:90vh;overflow-y:auto">' +
+      '<div style="font-weight:700;font-size:16px;margin-bottom:4px">\ud83d\udce6 Chi Ti\u1ebft \u0110\u01a1n H\u00e0ng</div>' +
+      '<div style="font-family:monospace;color:var(--red);font-size:13px;margin-bottom:20px">' + ma + '</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">' +
+      [['\ud83d\udc64 Kh\u00e1ch H\u00e0ng', o.tenkhachhang||o.HoTenNguoiNhan||'Kh\u00e1ch l\u1ebb'],
+       ['\ud83d\udcde S\u0110T', o.sodienthoai||o.SoDienThoaiNhan||'--'],
+       ['\ud83d\udcb0 T\u1ed5ng Ti\u1ec1n', fmtMoney(o.tongtien||o.TongTien)],
+       ['\ud83d\udcb3 Thanh To\u00e1n', o.phuongthuctt||o.PhuongThucTT||'--'],
+       ['\ud83d\udcc5 Ng\u00e0y \u0110\u1eb7t', fmtDate(o.ngayban||o.NgayBan)],
+       ['\ud83d\udccd \u0110\u1ecba Ch\u1ec9', o.diachigiao||o.DiaChiGiao||'--']
+      ].map(function(kv) {
+        return '<div style="background:rgba(255,255,255,0.04);padding:10px 12px;border-radius:4px">' +
+          '<div style="font-size:11px;color:#888;margin-bottom:3px">' + kv[0] + '</div>' +
+          '<div style="font-size:13px;font-weight:500">' + kv[1] + '</div></div>';
+      }).join('') + '</div>' +
+      '<div style="margin-bottom:20px"><div style="font-size:12px;color:#888;margin-bottom:8px">TR\u1ea0NG TH\u00c1I</div>' +
+      '<span class="db-status status-done">' + tts + '</span></div>' +
+      '<div style="text-align:right"><button class="db-btn-sm" onclick="document.getElementById(\"acc-modal-detail\").remove()">\u0110\u00f3ng</button></div>' +
+      '</div></div>';
+    document.body.insertAdjacentHTML('beforeend', html);
+  } catch(e) { showToast('L\u1ed7i', e.message); }
+}
+
+function accFilterOrderTable(q) {
+  q = q.toLowerCase();
+  _accOrderSearch = q;
+  _accOrderPage = 1;
+  accLoadOrders();
+}
+
+function accExportOrders() {
+  var rows = document.querySelectorAll('#acc-orders-tbody tr');
+  var csv  = '\uFEFF' + 'M\u00e3 \u0110\u01a1n,Kh\u00e1ch H\u00e0ng,S\u0110T,T\u1ed5ng Ti\u1ec1n,Thanh To\u00e1n,Ng\u00e0y \u0110\u1eb7t,Tr\u1ea1ng Th\u00e1i\n';
+  rows.forEach(function(tr) {
+    var cells = tr.querySelectorAll('td');
+    if (cells.length < 7) return;
+    csv += Array.from(cells).slice(0,7).map(function(td) { return '"' + td.textContent.trim().replace(/"/g,'""') + '"'; }).join(',') + '\n';
+  });
+  var a   = document.createElement('a');
+  a.href  = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'DonHang_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  showToast('\ud83d\udcca Xu\u1ea5t Th\u00e0nh C\u00f4ng', 'File CSV \u0111\u00e3 t\u1ea3i xu\u1ed1ng');
+}
+
+// Hook switchDbPanel cho accountant
+(function() {
+  var _orig = window.switchDbPanel;
+  window.switchDbPanel = function(dashId, panelId, navItem) {
+    if (typeof _orig === 'function') _orig(dashId, panelId, navItem);
+    if (dashId !== 'accountantDashboard') return;
+    setTimeout(function() {
+      if (panelId === 'panel-acc-overview') accLoadOverview();
+      if (panelId === 'panel-acc-orders')   { _accOrderPage=1; accLoadOrders(); }
+    }, 80);
+  };
+})();
+
+// Load khi accountant dashboard mở
+(function() {
+  var div = document.getElementById('accountantDashboard');
+  if (!div) return;
+  new MutationObserver(function() {
+    if (div.classList.contains('open')) setTimeout(function() { accLoadOverview(); }, 400);
+  }).observe(div, { attributes: true, attributeFilter: ['class'] });
+})();
+
 // Đếm số sản phẩm thực tế theo brand từ mảng products
 function initBrandCounts() {
   var brands = ['Nike', 'Adidas', 'MLB', 'Puma', 'New Balance', 'Fila'];

@@ -1059,10 +1059,10 @@ footer {
 
 <!-- CHATBOX CSS -->
 <style>
-#svn-chat-btn{position:fixed;bottom:24px;right:24px;z-index:9000;width:54px;height:54px;border-radius:50%;border:none;cursor:pointer;background:#e62020;color:#fff;font-size:22px;box-shadow:0 4px 20px rgba(230,32,32,0.5);transition:transform .2s;display:flex;align-items:center;justify-content:center;}
+#svn-chat-btn{position:fixed;bottom:24px;right:24px;z-index:99998;width:54px;height:54px;border-radius:50%;border:none;cursor:pointer;background:#e62020;color:#fff;font-size:22px;box-shadow:0 4px 20px rgba(230,32,32,0.5);transition:transform .2s;display:flex;align-items:center;justify-content:center;}
 #svn-chat-btn:hover{transform:scale(1.08);}
 #svn-new-dot{position:absolute;top:2px;right:2px;width:12px;height:12px;background:#4caf50;border-radius:50%;border:2px solid #111;display:none;}
-#svn-chat-box{position:fixed;bottom:88px;right:24px;z-index:9000;width:340px;max-height:500px;background:#171717;border:1px solid rgba(255,255,255,0.1);border-radius:14px;display:none;flex-direction:column;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.7);}
+#svn-chat-box{position:fixed;bottom:88px;right:24px;z-index:99997;width:340px;max-height:500px;background:#171717;border:1px solid rgba(255,255,255,0.1);border-radius:14px;display:none;flex-direction:column;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.7);}
 #svn-chat-box.open{display:flex;}
 .svn-chat-hdr{background:linear-gradient(135deg,#b01208,#e62020);padding:13px 15px;display:flex;align-items:center;justify-content:space-between;}
 .svn-chat-hdr-left{display:flex;align-items:center;gap:10px;}
@@ -13879,12 +13879,13 @@ const SA = {
   };
 })();
 
-// Observer: tự load khi SA dashboard mở
+// Observer: tự load khi SA dashboard mở (chỉ khi có token)
 (function(){
   const saDiv = document.getElementById('superAdminDashboard');
   if (!saDiv) return;
   new MutationObserver(() => {
-    if (saDiv.classList.contains('open')) setTimeout(() => SA.loadHome(), 400);
+    const tok = sessionStorage.getItem('admin_token') || localStorage.getItem('admin_token');
+    if (saDiv.classList.contains('open') && tok) setTimeout(() => SA.loadHome(), 400);
   }).observe(saDiv, {attributes:true, attributeFilter:['class']});
 })();
 
@@ -14266,7 +14267,8 @@ function accExportOrders() {
   var div = document.getElementById('accountantDashboard');
   if (!div) return;
   new MutationObserver(function() {
-    if (div.classList.contains('open')) setTimeout(function() { accLoadOverview(); }, 400);
+    var tok = sessionStorage.getItem('admin_token') || localStorage.getItem('admin_token');
+    if (div.classList.contains('open') && tok) setTimeout(function() { accLoadOverview(); }, 400);
   }).observe(div, { attributes: true, attributeFilter: ['class'] });
 })();
 

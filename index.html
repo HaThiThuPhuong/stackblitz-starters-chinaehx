@@ -2243,31 +2243,196 @@ function saFilterCatStatus(val) {
   });
 }
 
+// ── SA PRODUCT FORM — ảnh upload + camera + API ──────────────
+let _saProdImgData = ''; // base64 ảnh đã chọn
+let _saCameraStream = null;
+
 function saShowAddProduct() {
+  // Reset form
+  document.getElementById('sa-prod-form-title').textContent = '➕ Thêm Sản Phẩm Mới';
+  document.getElementById('sa-p-editid').value = '';
+  ['sa-p-name','sa-p-sku','sa-p-price','sa-p-buyprice','sa-p-stock','sa-p-color','sa-p-sizes','sa-p-desc','sa-p-img-url'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('sa-p-brand').value  = 'Nike';
+  document.getElementById('sa-p-status').value = 'Đang bán';
+  document.getElementById('sa-prod-submit-btn').textContent = '💾 Lưu Sản Phẩm';
+  document.getElementById('sa-prod-form-error').style.display = 'none';
+  saClearProductImg();
   const f = document.getElementById('sa-add-prod-form');
-  f.style.display = f.style.display === 'none' ? 'block' : 'none';
-  document.getElementById('sa-prod-form-title').textContent = '- Thêm Sản Phẩm Mới';
+  f.style.display = 'block';
+  f.scrollIntoView({ behavior:'smooth', block:'start' });
 }
-function saEditProduct(name) {
-  document.getElementById('sa-add-prod-form').style.display = 'block';
-  document.getElementById('sa-prod-form-title').textContent = '-️ Chỉnh Sửa: ' + name;
-  document.getElementById('sa-p-name').value = name;
-  document.getElementById('sa-add-prod-form').scrollIntoView({ behavior:'smooth', block:'start' });
+
+function saEditProduct(ma) {
+  const list = window._saProdList || [];
+  const p    = list.find(x => (x.masanpham||x.MaSanPham) === ma);
+  if (!p) { showToast('Lỗi','Không tìm thấy sản phẩm'); return; }
+  document.getElementById('sa-prod-form-title').textContent = '✏️ Sửa: ' + (p.tensanpham||p.TenSanPham);
+  document.getElementById('sa-p-editid').value   = ma;
+  document.getElementById('sa-p-name').value     = p.tensanpham||p.TenSanPham||'';
+  document.getElementById('sa-p-sku').value      = p.sku||p.SKU||'';
+  document.getElementById('sa-p-brand').value    = p.thuonghieu||p.ThuongHieu||'Nike';
+  document.getElementById('sa-p-cat').value      = p.danhmuc||p.DanhMuc||'Giày dép';
+  document.getElementById('sa-p-price').value    = p.giaban||p.GiaBan||'';
+  document.getElementById('sa-p-buyprice').value = p.gianhap||p.GiaNhap||'';
+  document.getElementById('sa-p-stock').value    = p.soluongton??p.SoLuongTon??0;
+  document.getElementById('sa-p-color').value    = p.mausac||p.MauSac||'';
+  document.getElementById('sa-p-sizes').value    = p.size||p.Size||'';
+  document.getElementById('sa-p-desc').value     = p.motasanpham||p.MoTaSanPham||'';
+  document.getElementById('sa-p-status').value   = p.tinhtrang||p.TinhTrang||'Đang bán';
+  document.getElementById('sa-prod-submit-btn').textContent = '💾 Lưu Thay Đổi';
+  document.getElementById('sa-prod-form-error').style.display = 'none';
+  saClearProductImg();
+  const f = document.getElementById('sa-add-prod-form');
+  f.style.display = 'block';
+  f.scrollIntoView({ behavior:'smooth', block:'start' });
 }
+
+// ── Xử lý ảnh từ file ────────────────────────────────────────
+function saHandleProductImg(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 5*1024*1024) { showToast('Lỗi', 'Ảnh tối đa 5MB'); return; }
+  const reader = new FileReader();
+  reader.onload = e => saSetProductImg(e.target.result);
+  reader.readAsDataURL(file);
+}
+
+function saPreviewImgUrl(url) {
+  if (!url) { saClearProductImg(); return; }
+  saSetProductImg(url);
+}
+
+function saSetProductImg(src) {
+  _saProdImgData = src;
+  const show  = document.getElementById('sa-p-img-show');
+  const ph    = document.getElementById('sa-p-img-placeholder');
+  const rm    = document.getElementById('sa-p-img-remove');
+  if (show)  { show.src = src; show.style.display = 'block'; }
+  if (ph)    ph.style.display = 'none';
+  if (rm)    rm.style.display = 'flex';
+}
+
+function saClearProductImg() {
+  _saProdImgData = '';
+  const show = document.getElementById('sa-p-img-show');
+  const ph   = document.getElementById('sa-p-img-placeholder');
+  const rm   = document.getElementById('sa-p-img-remove');
+  const url  = document.getElementById('sa-p-img-url');
+  const fi   = document.getElementById('sa-p-img-file');
+  if (show) { show.src=''; show.style.display='none'; }
+  if (ph)   ph.style.display='flex';
+  if (rm)   rm.style.display='none';
+  if (url)  url.value='';
+  if (fi)   fi.value='';
+}
+
+// ── Camera ────────────────────────────────────────────────────
+async function saOpenCamera() {
+  const modal = document.getElementById('sa-camera-modal');
+  const video = document.getElementById('sa-camera-video');
+  if (!modal||!video) return;
+  try {
+    _saCameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode:'environment' } });
+    video.srcObject = _saCameraStream;
+    modal.style.display = 'flex';
+  } catch(e) {
+    showToast('Lỗi Camera', 'Không thể truy cập camera: ' + e.message);
+  }
+}
+
+function saCapturePhoto() {
+  const video  = document.getElementById('sa-camera-video');
+  const canvas = document.getElementById('sa-camera-canvas');
+  if (!video||!canvas) return;
+  canvas.width  = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+  saCloseCamera();
+  saSetProductImg(dataUrl);
+  showToast('📸 Đã Chụp', 'Ảnh đã được thêm vào sản phẩm');
+}
+
+function saCloseCamera() {
+  if (_saCameraStream) { _saCameraStream.getTracks().forEach(t => t.stop()); _saCameraStream = null; }
+  const modal = document.getElementById('sa-camera-modal');
+  const video = document.getElementById('sa-camera-video');
+  if (modal) modal.style.display = 'none';
+  if (video) video.srcObject = null;
+}
+
+// ── Lưu sản phẩm (tạo / sửa) ─────────────────────────────────
+async function saSaveProduct() {
+  const editId = document.getElementById('sa-p-editid').value;
+  const isEdit = !!editId;
+  const name   = document.getElementById('sa-p-name').value.trim();
+  const sku    = document.getElementById('sa-p-sku').value.trim();
+  const price  = parseFloat(document.getElementById('sa-p-price').value)||0;
+  const buy    = parseFloat(document.getElementById('sa-p-buyprice').value)||0;
+  const stock  = parseInt(document.getElementById('sa-p-stock').value)||0;
+  const brand  = document.getElementById('sa-p-brand').value;
+  const cat    = document.getElementById('sa-p-cat').value;
+  const color  = document.getElementById('sa-p-color').value.trim();
+  const sizes  = document.getElementById('sa-p-sizes').value.trim();
+  const desc   = document.getElementById('sa-p-desc').value.trim();
+  const status = document.getElementById('sa-p-status').value;
+  const imgUrl = _saProdImgData || document.getElementById('sa-p-img-url').value.trim();
+
+  const errEl = document.getElementById('sa-prod-form-error');
+  const btn   = document.getElementById('sa-prod-submit-btn');
+
+  if (!name)  { errEl.textContent='Vui lòng nhập Tên Sản Phẩm'; errEl.style.display='block'; return; }
+  if (!sku)   { errEl.textContent='Vui lòng nhập Mã SP / SKU';   errEl.style.display='block'; return; }
+  if (!price) { errEl.textContent='Vui lòng nhập Giá Bán';       errEl.style.display='block'; return; }
+  errEl.style.display = 'none';
+  btn.disabled = true; btn.textContent = '⏳ Đang lưu...';
+
+  // Tạo MaSanPham từ SKU nếu tạo mới
+  const maSP = isEdit ? editId : sku.toUpperCase().replace(/\s+/g,'-');
+
+  const body = {
+    MaSanPham:          maSP,
+    TenSanPham:         name,
+    ThuongHieu:         brand,
+    DanhMuc:            cat,
+    GiaNhap:            buy||null,
+    GiaBan:             price,
+    Size:               sizes,
+    MauSac:             color,
+    MoTaSanPham:        desc,
+    TinhTrang:          status,
+    SoLuongTon:         stock,
+    SKU:                sku,
+  };
+
+  try {
+    const url    = isEdit ? '/api/admin/sanpham/' + editId : '/api/admin/sanpham';
+    const method = isEdit ? 'PUT' : 'POST';
+    const res    = await fetch(url, { method, headers: SA.h(), body: JSON.stringify(body) });
+    const json   = await res.json();
+    if (!res.ok) { errEl.textContent = json.error||'Lỗi server'; errEl.style.display='block'; return; }
+
+    document.getElementById('sa-add-prod-form').style.display = 'none';
+    showToast(isEdit ? '✅ Đã Cập Nhật' : '✅ Đã Thêm Sản Phẩm', name + (imgUrl?' (có ảnh)':''));
+    SA.loadProducts();
+  } catch(e) {
+    errEl.textContent = 'Lỗi kết nối: ' + e.message; errEl.style.display='block';
+  } finally {
+    btn.disabled = false; btn.textContent = isEdit ? '💾 Lưu Thay Đổi' : '💾 Lưu Sản Phẩm';
+  }
+}
+
 function saFilterProducts() {
   const q = (document.getElementById('sa-prod-search')?.value||'').toLowerCase();
   document.querySelectorAll('#sa-prod-tbody tr').forEach(tr => {
     tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
   });
 }
+
 function saSelectAllProd(cb) {
   document.querySelectorAll('#sa-prod-tbody input[type=checkbox]').forEach(c => c.checked = cb.checked);
-}
-function saSaveProduct() {
-  const name = document.getElementById('sa-p-name').value.trim();
-  if (!name) { showToast('Lỗi','Vui lòng nhập tên sản phẩm'); return; }
-  showToast('Lưu Sản Phẩm -', `"${name}" đã được lưu thành công`);
-  document.getElementById('sa-add-prod-form').style.display = 'none';
 }
 
 function saShowAddStore() {
@@ -9466,49 +9631,93 @@ select.mp-field-input option { background: #1a1a1a; }
         </div>
 
         <!-- Add / Edit product form -->
-        <div id="sa-add-prod-form" style="display:none;background:rgba(255,255,255,0.03);border:1px solid rgba(230,32,32,0.2);padding:20px;margin-bottom:20px">
-          <div style="font-size:14px;font-weight:700;margin-bottom:18px;color:var(--white)" id="sa-prod-form-title">➕ Thêm Sản Phẩm Mới</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-            <div><label class="db-label">Tên Sản Phẩm *</label><input class="db-input" id="sa-p-name" placeholder="Nike Air Max 270 React"></div>
-            <div><label class="db-label">SKU *</label><input class="db-input" id="sa-p-sku" placeholder="NK-AM270-001"></div>
-            <div><label class="db-label">Thương Hiệu</label>
-              <select class="db-input" id="sa-p-brand">
-                <option>Nike</option><option>Adidas</option><option>MLB</option><option>Puma</option><option>Fila</option><option>New Balance</option><option>Converse</option><option>Vans</option>
-              </select>
-            </div>
-            <div><label class="db-label">Danh Mục</label>
-              <select class="db-input" id="sa-p-cat">
-                <option>Giày Sneaker › Lifestyle</option><option>Giày Sneaker › Chạy Bộ</option><option>Giày Sneaker › Bóng Rổ</option><option>Streetwear › Áo</option><option>Phụ Kiện › Balo</option>
-              </select>
-            </div>
-            <div><label class="db-label">Giá Bán (đ) *</label><input class="db-input" id="sa-p-price" type="number" placeholder="3200000"></div>
-            <div><label class="db-label">Giá Gốc (đ)</label><input class="db-input" id="sa-p-oldprice" type="number" placeholder="4500000"></div>
-            <div><label class="db-label">Tồn Kho</label><input class="db-input" id="sa-p-stock" type="number" placeholder="50"></div>
-            <div><label class="db-label">Đơn Vị</label><input class="db-input" id="sa-p-unit" placeholder="đôi / cái / chiếc" value="đôi"></div>
-            <div style="grid-column:1/-1"><label class="db-label">Size Có Sẵn</label>
-              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
-                <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;padding:5px 10px;border:1px solid rgba(255,255,255,0.1)">36</label>
-                <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;padding:5px 10px;border:1px solid rgba(255,255,255,0.1)">37</label>
-                <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;padding:5px 10px;border:1px solid rgba(255,255,255,0.1)">38</label>
-                <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;padding:5px 10px;border:1px solid rgba(255,255,255,0.1)">39</label>
-                <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;padding:5px 10px;border:1px solid rgba(255,255,255,0.1)">40</label>
-                <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;padding:5px 10px;border:1px solid rgba(255,255,255,0.1)">41</label>
-                <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;padding:5px 10px;border:1px solid rgba(255,255,255,0.1)">42</label>
-                <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;padding:5px 10px;border:1px solid rgba(255,255,255,0.1)">43</label>
-                <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;padding:5px 10px;border:1px solid rgba(255,255,255,0.1)">44</label>
-                <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;padding:5px 10px;border:1px solid rgba(255,255,255,0.1)">45</label>
+        <div id="sa-add-prod-form" style="display:none;background:rgba(255,255,255,0.03);border:1px solid rgba(230,32,32,0.25);border-radius:6px;padding:20px;margin-bottom:20px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+            <div style="font-size:14px;font-weight:700;color:var(--white)" id="sa-prod-form-title">➕ Thêm Sản Phẩm Mới</div>
+            <button class="db-btn-sm" onclick="document.getElementById('sa-add-prod-form').style.display='none'">✕ Đóng</button>
+          </div>
+          <input type="hidden" id="sa-p-editid">
+
+          <div style="display:grid;grid-template-columns:220px 1fr;gap:20px;align-items:start">
+
+            <!-- CỘT TRÁI: Upload ảnh -->
+            <div>
+              <label class="db-label">Ảnh Sản Phẩm</label>
+              <!-- Preview -->
+              <div id="sa-p-img-preview" style="width:100%;aspect-ratio:1;background:rgba(255,255,255,0.04);border:2px dashed rgba(255,255,255,0.12);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;position:relative;cursor:pointer;margin-bottom:10px" onclick="document.getElementById('sa-p-img-file').click()">
+                <div id="sa-p-img-placeholder" style="text-align:center;color:var(--gray-light)">
+                  <div style="font-size:36px;margin-bottom:8px">🖼️</div>
+                  <div style="font-size:12px">Click để chọn ảnh</div>
+                  <div style="font-size:11px;margin-top:4px;color:rgba(255,255,255,0.3)">JPG, PNG, WEBP — tối đa 5MB</div>
+                </div>
+                <img id="sa-p-img-show" src="" style="display:none;width:100%;height:100%;object-fit:cover;position:absolute;inset:0" alt="preview">
+                <div id="sa-p-img-remove" style="display:none;position:absolute;top:6px;right:6px;background:rgba(244,67,54,0.9);border-radius:50%;width:24px;height:24px;display:none;align-items:center;justify-content:center;cursor:pointer;font-size:13px" onclick="event.stopPropagation();saClearProductImg()">✕</div>
+              </div>
+
+              <!-- Buttons -->
+              <div style="display:flex;gap:6px;margin-bottom:8px">
+                <button class="db-btn-sm" style="flex:1" onclick="document.getElementById('sa-p-img-file').click()">📁 Chọn File</button>
+                <button class="db-btn-sm" style="flex:1" onclick="saOpenCamera()">📷 Camera</button>
+              </div>
+              <input type="file" id="sa-p-img-file" accept="image/*" style="display:none" onchange="saHandleProductImg(this)">
+
+              <!-- Camera modal -->
+              <div id="sa-camera-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:16px">
+                <div style="font-size:15px;font-weight:700;color:#fff">📷 Chụp Ảnh Sản Phẩm</div>
+                <video id="sa-camera-video" autoplay playsinline style="width:100%;max-width:400px;border-radius:8px;border:2px solid var(--red)"></video>
+                <canvas id="sa-camera-canvas" style="display:none"></canvas>
+                <div style="display:flex;gap:12px">
+                  <button class="db-btn-sm primary" style="padding:10px 24px;font-size:14px" onclick="saCapturePhoto()">📸 Chụp</button>
+                  <button class="db-btn-sm" onclick="saCloseCamera()">✕ Hủy</button>
+                </div>
+              </div>
+
+              <!-- URL ảnh thay thế -->
+              <div style="margin-top:4px">
+                <label class="db-label" style="font-size:10px">Hoặc nhập URL ảnh</label>
+                <input class="db-input" id="sa-p-img-url" placeholder="https://..." style="font-size:12px;width:100%"
+                  oninput="saPreviewImgUrl(this.value)">
               </div>
             </div>
-            <div style="grid-column:1/-1"><label class="db-label">Mô Tả Ngắn</label><input class="db-input" id="sa-p-desc" placeholder="Mô tả ngắn hiển thị trên trang sản phẩm..."></div>
-            <div style="grid-column:1/-1;display:flex;gap:20px;align-items:center">
-              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px"><input type="checkbox" id="sa-p-active" checked style="accent-color:var(--red)"> Đang Bán</label>
-              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px"><input type="checkbox" id="sa-p-featured" style="accent-color:var(--gold)"> Sản Phẩm Nổi Bật</label>
-              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px"><input type="checkbox" id="sa-p-new" style="accent-color:#4caf50"> Badge MỚI</label>
-              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px"><input type="checkbox" id="sa-p-hot" style="accent-color:var(--accent)"> Badge HOT</label>
+
+            <!-- CỘT PHẢI: Thông tin sản phẩm -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div><label class="db-label">Tên Sản Phẩm *</label><input class="db-input" id="sa-p-name" placeholder="Nike Air Max 270 React" style="width:100%"></div>
+              <div><label class="db-label">Mã SP / SKU *</label><input class="db-input" id="sa-p-sku" placeholder="NK-AM270-001" style="width:100%"></div>
+              <div><label class="db-label">Thương Hiệu</label>
+                <select class="db-input" id="sa-p-brand" style="width:100%">
+                  <option>Nike</option><option>Adidas</option><option>MLB</option><option>Puma</option>
+                  <option>Fila</option><option>New Balance</option><option>Converse</option><option>Vans</option>
+                </select>
+              </div>
+              <div><label class="db-label">Danh Mục</label>
+                <select class="db-input" id="sa-p-cat" style="width:100%">
+                  <option>Giày dép</option><option>Streetwear</option><option>Phụ kiện</option>
+                </select>
+              </div>
+              <div><label class="db-label">Giá Bán (đ) *</label><input class="db-input" id="sa-p-price" type="number" placeholder="3200000" style="width:100%"></div>
+              <div><label class="db-label">Giá Nhập (đ)</label><input class="db-input" id="sa-p-buyprice" type="number" placeholder="2400000" style="width:100%"></div>
+              <div><label class="db-label">Tồn Kho</label><input class="db-input" id="sa-p-stock" type="number" placeholder="50" style="width:100%"></div>
+              <div><label class="db-label">Màu Sắc</label><input class="db-input" id="sa-p-color" placeholder="Đen / Trắng" style="width:100%"></div>
+              <div><label class="db-label">Size (cách nhau bởi dấu phẩy)</label>
+                <input class="db-input" id="sa-p-sizes" placeholder="36,37,38,39,40,41,42" style="width:100%">
+              </div>
+              <div><label class="db-label">Trạng Thái</label>
+                <select class="db-input" id="sa-p-status" style="width:100%">
+                  <option value="Đang bán">✅ Đang Bán</option>
+                  <option value="Hết hàng">⚠️ Hết Hàng</option>
+                  <option value="Ẩn">🙈 Ẩn</option>
+                </select>
+              </div>
+              <div style="grid-column:1/-1"><label class="db-label">Mô Tả Sản Phẩm</label>
+                <textarea class="db-input" id="sa-p-desc" placeholder="Mô tả chi tiết về sản phẩm..." rows="3" style="width:100%;resize:vertical"></textarea>
+              </div>
             </div>
           </div>
+
+          <div id="sa-prod-form-error" style="display:none;margin-top:12px;padding:8px 12px;background:rgba(244,67,54,0.1);border:1px solid rgba(244,67,54,0.3);color:#f44336;font-size:12px;border-radius:4px"></div>
           <div style="display:flex;gap:10px;margin-top:16px">
-            <button class="db-btn-sm primary" onclick="saSaveProduct()">💾 Lưu Sản Phẩm</button>
+            <button class="db-btn-sm primary" id="sa-prod-submit-btn" onclick="saSaveProduct()">💾 Lưu Sản Phẩm</button>
             <button class="db-btn-sm" onclick="document.getElementById('sa-add-prod-form').style.display='none'">Hủy</button>
           </div>
         </div>

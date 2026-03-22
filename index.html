@@ -10880,22 +10880,70 @@ async function adminEditStock(ma) {
 // ------------------------------------------------------------
 async function adminLoadDashboard() {
   try {
-    const res  = await fetch('/api/admin/thongke', { headers: adminHeaders() });
-    if (!res.ok) return;
-    const d = await res.json();
-    // Cập nhật KPI cards
-    const cards = document.querySelectorAll('#panel-admin-home .db-stat-card');
-    if (cards[1]) cards[1].querySelector('.db-stat-val').textContent = d.tongHoaDon || 0;
-    // Cập nhật sub-title
+    const [tkRes, dhRes] = await Promise.all([
+      fetch('/api/admin/thongke',        { headers: adminHeaders() }),
+      fetch('/api/admin/hoadon?limit=5', { headers: adminHeaders() }),
+    ]);
+    if (!tkRes.ok) return;
+    const d  = await tkRes.json();
+    const dh = dhRes.ok ? await dhRes.json() : { data: [] };
+    const tt = d.theoTrangThai || {};
+
+    // KPI cards
+    const vals = document.querySelectorAll('#panel-admin-home .db-stat-val');
+    if (vals[0]) vals[0].textContent = fmtMoney(d.doanhThu || 0);
+    if (vals[1]) vals[1].textContent = (d.tongHoaDon || 0).toLocaleString('vi-VN');
+    if (vals[2]) vals[2].textContent = (d.tongKhachHang || 0).toLocaleString('vi-VN');
+    if (vals[3]) vals[3].textContent = (d.tongSanPham || 0).toLocaleString('vi-VN');
+
+    // Sub-title
     const sub = document.querySelector('#panel-admin-home .db-page-sub');
     if (sub) {
       const now = new Date();
-      sub.textContent = `Cập nhật lúc ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')} -- ${d.tongHoaDon||0} đơn hàng · ${d.tongSanPham||0} sản phẩm · ${d.hetHang||0} hết hàng`;
+      const cho = tt['Ch\u1edd x\u1eed l\u00fd'] || 0;
+      sub.textContent = 'C\u1eadp nh\u1eadt ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ' \u2014 ' + cho + ' \u0111\u01a1n ch\u1edd x\u1eed l\u00fd \u00b7 ' + (d.hetHang||0) + ' SP h\u1ebft h\u00e0ng';
     }
-    // Thống kê trạng thái đơn hàng
-    const tt = d.theoTrangThai || {};
-    const btnsDH = document.querySelectorAll('#panel-admin-home .db-stat-card');
-    // Cập nhật các nút filter đơn hàng trong home nếu có
+
+    // Badge nav
+    const badge = document.querySelector('#shopDashboard .db-nav-badge');
+    if (badge) badge.textContent = tt['Ch\u1edd x\u1eed l\u00fd'] || 0;
+
+    // Widget "Don Hang Moi Nhat"
+    const rows  = dh.data || [];
+    const tbody = document.querySelector('#panel-admin-home .db-table-wrap tbody');
+    if (tbody) {
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--gray-light)">Ch\u01b0a c\u00f3 \u0111\u01a1n h\u00e0ng n\u00e0o</td></tr>';
+      } else {
+        const sm = {
+          'Ch\u1edd x\u1eed l\u00fd':   ['\u23f3 Ch\u1edd XL',   'status-pending'],
+          '\u0110\u00e3 x\u00e1c nh\u1eadn': ['\u2705 X\u00e1c Nh\u1eadn',  'status-done'],
+          '\u0110ang giao':   ['\ud83d\ude9a \u0110ang Giao', 'status-shipping'],
+          'Ho\u00e0n th\u00e0nh':  ['\u2705 Ho\u00e0n Th\u00e0nh','status-done'],
+          '\u0110\u00e3 h\u1ee7y':  ['\u274c \u0110\u00e3 H\u1ee7y',   'status-cancel'],
+        };
+        tbody.innerHTML = rows.map(function(o) {
+          var ma  = o.mahoadon||o.MaHoaDon||'--';
+          var ten = o.tenkhachhang||o.HoTenNguoiNhan||'Kh\u00e1ch l\u1ebb';
+          var tts = o.trangthai||o.TrangThai||'--';
+          var info = sm[tts] || [tts, 'status-pending'];
+          return '<tr><td style="font-family:monospace;font-size:12px;color:var(--red)">' + ma + '</td>' +
+            '<td>' + ten + '</td>' +
+            '<td style="font-size:12px;color:var(--gray-light)">--</td>' +
+            '<td style="font-weight:700">' + fmtMoney(o.tongtien||o.TongTien) + '</td>' +
+            '<td><span class="db-status ' + info[1] + '">' + info[0] + '</span></td></tr>';
+        }).join('');
+      }
+    }
+
+    // Canh bao "Can Xu Ly Ngay"
+    const urgentItems = document.querySelectorAll('#panel-admin-home .db-list-name');
+    urgentItems.forEach(function(el) {
+      if (el.textContent.includes('\u0111\u01a1n ch\u1edd')) {
+        el.textContent = (tt['Ch\u1edd x\u1eed l\u00fd']||0) + ' \u0111\u01a1n ch\u1edd x\u00e1c nh\u1eadn';
+      }
+    });
+
   } catch(e) { console.error('adminLoadDashboard:', e); }
 }
 

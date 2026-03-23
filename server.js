@@ -1414,7 +1414,7 @@ app.post('/api/chat/message', async (req, res) => {
     );
     const products = prodRes.rows;
     const productList = products.map(p =>
-      `- ${p.tensanpham} (${p.thuonghieu}) | Giá: ${Number(p.giaban).toLocaleString('vi-VN')}đ | Tồn: ${p.soluongton} | Danh mục: ${p.danhmuc}`
+      `- ${p.tensanpham||p.TenSanPham} (${p.thuonghieu||p.ThuongHieu}) | Giá: ${Number(p.giaban||p.GiaBan).toLocaleString('vi-VN')}đ | Tồn: ${p.soluongton??p.SoLuongTon} | Danh mục: ${p.danhmuc||p.DanhMuc}`
     ).join('\n');
 
     // Gọi Gemini API (miễn phí) hoặc fallback Anthropic nếu có

@@ -1409,12 +1409,12 @@ app.post('/api/chat/message', async (req, res) => {
 
     // Lấy một số sản phẩm từ DB để AI biết context
     const prodRes = await pool.query(
-      `SELECT TenSanPham, ThuongHieu, GiaBan, SoLuongTon, TinhTrang, DanhMuc
+      `SELECT TenSanPham as ten, ThuongHieu as hang, GiaBan as gia, SoLuongTon as ton, TinhTrang as tt, DanhMuc as dm
        FROM SanPham WHERE TinhTrang != 'Ẩn' ORDER BY TenSanPham LIMIT 30`
     );
     const products = prodRes.rows;
     const productList = products.map(p =>
-      `- ${p.tensanpham||p.TenSanPham} (${p.thuonghieu||p.ThuongHieu}) | Giá: ${Number(p.giaban||p.GiaBan).toLocaleString('vi-VN')}đ | Tồn: ${p.soluongton??p.SoLuongTon} | Danh mục: ${p.danhmuc||p.DanhMuc}`
+      `- ${p.ten} (${p.hang}) | Giá: ${Number(p.gia).toLocaleString('vi-VN')}đ | Tồn: ${p.ton} | Danh mục: ${p.dm}`
     ).join('\n');
 
     // Gọi Gemini API (miễn phí) hoặc fallback Anthropic nếu có

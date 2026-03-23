@@ -331,9 +331,9 @@ app.post("/api/search/image", async (req, res) => {
 
     // Lấy danh sách thương hiệu từ DB
     const brandsRes = await pool.query(
-      "SELECT DISTINCT ThuongHieu FROM SanPham WHERE TinhTrang != 'Ẩn' ORDER BY ThuongHieu"
+      "SELECT DISTINCT ThuongHieu as hang FROM SanPham WHERE TinhTrang != 'Ẩn' ORDER BY ThuongHieu"
     );
-    const brands = brandsRes.rows.map(r => r.thuonghieu || r.ThuongHieu).join(', ');
+    const brands = brandsRes.rows.map(r => r.hang).join(', ');
 
     // Gọi Gemini Vision
     const geminiRes = await fetch(
@@ -1493,8 +1493,9 @@ app.post('/api/chat/message', async (req, res) => {
 
     // Lấy một số sản phẩm từ DB để AI biết context
     const prodRes = await pool.query(
-      `SELECT TenSanPham as ten, ThuongHieu as hang, GiaBan as gia, SoLuongTon as ton, TinhTrang as tt, DanhMuc as dm
-       FROM SanPham WHERE TinhTrang != 'Ẩn' ORDER BY TenSanPham LIMIT 30`
+      `SELECT TenSanPham as ten, ThuongHieu as hang, GiaBan as gia, SoLuongTon as ton, DanhMuc as dm
+       FROM SanPham WHERE TinhTrang != $1 ORDER BY TenSanPham LIMIT 30`,
+      ['Ẩn']
     );
     const products = prodRes.rows;
     const productList = products.map(p =>

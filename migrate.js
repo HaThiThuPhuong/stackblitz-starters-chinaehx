@@ -109,6 +109,9 @@ async function runMigration() {
     // SanPham — TinhTrang (dùng để ẩn/hiện sản phẩm)
     await addCol('SanPham', 'TinhTrang', "VARCHAR(100) DEFAULT 'Đang bán'");
 
+    // SanPham — HinhAnh (đường dẫn ảnh sản phẩm)
+    await addCol('SanPham', 'HinhAnh', "TEXT DEFAULT ''");
+
     // DanhMuc — TrangThai
     await addCol('DanhMuc', 'TrangThai', "VARCHAR(50) DEFAULT 'Hoat dong'");
   } catch (err) {

@@ -7522,6 +7522,11 @@ select.mp-field-input option { background: #1a1a1a; }
                   <span style="padding:3px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:3px;font-size:11px;font-family:monospace;color:var(--gray-light)">SKU</span>
                   <span style="padding:3px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:3px;font-size:11px;font-family:monospace;color:var(--gray-light)">MoTaSanPham</span>
                   <span style="padding:3px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:3px;font-size:11px;font-family:monospace;color:var(--gray-light)">TinhTrang</span>
+                  <span style="padding:3px 10px;background:rgba(76,175,80,0.12);border:1px solid rgba(76,175,80,0.3);border-radius:3px;font-size:11px;font-family:monospace;color:#81c784">HinhAnh (URL)</span>
+                </div>
+                <div style="margin-top:10px;padding:10px 14px;background:rgba(76,175,80,0.07);border:1px solid rgba(76,175,80,0.2);border-radius:6px;font-size:12px;color:#a5d6a7;line-height:1.6">
+                  📷 <strong>Ảnh nhúng trực tiếp trong ô Excel:</strong> Nhúng ảnh vào ô cùng dòng với sản phẩm (Insert → Pictures → Place in Cell). Server sẽ tự trích xuất và lưu vào <code style="background:rgba(255,255,255,0.08);padding:1px 5px;border-radius:3px">/uploads/products/</code>.<br>
+                  Hoặc điền cột <code style="background:rgba(255,255,255,0.08);padding:1px 5px;border-radius:3px">HinhAnh</code> bằng URL ảnh nếu ảnh đã có online.
                 </div>
                 <div style="margin-top:8px;font-size:11px;color:rgba(255,100,100,0.7)">* Bắt buộc</div>
               </div>
@@ -7670,7 +7675,7 @@ select.mp-field-input option { background: #1a1a1a; }
       // --- PROCESS FILE -----------------------------------------
       let importedData = [];
       const REQUIRED = ['MaSanPham','TenSanPham'];
-      const ALL_COLS = ['MaSanPham','TenSanPham','ThuongHieu','DanhMuc','GiaNhap','GiaBan','Size','MauSac','SoLuongTon','SKU','MoTaSanPham','ChinhSachDoiTra','ChinhSachBaoHanh','TinhTrang'];
+      const ALL_COLS = ['MaSanPham','TenSanPham','ThuongHieu','DanhMuc','GiaNhap','GiaBan','Size','MauSac','SoLuongTon','SKU','MoTaSanPham','ChinhSachDoiTra','ChinhSachBaoHanh','TinhTrang','HinhAnh'];
 
       function processImportFile(file) {
         const ext = file.name.split('.').pop().toLowerCase();
@@ -7973,6 +7978,7 @@ select.mp-field-input option { background: #1a1a1a; }
           warn = results.skipped;
           err  = results.failed;
         } else {
+        } else {
           // Format từ import từng dòng qua /api/admin/sanpham
           ok   = (results.success  || []).length;
           warn = (results.warnings || []).length;
@@ -7980,6 +7986,7 @@ select.mp-field-input option { background: #1a1a1a; }
         }
 
         let detail = `✅ Thêm mới: ${ok} sản phẩm`;
+        if (results.withImage) detail += ` (📷 ${results.withImage} có ảnh)`;
         if (warn) detail += ` · ⚠️ Đã tồn tại (bỏ qua): ${warn}`;
         if (err)  detail += ` · ❌ Lỗi: ${err}`;
 
@@ -10985,15 +10992,19 @@ async function adminLoadProducts(page) {
       const tt = p.tinhtrang ?? p.TinhTrang ?? 'Đang bán';
       const ttClass = tt === 'Ẩn' ? 'status-cancel' : 'status-done';
       const ma = p.masanpham ?? p.MaSanPham ?? '';
+      const hinh = p.hinhanh ?? p.HinhAnh ?? '';
+      const imgHtml = hinh
+        ? `<img src="${hinh}" style="width:44px;height:44px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,0.1)" onerror="this.outerHTML='👟'">`
+        : `<div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.04);border-radius:6px;font-size:22px;cursor:pointer" title="Click để tải ảnh" onclick="adminUploadImage('${ma}')">📷</div>`;
       return `<tr data-ma="${ma}">
-        <td>👟</td>
+        <td>${imgHtml}</td>
         <td><strong>${p.tensanpham ?? p.TenSanPham ?? '--'}</strong><br><span style="font-size:11px;color:var(--gray-light)">SKU: ${p.sku ?? p.SKU ?? '--'}</span></td>
         <td>${p.thuonghieu ?? p.ThuongHieu ?? '--'}</td>
         <td>${p.danhmuc ?? p.DanhMuc ?? '--'}</td>
         <td style="font-family:monospace;color:var(--gray-light)">${fmtMoney(p.gianhap ?? p.GiaNhap)}</td>
         <td style="font-family:monospace;font-weight:700">${fmtMoney(p.giaban ?? p.GiaBan)}</td>
         <td><span style="color:${tonColor}">${ton}</span></td>
-        <td><span class="db-status ${ttClass}">${tt === 'Ẩn' ? '🙈 Đã Ẩn' : '- Đang Bán'}</span></td>
+        <td><span class="db-status ${ttClass}">${tt === 'Ẩn' ? '🙈 Đã Ẩn' : '✅ Đang Bán'}</span></td>
         <td style="display:flex;gap:4px">
           <button class="db-btn-sm" onclick="adminEditProduct('${ma}')">Sửa</button>
           <button class="db-btn-sm" onclick="adminToggleProduct('${ma}', this)">${tt === 'Ẩn' ? 'Hiện' : 'Ẩn'}</button>
@@ -11119,8 +11130,25 @@ function showAdminProductModal(p) {
   const ma = p ? (p.masanpham || p.MaSanPham || '') : '';
   const html = `
   <div id="modal-prod-admin" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)this.remove()">
-    <div style="background:var(--surface,#1a1a1a);border:1px solid rgba(255,255,255,0.1);width:100%;max-width:560px;max-height:90vh;overflow-y:auto;padding:24px;position:relative">
-      <div style="font-weight:700;font-size:16px;margin-bottom:20px;letter-spacing:.5px">${isEdit ? '-️ Sửa Sản Phẩm' : '- Thêm Sản Phẩm Mới'}</div>
+    <div style="background:var(--surface,#1a1a1a);border:1px solid rgba(255,255,255,0.1);width:100%;max-width:580px;max-height:92vh;overflow-y:auto;padding:24px;position:relative">
+      <div style="font-weight:700;font-size:16px;margin-bottom:20px;letter-spacing:.5px">${isEdit ? '✏️ Sửa Sản Phẩm' : '➕ Thêm Sản Phẩm Mới'}</div>
+
+      <!-- Ảnh sản phẩm -->
+      <div style="margin-bottom:16px">
+        <label style="font-size:12px;color:#aaa;display:block;margin-bottom:8px">Ảnh Sản Phẩm</label>
+        <div style="display:flex;gap:12px;align-items:flex-start">
+          <div id="mp-img-preview" style="width:80px;height:80px;border-radius:8px;background:rgba(255,255,255,0.05);border:1px dashed rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:32px;flex-shrink:0;overflow:hidden">
+            ${p?.hinhanh||p?.HinhAnh ? `<img src="${p.hinhanh||p.HinhAnh}" style="width:100%;height:100%;object-fit:cover" onerror="this.outerHTML='📷'">` : '📷'}
+          </div>
+          <div style="flex:1">
+            <input type="file" id="mp-img-file" accept="image/*" style="display:none" onchange="previewProdImg(this)">
+            <button class="db-btn-sm" onclick="document.getElementById('mp-img-file').click()" style="margin-bottom:6px">📁 Chọn Ảnh Từ Máy</button>
+            <div style="font-size:11px;color:#666">Hoặc nhập URL ảnh:</div>
+            <input id="mp-hinhanh" class="db-input" style="margin-top:4px;font-size:11px" value="${p?.hinhanh||p?.HinhAnh||''}" placeholder="https://... hoặc /uploads/products/..." oninput="previewProdImgUrl(this.value)">
+          </div>
+        </div>
+      </div>
+
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div><label style="font-size:12px;color:#aaa">Mã Sản Phẩm *</label><input id="mp-ma" class="db-input" value="${ma}" ${isEdit?'readonly style="opacity:.6"':''}></div>
         <div><label style="font-size:12px;color:#aaa">SKU</label><input id="mp-sku" class="db-input" value="${p?.sku||p?.SKU||''}"></div>
@@ -11149,10 +11177,56 @@ function showAdminProductModal(p) {
   document.body.insertAdjacentHTML('beforeend', html);
 }
 
+function previewProdImg(input) {
+  if (!input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const prev = document.getElementById('mp-img-preview');
+    if (prev) prev.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover">`;
+    // Xóa URL text khi đã chọn file
+    const urlInput = document.getElementById('mp-hinhanh');
+    if (urlInput) urlInput.value = '';
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function previewProdImgUrl(url) {
+  if (!url) return;
+  const prev = document.getElementById('mp-img-preview');
+  if (prev) prev.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover" onerror="this.outerHTML='📷'">`;
+  // Xóa file input khi nhập URL
+  const fi = document.getElementById('mp-img-file');
+  if (fi) fi.value = '';
+}
+
+// Upload ảnh đơn lẻ cho sản phẩm đã có (click vào 📷 trong bảng)
+function adminUploadImage(ma) {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = async () => {
+    if (!input.files[0]) return;
+    const fd = new FormData();
+    fd.append('image', input.files[0]);
+    try {
+      const res = await fetch(`/api/admin/sanpham/${ma}/upload-image`, {
+        method: 'POST', headers: { 'Authorization': 'Bearer ' + (sessionStorage.getItem('admin_token')||localStorage.getItem('admin_token')||'') },
+        body: fd
+      });
+      const json = await res.json();
+      if (!res.ok) { showToast('Lỗi -', json.error); return; }
+      showToast('Ảnh Đã Lưu ✅', `Sản phẩm ${ma}`);
+      adminLoadProducts();
+    } catch(e) { showToast('Lỗi -', e.message); }
+  };
+  input.click();
+}
+
 async function adminSaveProduct(existingMa) {
   const ma    = document.getElementById('mp-ma')?.value.trim();
   const ten   = document.getElementById('mp-ten')?.value.trim();
   if (!ma || !ten) { showToast('Lỗi -', 'Mã và tên sản phẩm không được trống'); return; }
+
+  // 1. Lưu thông tin sản phẩm trước
   const body = {
     MaSanPham: ma, TenSanPham: ten,
     SKU: document.getElementById('mp-sku')?.value.trim(),
@@ -11165,7 +11239,9 @@ async function adminSaveProduct(existingMa) {
     MauSac: document.getElementById('mp-mau')?.value.trim(),
     TinhTrang: document.getElementById('mp-tt')?.value,
     MoTaSanPham: document.getElementById('mp-mota')?.value.trim(),
+    HinhAnh: document.getElementById('mp-hinhanh')?.value.trim() || '',
   };
+
   try {
     const isEdit = !!existingMa;
     const url    = isEdit ? `/api/admin/sanpham/${existingMa}` : '/api/admin/sanpham';
@@ -11173,7 +11249,26 @@ async function adminSaveProduct(existingMa) {
     const res    = await fetch(url, { method, headers: adminHeaders(), body: JSON.stringify(body) });
     const json   = await res.json();
     if (!res.ok) { showToast('Lỗi -', json.error); return; }
-    showToast('Thành Công -', isEdit ? 'Sản phẩm đã được cập nhật' : 'Đã thêm sản phẩm mới');
+
+    const savedMa = json.data?.masanpham || json.data?.MaSanPham || ma;
+
+    // 2. Nếu có file ảnh → upload riêng
+    const imgFile = document.getElementById('mp-img-file')?.files?.[0];
+    if (imgFile) {
+      const fd = new FormData();
+      fd.append('image', imgFile);
+      try {
+        const imgRes = await fetch(`/api/admin/sanpham/${savedMa}/upload-image`, {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + (sessionStorage.getItem('admin_token')||localStorage.getItem('admin_token')||'') },
+          body: fd
+        });
+        const imgJson = await imgRes.json();
+        if (!imgRes.ok) showToast('Cảnh Báo -', 'Sản phẩm đã lưu nhưng ảnh lỗi: ' + imgJson.error);
+      } catch(e) { showToast('Cảnh Báo -', 'Ảnh chưa lưu: ' + e.message); }
+    }
+
+    showToast('Thành Công ✅', isEdit ? 'Sản phẩm đã được cập nhật' : 'Đã thêm sản phẩm mới');
     document.getElementById('modal-prod-admin')?.remove();
     adminLoadProducts();
   } catch(e) { showToast('Lỗi -', e.message); }

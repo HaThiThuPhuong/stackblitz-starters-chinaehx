@@ -12,10 +12,21 @@ import cors from "cors";
 import multer from "multer";
 import ExcelJS from "exceljs";
 import crypto from "crypto";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const { Pool } = pkg;
 const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
+
+// ── __dirname cho ESM ────────────────────────────────────────
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = path.dirname(__filename);
+
+// ── Thư mục lưu ảnh sản phẩm ────────────────────────────────
+const UPLOADS_DIR = path.join(__dirname, "uploads", "products");
+if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
 // ── Kết nối Database ────────────────────────────────────────
 const pool = new Pool({
@@ -26,6 +37,7 @@ const pool = new Pool({
 app.use(cors());
 app.use(express.json());
 app.use(express.static("."));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // ============================================================
 // JWT — tự triển khai nhẹ (không cần thư viện ngoài)
@@ -832,43 +844,23 @@ app.post(
   async (req, res) => {
     try {
       const {
-        MaSanPham,
-        TenSanPham,
-        ThuongHieu,
-        DanhMuc,
-        GiaNhap,
-        GiaBan,
-        Size,
-        MauSac,
-        MoTaSanPham,
-        ChinhSachDoiTra,
-        ChinhSachBaoHanh,
-        TinhTrang,
-        SoLuongTon,
-        SKU,
+        MaSanPham, TenSanPham, ThuongHieu, DanhMuc,
+        GiaNhap, GiaBan, Size, MauSac, MoTaSanPham,
+        ChinhSachDoiTra, ChinhSachBaoHanh, TinhTrang,
+        SoLuongTon, SKU, HinhAnh,
       } = req.body;
       if (!MaSanPham || !TenSanPham)
-        return res
-          .status(400)
-          .json({ error: "Thiếu MaSanPham hoặc TenSanPham" });
+        return res.status(400).json({ error: "Thiếu MaSanPham hoặc TenSanPham" });
       const r = await pool.query(
-        `INSERT INTO SanPham (MaSanPham,TenSanPham,ThuongHieu,DanhMuc,GiaNhap,GiaBan,Size,MauSac,MoTaSanPham,ChinhSachDoiTra,ChinhSachBaoHanh,TinhTrang,SoLuongTon,SKU)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
+        `INSERT INTO SanPham (MaSanPham,TenSanPham,ThuongHieu,DanhMuc,GiaNhap,GiaBan,Size,MauSac,MoTaSanPham,ChinhSachDoiTra,ChinhSachBaoHanh,TinhTrang,SoLuongTon,SKU,HinhAnh)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
         [
-          MaSanPham,
-          TenSanPham,
-          ThuongHieu || "",
-          DanhMuc || "",
-          GiaNhap || null,
-          GiaBan || null,
-          Size || "",
-          MauSac || "",
-          MoTaSanPham || "",
-          ChinhSachDoiTra || "",
-          ChinhSachBaoHanh || "",
-          TinhTrang || "Đang bán",
-          SoLuongTon || 0,
-          SKU || "",
+          MaSanPham, TenSanPham, ThuongHieu || "", DanhMuc || "",
+          GiaNhap || null, GiaBan || null,
+          Size || "", MauSac || "", MoTaSanPham || "",
+          ChinhSachDoiTra || "", ChinhSachBaoHanh || "",
+          TinhTrang || "Đang bán", SoLuongTon || 0,
+          SKU || "", HinhAnh || "",
         ],
       );
       res.json({ success: true, data: r.rows[0] });
@@ -944,7 +936,29 @@ app.patch(
   },
 );
 
-// ── IMPORT EXCEL (admin/shop) ─────────────────────────────
+// ── UPLOAD ẢNH SẢN PHẨM ĐƠN LẺ ──────────────────────────────
+app.post(
+  "/api/admin/sanpham/:ma/upload-image",
+  requireRole("shop", "admin"),
+  upload.single("image"),
+  async (req, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ error: "Không có file ảnh" });
+      const ma = req.params.ma;
+      const ext = req.file.originalname.split(".").pop().toLowerCase() || "jpg";
+      const filename = `${ma.replace(/[^a-z0-9_-]/gi, "_")}_${Date.now()}.${ext}`;
+      const filepath = path.join(UPLOADS_DIR, filename);
+      fs.writeFileSync(filepath, req.file.buffer);
+      const url = `/uploads/products/${filename}`;
+      await pool.query("UPDATE SanPham SET HinhAnh=$1 WHERE MaSanPham=$2", [url, ma]);
+      res.json({ success: true, url });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  },
+);
+
+// ── IMPORT EXCEL (admin/shop) — có trích xuất ảnh nhúng ──────
 app.post(
   "/api/admin/sanpham/import",
   requireRole("shop", "admin"),
@@ -952,11 +966,16 @@ app.post(
   async (req, res) => {
     try {
       if (!req.file) return res.status(400).json({ error: "Không có file" });
+
       const workbook = new ExcelJS.Workbook();
       await workbook.xlsx.load(req.file.buffer);
       const worksheet = workbook.worksheets[0];
+
+      // ── Đọc header ──────────────────────────────────────────
       const headers = [];
-      worksheet.getRow(1).eachCell((cell) => headers.push(cell.value));
+      worksheet.getRow(1).eachCell((cell) => headers.push(String(cell.value || "")));
+
+      // ── Đọc dữ liệu từng dòng ───────────────────────────────
       const rows = [];
       worksheet.eachRow((row, rowNumber) => {
         if (rowNumber === 1) return;
@@ -965,9 +984,27 @@ app.post(
           const key = headers[colNumber - 1];
           if (key) obj[key] = cell.value ?? "";
         });
+        obj._rowNumber = rowNumber;
         rows.push(obj);
       });
 
+      // ── Trích xuất ảnh nhúng trong worksheet ─────────────────
+      // ExcelJS lưu images trong worksheet.getImages()
+      // Mỗi image có range chứa row → map rowNumber → imageBuffer
+      const rowImageMap = {}; // rowNumber → { buffer, ext }
+      try {
+        const images = worksheet.getImages();
+        for (const img of images) {
+          const imageData = workbook.getImage(img.imageId);
+          const rowNum = (img.range?.tl?.nativeRow ?? img.range?.tl?.row ?? -1) + 1; // 0-indexed → 1-indexed
+          if (rowNum > 1 && imageData?.buffer) {
+            const ext = (imageData.extension || "jpeg").replace("jpeg", "jpg");
+            rowImageMap[rowNum] = { buffer: imageData.buffer, ext };
+          }
+        }
+      } catch (_) { /* worksheet không có ảnh nhúng — bỏ qua */ }
+
+      // ── Validate & Insert ────────────────────────────────────
       const REQUIRED = ["MaSanPham", "TenSanPham"];
       const results = { success: [], errors: [], warnings: [] };
       const client = await pool.connect();
@@ -977,10 +1014,7 @@ app.post(
           const lineNum = idx + 2;
           const missing = REQUIRED.filter((f) => !row[f]);
           if (missing.length) {
-            results.errors.push({
-              line: lineNum,
-              reason: `Thiếu: ${missing.join(", ")}`,
-            });
+            results.errors.push({ line: lineNum, reason: `Thiếu: ${missing.join(", ")}` });
             continue;
           }
           const existing = await client.query(
@@ -988,33 +1022,42 @@ app.post(
             [row.MaSanPham],
           );
           if (existing.rows.length) {
-            results.warnings.push({
-              line: lineNum,
-              reason: `${row.MaSanPham} đã tồn tại`,
-            });
+            results.warnings.push({ line: lineNum, reason: `${row.MaSanPham} đã tồn tại` });
             continue;
           }
+
+          // Lưu ảnh nhúng nếu có
+          let hinhAnh = row.HinhAnh || "";
+          const imgData = rowImageMap[row._rowNumber];
+          if (imgData) {
+            try {
+              const filename = `${String(row.MaSanPham).replace(/[^a-z0-9_-]/gi, "_")}_${Date.now()}.${imgData.ext}`;
+              const filepath = path.join(UPLOADS_DIR, filename);
+              fs.writeFileSync(filepath, imgData.buffer);
+              hinhAnh = `/uploads/products/${filename}`;
+            } catch (_) { /* lỗi lưu ảnh — vẫn import sản phẩm, bỏ ảnh */ }
+          }
+
           await client.query(
-            `INSERT INTO SanPham (MaSanPham,TenSanPham,ThuongHieu,DanhMuc,GiaNhap,GiaBan,Size,MauSac,MoTaSanPham,ChinhSachDoiTra,ChinhSachBaoHanh,TinhTrang,SoLuongTon,SKU)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
+            `INSERT INTO SanPham
+               (MaSanPham,TenSanPham,ThuongHieu,DanhMuc,GiaNhap,GiaBan,
+                Size,MauSac,MoTaSanPham,ChinhSachDoiTra,ChinhSachBaoHanh,
+                TinhTrang,SoLuongTon,SKU,HinhAnh)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
             [
-              row.MaSanPham,
-              row.TenSanPham,
-              row.ThuongHieu || "",
-              row.DanhMuc || "",
+              row.MaSanPham, row.TenSanPham,
+              row.ThuongHieu || "", row.DanhMuc || "",
               parseFloat(row.GiaNhap) || null,
-              parseFloat(row.GiaBan) || null,
-              row.Size || "",
-              row.MauSac || "",
-              row.MoTaSanPham || "",
-              row.ChinhSachDoiTra || "",
+              parseFloat(row.GiaBan)  || null,
+              row.Size || "", row.MauSac || "",
+              row.MoTaSanPham || "", row.ChinhSachDoiTra || "",
               row.ChinhSachBaoHanh || "",
               row.TinhTrang || "Đang bán",
               parseInt(row.SoLuongTon) || 0,
-              row.SKU || "",
+              row.SKU || "", hinhAnh,
             ],
           );
-          results.success.push({ line: lineNum, MaSanPham: row.MaSanPham });
+          results.success.push({ line: lineNum, MaSanPham: row.MaSanPham, hasImage: !!imgData });
         }
         await client.query("COMMIT");
       } catch (err) {
@@ -1023,11 +1066,14 @@ app.post(
       } finally {
         client.release();
       }
+
+      const withImage = results.success.filter(r => r.hasImage).length;
       res.json({
         imported: results.success.length,
-        skipped: results.warnings.length,
-        failed: results.errors.length,
-        details: results,
+        skipped:  results.warnings.length,
+        failed:   results.errors.length,
+        withImage,
+        details:  results,
       });
     } catch (err) {
       res.status(500).json({ error: err.message });

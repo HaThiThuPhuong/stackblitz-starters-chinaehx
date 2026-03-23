@@ -315,6 +315,90 @@ app.get("/api/sanpham", async (req, res) => {
 });
 
 // Danh mục & Nhà cung cấp — công khai
+// ── TÌM KIẾM BẰNG HÌNH ẢNH — Gemini Vision ─────────────────
+app.post("/api/search/image", async (req, res) => {
+  try {
+    const { image } = req.body;
+    if (!image) return res.status(400).json({ error: "Thiếu ảnh" });
+
+    const GEMINI_KEY = process.env.GEMINI_API_KEY;
+    if (!GEMINI_KEY) return res.status(500).json({ error: "Chưa cấu hình Gemini API" });
+
+    // Chuyển base64 data URL thành raw base64
+    const base64 = image.replace(/^data:image\/\w+;base64,/, '');
+    const mimeMatch = image.match(/^data:(image\/\w+);base64,/);
+    const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+
+    // Lấy danh sách thương hiệu từ DB
+    const brandsRes = await pool.query(
+      "SELECT DISTINCT ThuongHieu FROM SanPham WHERE TinhTrang != 'Ẩn' ORDER BY ThuongHieu"
+    );
+    const brands = brandsRes.rows.map(r => r.thuonghieu || r.ThuongHieu).join(', ');
+
+    // Gọi Gemini Vision
+    const geminiRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            role: 'user',
+            parts: [
+              {
+                inline_data: { mime_type: mimeType, data: base64 }
+              },
+              {
+                text: `Phân tích hình ảnh giày này và trả về JSON với format sau (chỉ JSON, không giải thích):
+{
+  "brand": "tên thương hiệu (chỉ chọn từ: ${brands})",
+  "model": "tên model nếu nhận ra",
+  "color": "màu sắc chính",
+  "type": "loại giày (sneaker/running/basketball/...)",
+  "query": "từ khóa tìm kiếm ngắn gọn bằng tiếng Việt",
+  "description": "mô tả ngắn bằng tiếng Việt"
+}`
+              }
+            ]
+          }],
+          generationConfig: { maxOutputTokens: 300, temperature: 0.3 }
+        })
+      }
+    );
+
+    const geminiData = await geminiRes.json();
+    if (geminiData.error) {
+      console.error('Gemini Vision error:', geminiData.error);
+      return res.status(500).json({ error: 'Lỗi phân tích ảnh: ' + geminiData.error.message });
+    }
+
+    const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+    // Parse JSON từ response
+    let parsed = {};
+    try {
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);
+    } catch(e) {
+      console.error('Parse error:', e.message, rawText);
+    }
+
+    // Tạo query tìm kiếm
+    const query = parsed.query || parsed.brand || parsed.model || 'giày';
+
+    res.json({
+      query,
+      brand:       parsed.brand || '',
+      model:       parsed.model || '',
+      color:       parsed.color || '',
+      description: parsed.description || `Tìm: ${query}`,
+    });
+
+  } catch(e) {
+    console.error('Image search error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.get("/api/danhmuc", async (req, res) => {
   const result = await pool.query(
     "SELECT * FROM DanhMuc WHERE TrangThai='Hoat dong' ORDER BY 1",

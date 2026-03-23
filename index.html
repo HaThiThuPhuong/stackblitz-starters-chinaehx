@@ -7544,9 +7544,10 @@ select.mp-field-input option { background: #1a1a1a; }
                   <tbody id="imp-preview-body"></tbody>
                 </table>
               </div>
-              <div style="margin-top:14px;display:flex;gap:8px">
-                <button class="db-btn-sm primary" id="imp-gen-sql-btn" onclick="generateImportSQL()">⚡ Tạo Câu Lệnh SQL</button>
-                <button class="db-btn-sm" onclick="resetImport()">↩ Tải Lại File Khác</button>
+              <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+                <button class="db-btn-sm primary" id="imp-direct-btn" onclick="finalizeImportDirect()" style="background:var(--red);border-color:var(--red)">🚀 Import Vào Database</button>
+                <button class="db-btn-sm" id="imp-gen-sql-btn" onclick="generateImportSQL()">📄 Xem SQL</button>
+                <button class="db-btn-sm" onclick="resetImport()">↩ Tải File Khác</button>
               </div>
             </div>
           </div>
@@ -7562,7 +7563,7 @@ select.mp-field-input option { background: #1a1a1a; }
               </div>
               <div class="imp-sql-box" id="imp-sql-output"></div>
               <div style="margin-top:14px;display:flex;gap:8px;align-items:center">
-                <button class="db-btn-sm primary" onclick="finalizeImport()">✅ Xác Nhận Import</button>
+                <button class="db-btn-sm primary" onclick="finalizeImport()">✅ Xác Nhận Import Vào DB</button>
                 <button class="db-btn-sm" onclick="goBackToPreview()">← Quay Lại Xem Trước</button>
                 <span style="font-size:12px;color:var(--gray-light);flex:1;text-align:right">Chạy SQL trong SQL Server / MySQL để hoàn tất nhập liệu</span>
               </div>
@@ -7765,10 +7766,15 @@ select.mp-field-input option { background: #1a1a1a; }
         document.getElementById('imp-preview-zone').style.display = '';
         document.getElementById('imp-sql-zone').style.display = 'none';
 
-        // Update gen button
-        const genBtn = document.getElementById('imp-gen-sql-btn');
         genBtn.disabled = okCount + warnCount === 0;
-        genBtn.textContent = `- Tạo SQL (${okCount + warnCount} dòng hợp lệ)`;
+        genBtn.textContent = `📄 Xem SQL (${okCount + warnCount} dòng)`;
+
+        // Direct import button
+        const directBtn = document.getElementById('imp-direct-btn');
+        if (directBtn) {
+          directBtn.disabled = okCount + warnCount === 0;
+          directBtn.textContent = `🚀 Import Vào Database (${okCount + warnCount} sản phẩm)`;
+        }
 
         setImpStep(2);
       }
@@ -7847,27 +7853,171 @@ select.mp-field-input option { background: #1a1a1a; }
         showToast('Tải File SQL -','File .sql đã được tải về');
       }
 
-      function finalizeImport() {
-        const validRows = importedData.filter(r => r._status !== 'err');
-        // Add to product table
-        validRows.forEach(r => {
-          const stock = parseInt(r.SoLuongTon) || 0;
-          const stockColor = stock === 0 ? '#f44336' : stock < 20 ? 'orange' : '#4caf50';
-          const status = stock === 0 ? '<span class="db-status status-cancel">- Hết Hàng</span>' : '<span class="db-status status-done">- Đang Bán</span>';
-          const price = r.GiaBan ? Number(r.GiaBan).toLocaleString('vi-VN') + 'đ' : '--';
-          const priceIn = r.GiaNhap ? Number(r.GiaNhap).toLocaleString('vi-VN') + 'đ' : '--';
-          const tr = document.createElement('tr');
-          tr.dataset.brand = r.ThuongHieu || '';
-          tr.innerHTML = `<td>👟</td><td>${r.TenSanPham}<br><span style="font-size:11px;color:var(--gray-light)">SKU: ${r.SKU||r.MaSanPham}</span></td><td>${r.ThuongHieu||''}</td><td>${r.DanhMuc||''}</td><td style="font-family:monospace;color:var(--gray-light)">${priceIn}</td><td style="font-family:monospace;font-weight:700">${price}</td><td><span style="color:${stockColor}">${stock}</span></td><td>${status}</td><td style="display:flex;gap:4px"><button class="db-btn-sm" onclick="showToast('Chỉnh Sửa','Form chỉnh sửa sản phẩm')">Sửa</button><button class="db-btn-sm" onclick="showToast('Ẩn SP','Sản phẩm đã bị ẩn')">Ẩn</button></td>`;
-          document.getElementById('prod-tbody').appendChild(tr);
-        });
-        updateProdCount();
+      // ─── IMPORT VÀO DATABASE THẬT ─────────────────────────────
+      let _importFile = null; // lưu file gốc để upload
 
-        document.getElementById('imp-success-msg').textContent = `Đã thêm ${validRows.length} sản phẩm vào danh sách`;
+      // Ghi đè processImportFile để lưu file gốc
+      const _origProcessImportFile = processImportFile;
+      function processImportFile(file) {
+        _importFile = file;
+        _origProcessImportFile(file);
+      }
+
+      async function finalizeImport() {
+        const validRows = importedData.filter(r => r._status !== 'err');
+        if (!validRows.length) { showToast('Lỗi -', 'Không có dòng hợp lệ để import'); return; }
+
+        // Ưu tiên gọi API upload file nếu có file gốc
+        if (_importFile) {
+          await finalizeImportViaFile(_importFile, validRows.length);
+        } else {
+          await finalizeImportViaJSON(validRows);
+        }
+      }
+
+      // Cách 1: Upload file Excel/CSV lên /api/admin/sanpham/import
+      async function finalizeImportViaFile(file, expectedCount) {
+        const btn = document.querySelector('#imp-sql-zone button.db-btn-sm.primary');
+        if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang import...'; }
+
+        // Progress bar tạm thời
+        showImpProgress('Đang upload và xử lý file...', 30);
+
+        try {
+          const token = sessionStorage.getItem('admin_token') || localStorage.getItem('admin_token') || '';
+          if (!token) { showToast('Lỗi -', 'Chưa đăng nhập admin'); if(btn){btn.disabled=false;btn.textContent='✅ Xác Nhận Import Vào DB';} return; }
+
+          const formData = new FormData();
+          formData.append('file', file);
+
+          showImpProgress('Đang gửi lên server...', 60);
+          const res = await fetch('/api/admin/sanpham/import', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token },
+            body: formData
+          });
+
+          showImpProgress('Đang xử lý kết quả...', 90);
+          const json = await res.json();
+
+          if (!res.ok) {
+            hideImpProgress();
+            if(btn){btn.disabled=false;btn.textContent='✅ Xác Nhận Import';}
+            showToast('Lỗi Import -', json.error || 'Có lỗi xảy ra');
+            return;
+          }
+
+          hideImpProgress();
+          showImportSuccess(json.results || { success: [], errors: [], warnings: [] });
+        } catch(e) {
+          hideImpProgress();
+          if(btn){btn.disabled=false;btn.textContent='✅ Xác Nhận Import';}
+          showToast('Lỗi Kết Nối -', e.message);
+        }
+      }
+
+      // Cách 2: Gửi từng dòng qua /api/admin/sanpham (POST)
+      async function finalizeImportViaJSON(validRows) {
+        const btn = document.querySelector('#imp-sql-zone button.db-btn-sm.primary');
+        if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang import...'; }
+
+        const token = sessionStorage.getItem('admin_token') || localStorage.getItem('admin_token') || '';
+        if (!token) { showToast('Lỗi -', 'Chưa đăng nhập admin'); if(btn){btn.disabled=false;btn.textContent='✅ Xác Nhận Import Vào DB';} return; }
+
+        const results = { success: [], errors: [], warnings: [] };
+        let done = 0;
+
+        for (const r of validRows) {
+          showImpProgress(`Đang thêm ${done+1}/${validRows.length}: ${r.TenSanPham||r.MaSanPham}`, Math.round((done/validRows.length)*90)+5);
+          try {
+            const body = {
+              MaSanPham: r.MaSanPham, TenSanPham: r.TenSanPham,
+              ThuongHieu: r.ThuongHieu||'', DanhMuc: r.DanhMuc||'',
+              GiaNhap: r.GiaNhap ? Number(r.GiaNhap) : null,
+              GiaBan:  r.GiaBan  ? Number(r.GiaBan)  : null,
+              Size: r.Size||'', MauSac: r.MauSac||'',
+              SoLuongTon: parseInt(r.SoLuongTon)||0,
+              SKU: r.SKU||'', MoTaSanPham: r.MoTaSanPham||'',
+              ChinhSachDoiTra: r.ChinhSachDoiTra||'',
+              ChinhSachBaoHanh: r.ChinhSachBaoHanh||'',
+              TinhTrang: r.TinhTrang||'Đang bán'
+            };
+            const res = await fetch('/api/admin/sanpham', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+              body: JSON.stringify(body)
+            });
+            const json = await res.json();
+            if (!res.ok) {
+              results.errors.push({ line: r._idx, reason: json.error || 'Lỗi không xác định' });
+            } else {
+              results.success.push(r.MaSanPham);
+            }
+          } catch(e) {
+            results.errors.push({ line: r._idx, reason: e.message });
+          }
+          done++;
+        }
+
+        hideImpProgress();
+        if(btn){btn.disabled=false;btn.textContent='✅ Xác Nhận Import';}
+        showImportSuccess(results);
+      }
+
+      function showImportSuccess(results) {
+        // Hỗ trợ cả 2 format: từ API file upload và từ import từng dòng
+        let ok, warn, err;
+        if (typeof results.imported === 'number') {
+          // Format từ /api/admin/sanpham/import
+          ok   = results.imported;
+          warn = results.skipped;
+          err  = results.failed;
+        } else {
+          // Format từ import từng dòng qua /api/admin/sanpham
+          ok   = (results.success  || []).length;
+          warn = (results.warnings || []).length;
+          err  = (results.errors   || []).length;
+        }
+
+        let detail = `✅ Thêm mới: ${ok} sản phẩm`;
+        if (warn) detail += ` · ⚠️ Đã tồn tại (bỏ qua): ${warn}`;
+        if (err)  detail += ` · ❌ Lỗi: ${err}`;
+
+        document.getElementById('imp-success-msg').textContent = detail;
         document.getElementById('imp-sql-zone').style.display = 'none';
+        document.getElementById('imp-preview-zone').style.display = 'none';
         document.getElementById('imp-success-zone').style.display = '';
         setImpStep(4);
-        showToast('Import Hoàn Tất 🎉', `${validRows.length} sản phẩm đã được thêm vào danh sách`);
+        showToast('Import Hoàn Tất 🎉', `${ok} sản phẩm mới · ${warn} bỏ qua · ${err} lỗi`);
+
+        // Reload danh sách sản phẩm
+        if (typeof adminLoadProducts === 'function') adminLoadProducts();
+      }
+
+      // Progress bar helper
+      function showImpProgress(msg, pct) {
+        let el = document.getElementById('imp-progress-bar-wrap');
+        if (!el) {
+          el = document.createElement('div');
+          el.id = 'imp-progress-bar-wrap';
+          el.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:99999;display:flex;align-items:center;justify-content:center';
+          el.innerHTML = `<div style="background:#1a1a1a;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:32px 40px;min-width:320px;text-align:center">
+            <div style="font-size:28px;margin-bottom:12px">📥</div>
+            <div id="imp-prog-msg" style="font-size:14px;font-weight:600;margin-bottom:16px;color:#fff">Đang xử lý...</div>
+            <div style="background:rgba(255,255,255,0.07);border-radius:4px;height:8px;overflow:hidden">
+              <div id="imp-prog-fill" style="height:100%;background:var(--red,#e62020);border-radius:4px;transition:width .3s;width:0%"></div>
+            </div>
+            <div id="imp-prog-pct" style="font-size:11px;color:#888;margin-top:8px">0%</div>
+          </div>`;
+          document.body.appendChild(el);
+        }
+        document.getElementById('imp-prog-msg').textContent = msg;
+        document.getElementById('imp-prog-fill').style.width = pct + '%';
+        document.getElementById('imp-prog-pct').textContent = pct + '%';
+      }
+      function hideImpProgress() {
+        const el = document.getElementById('imp-progress-bar-wrap');
+        if (el) el.remove();
       }
 
       function goBackToPreview() {
@@ -7884,6 +8034,18 @@ select.mp-field-input option { background: #1a1a1a; }
         document.getElementById('imp-success-zone').style.display = 'none';
         document.getElementById('imp-file-input').value = '';
         setImpStep(1);
+      }
+
+      // Import thẳng từ bước Preview (không qua bước SQL)
+      async function finalizeImportDirect() {
+        const validRows = importedData.filter(r => r._status !== 'err');
+        if (!validRows.length) { showToast('Không có dữ liệu -', 'Vui lòng kiểm tra file'); return; }
+        if (!confirm(`Import ${validRows.length} sản phẩm vào database?`)) return;
+        if (_importFile) {
+          await finalizeImportViaFile(_importFile, validRows.length);
+        } else {
+          await finalizeImportViaJSON(validRows);
+        }
       }
 
       function setImpStep(n) {

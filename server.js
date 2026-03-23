@@ -1417,10 +1417,12 @@ app.post('/api/chat/message', async (req, res) => {
       `- ${p.tensanpham} (${p.thuonghieu}) | Giá: ${Number(p.giaban).toLocaleString('vi-VN')}đ | Tồn: ${p.soluongton} | Danh mục: ${p.danhmuc}`
     ).join('\n');
 
-    // Gọi Anthropic API
+    // Gọi Gemini API (miễn phí) hoặc fallback Anthropic nếu có
+    const GEMINI_KEY    = process.env.GEMINI_API_KEY;
     const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
-    if (!ANTHROPIC_KEY) {
-      const fallback = 'Xin chào! Hiện tại hệ thống AI chưa được cấu hình. Vui lòng liên hệ shop qua số điện thoại để được hỗ trợ.';
+
+    if (!GEMINI_KEY && !ANTHROPIC_KEY) {
+      const fallback = 'Xin chào! Hiện tại hệ thống AI chưa được cấu hình. Vui lòng liên hệ shop qua hotline để được hỗ trợ nhé!';
       await pool.query(
         `INSERT INTO Chat_Messages (session_id, sender, message) VALUES ($1,'ai',$2)`,
         [session_id, fallback]
@@ -1428,26 +1430,7 @@ app.post('/api/chat/message', async (req, res) => {
       return res.json({ reply: fallback });
     }
 
-    const messages = history.map(m => ({
-      role: m.sender === 'guest' ? 'user' : 'assistant',
-      content: m.message
-    }));
-    // Đảm bảo bắt đầu bằng user
-    if (messages.length === 0 || messages[0].role !== 'user') {
-      messages.unshift({ role: 'user', content: message.trim() });
-    }
-
-    const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_KEY,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 500,
-        system: `Bạn là trợ lý tư vấn bán hàng của SneakerVN — shop giày sneaker chính hãng.
+    const systemPrompt = `Bạn là trợ lý tư vấn bán hàng của SneakerVN — shop giày sneaker chính hãng.
 Nhiệm vụ: Tư vấn sản phẩm, giải đáp thắc mắc, hỗ trợ đặt hàng cho khách hàng.
 Phong cách: Thân thiện, nhiệt tình, chuyên nghiệp. Dùng tiếng Việt.
 Trả lời ngắn gọn, dưới 150 từ. Không dùng markdown.
@@ -1455,13 +1438,73 @@ Trả lời ngắn gọn, dưới 150 từ. Không dùng markdown.
 Danh sách sản phẩm hiện có:
 ${productList}
 
-Nếu khách hỏi sản phẩm không có trong danh sách, hãy gợi ý sản phẩm tương tự hoặc báo sẽ kiểm tra thêm.`,
-        messages
-      })
-    });
+Nếu khách hỏi sản phẩm không có trong danh sách, hãy gợi ý sản phẩm tương tự hoặc báo sẽ kiểm tra thêm.`;
 
-    const aiData = await aiRes.json();
-    const reply = aiData?.content?.[0]?.text || 'Xin lỗi, tôi không thể trả lời lúc này. Vui lòng thử lại.';
+    let reply = '';
+
+    if (GEMINI_KEY) {
+      // ── Gemini API (miễn phí) ──────────────────────────────
+      // Chuyển history sang format Gemini
+      const geminiContents = history.map(m => ({
+        role: m.sender === 'guest' ? 'user' : 'model',
+        parts: [{ text: m.message }]
+      }));
+      // Đảm bảo bắt đầu bằng user
+      if (geminiContents.length === 0 || geminiContents[0].role !== 'user') {
+        geminiContents.unshift({ role: 'user', parts: [{ text: message.trim() }] });
+      }
+      // Gemini không cho phép kết thúc bằng 'model', phải kết thúc bằng 'user'
+      if (geminiContents[geminiContents.length - 1].role === 'model') {
+        geminiContents.push({ role: 'user', parts: [{ text: message.trim() }] });
+      }
+
+      const geminiRes = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            system_instruction: { parts: [{ text: systemPrompt }] },
+            contents: geminiContents,
+            generationConfig: { maxOutputTokens: 400, temperature: 0.7 }
+          })
+        }
+      );
+      const geminiData = await geminiRes.json();
+      if (geminiData.error) {
+        console.error('Gemini error:', geminiData.error);
+        reply = 'Xin lỗi, tôi đang gặp sự cố kỹ thuật. Vui lòng thử lại sau!';
+      } else {
+        reply = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text
+          || 'Xin lỗi, tôi không thể trả lời lúc này. Vui lòng thử lại.';
+      }
+
+    } else {
+      // ── Anthropic API (fallback) ───────────────────────────
+      const messages = history.map(m => ({
+        role: m.sender === 'guest' ? 'user' : 'assistant',
+        content: m.message
+      }));
+      if (messages.length === 0 || messages[0].role !== 'user') {
+        messages.unshift({ role: 'user', content: message.trim() });
+      }
+      const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': ANTHROPIC_KEY,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 500,
+          system: systemPrompt,
+          messages
+        })
+      });
+      const aiData = await aiRes.json();
+      reply = aiData?.content?.[0]?.text || 'Xin lỗi, tôi không thể trả lời lúc này. Vui lòng thử lại.';
+    }
 
     // Lưu tin nhắn AI
     await pool.query(

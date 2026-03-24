@@ -1536,13 +1536,7 @@ footer {
         <div style="text-align:right;margin-bottom:4px;">
           <a href="#" style="font-size:12px;color:var(--red);text-decoration:none;">Quên mật khẩu?</a>
         </div>
-        <div style="font-size:11px;color:var(--gray-light);margin-bottom:14px;line-height:1.6">
-          <b style="color:rgba(255,255,255,0.4)">Tài khoản demo:</b><br>
-          admin@sneakervn.com / <b>member123</b> — Thành Viên<br>
-          admin@sneakervn.com / <b>shop@123</b> — Chủ Shop<br>
-          admin@sneakervn.com / <b>ketoan@123</b> — Kế Toán<br>
-          admin@sneakervn.com / <b>admin@super</b> — Super Admin
-        </div>
+
         <button class="form-submit" onclick="handleLogin()">Đăng Nhập</button>
         <div class="form-divider">hoặc đăng nhập với</div>
         <div class="social-login">
@@ -2310,18 +2304,22 @@ async function saShowAddProduct() {
 
 async function saLoadBrandsAndCats() {
   try {
-    // Load thương hiệu từ sản phẩm thực tế
+    // Danh sách thương hiệu cố định đồng bộ với trang chủ
+    const FIXED_BRANDS = ['Nike', 'Adidas', 'MLB', 'Puma', 'New Balance', 'Fila', 'Converse', 'Vans', 'Reebok', 'Jordan'];
+
+    // Load thương hiệu từ sản phẩm thực tế + danh mục
     const [spRes, dmRes] = await Promise.all([
-      fetch('/api/sanpham?limit=200'),
+      fetch('/api/sanpham?limit=500'),
       fetch('/api/danhmuc')
     ]);
     const spData = await spRes.json();
     const dmData = await dmRes.json();
 
-    // Lấy danh sách thương hiệu unique
-    const brands = [...new Set((spData.data||[]).map(p => p.thuonghieu||p.ThuongHieu).filter(Boolean))].sort();
+    // Lấy thương hiệu từ DB rồi merge với danh sách cố định
+    const dbBrands = (spData.data||[]).map(p => p.thuonghieu||p.ThuongHieu).filter(Boolean);
+    const brands = [...new Set([...FIXED_BRANDS, ...dbBrands])].sort();
     const brandSel = document.getElementById('sa-p-brand');
-    if (brandSel && brands.length) {
+    if (brandSel) {
       const curVal = brandSel.value;
       brandSel.innerHTML = '<option value="">-- Chọn thương hiệu --</option>' +
         brands.map(b => `<option value="${b}" ${b===curVal?'selected':''}>${b}</option>`).join('');
@@ -2469,6 +2467,8 @@ async function saSaveProduct() {
   if (!name)  { errEl.textContent='Vui lòng nhập Tên Sản Phẩm'; errEl.style.display='block'; return; }
   if (!sku)   { errEl.textContent='Vui lòng nhập Mã SP / SKU';   errEl.style.display='block'; return; }
   if (!price) { errEl.textContent='Vui lòng nhập Giá Bán';       errEl.style.display='block'; return; }
+  if (!brand) { errEl.textContent='Vui lòng chọn Thương Hiệu';   errEl.style.display='block'; return; }
+  if (!cat)   { errEl.textContent='Vui lòng chọn Danh Mục';      errEl.style.display='block'; return; }
   errEl.style.display = 'none';
   btn.disabled = true; btn.textContent = '⏳ Đang lưu...';
 
@@ -7456,6 +7456,153 @@ select.mp-field-input option { background: #1a1a1a; }
           </div>
         </div>
 
+        <!-- FORM THÊM / SỬA SẢN PHẨM (Chủ Shop) -->
+        <div id="shop-prod-form-wrap" style="display:none;background:#111;border:1px solid rgba(255,255,255,0.1);border-radius:8px;margin-bottom:20px;overflow:hidden">
+          <!-- Header -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid rgba(255,255,255,0.08)">
+            <div style="font-size:14px;font-weight:700;color:var(--white);display:flex;align-items:center;gap:8px">
+              <span style="color:var(--red)">+</span>
+              <span id="shop-prod-form-title">Thêm Sản Phẩm Mới</span>
+            </div>
+            <button class="db-btn-sm" onclick="shopHideProdForm()" style="font-size:12px">✕ Đóng</button>
+          </div>
+
+          <div style="padding:24px;display:grid;grid-template-columns:220px 1fr;gap:28px;align-items:start">
+
+            <!-- CỘT TRÁI: Ảnh -->
+            <div>
+              <div style="font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.5);font-weight:700;margin-bottom:10px">ẢNH SẢN PHẨM</div>
+              <!-- Preview box -->
+              <div style="width:100%;aspect-ratio:1/1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;margin-bottom:10px;position:relative">
+                <img id="shop-p-img-preview" src="" style="display:none;width:100%;height:100%;object-fit:contain">
+                <div id="shop-p-img-placeholder" style="display:flex;flex-direction:column;align-items:center;gap:8px;color:rgba(255,255,255,0.2)">
+                  <span style="font-size:40px">👟</span>
+                  <span style="font-size:11px">Chưa có ảnh</span>
+                </div>
+                <!-- Nút xóa ảnh -->
+                <button id="shop-p-img-remove" onclick="shopRemoveImg()" style="display:none;position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;background:rgba(244,67,54,0.9);border:none;color:#fff;font-size:13px;cursor:pointer;line-height:1">✕</button>
+              </div>
+
+              <!-- Chọn File / Camera -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
+                <button class="db-btn-sm" onclick="shopProdChooseFile()" style="display:flex;align-items:center;justify-content:center;gap:5px;padding:8px 4px;font-size:12px">
+                  <span>📁</span> Chọn File
+                </button>
+                <button class="db-btn-sm" onclick="shopToggleCamera()" style="display:flex;align-items:center;justify-content:center;gap:5px;padding:8px 4px;font-size:12px">
+                  <span>📷</span> Camera
+                </button>
+              </div>
+              <input type="file" id="shop-p-file-input" accept="image/*" style="display:none" onchange="shopProdFileChange(this)">
+
+              <!-- Camera -->
+              <div id="shop-cam-wrap" style="display:none;margin-bottom:10px">
+                <video id="shop-cam-video" autoplay playsinline style="width:100%;border-radius:6px;background:#000;margin-bottom:6px"></video>
+                <button class="db-btn-sm primary" style="width:100%" onclick="shopCapturePhoto()">📸 Chụp Ảnh</button>
+              </div>
+
+              <!-- URL ảnh -->
+              <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-bottom:5px">HOẶC NHẬP URL ẢNH</div>
+              <input class="db-input" id="shop-p-imgurl" placeholder="https://..." style="width:100%;box-sizing:border-box;font-size:12px" oninput="shopPreviewImgUrl(this.value)">
+            </div>
+
+            <!-- CỘT PHẢI: Fields -->
+            <div style="display:flex;flex-direction:column;gap:14px">
+
+              <!-- Hàng 1: Tên SP + Mã SP -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                <div>
+                  <div style="font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.5);font-weight:700;margin-bottom:6px">TÊN SẢN PHẨM *</div>
+                  <input class="db-input" id="shop-p-ten" placeholder="Giày Sneaker Nike Deestore Mẫu 5" style="width:100%;box-sizing:border-box">
+                </div>
+                <div>
+                  <div style="font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.5);font-weight:700;margin-bottom:6px">MÃ SP / SKU *</div>
+                  <input class="db-input" id="shop-p-ma" placeholder="SKU-DEE-005" style="width:100%;box-sizing:border-box">
+                </div>
+              </div>
+
+              <!-- Hàng 2: Thương Hiệu + Danh Mục -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                <div>
+                  <div style="font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.5);font-weight:700;margin-bottom:6px">THƯƠNG HIỆU</div>
+                  <select class="db-input" id="shop-p-th" style="width:100%;box-sizing:border-box">
+                    <option value="">-- Chọn thương hiệu --</option>
+                    <option>Nike</option><option>Adidas</option><option>MLB</option><option>Puma</option>
+                    <option>Fila</option><option>New Balance</option><option>Converse</option><option>Vans</option>
+                    <option>Reebok</option><option>Jordan</option><option>Skechers</option>
+                  </select>
+                </div>
+                <div>
+                  <div style="font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.5);font-weight:700;margin-bottom:6px">DANH MỤC</div>
+                  <select class="db-input" id="shop-p-dm" style="width:100%;box-sizing:border-box">
+                    <option value="">-- Chọn danh mục --</option>
+                    <option>Giày dép</option><option>Sneaker</option><option>Streetwear</option>
+                    <option>Chạy bộ</option><option>Bóng rổ</option><option>Phụ kiện</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Hàng 3: Giá Bán + Giá Nhập -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                <div>
+                  <div style="font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.5);font-weight:700;margin-bottom:6px">GIÁ BÁN (đ) *</div>
+                  <input class="db-input" id="shop-p-gb" type="number" placeholder="1730000" style="width:100%;box-sizing:border-box">
+                </div>
+                <div>
+                  <div style="font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.5);font-weight:700;margin-bottom:6px">GIÁ NHẬP (đ)</div>
+                  <input class="db-input" id="shop-p-gn" type="number" placeholder="1120000" style="width:100%;box-sizing:border-box">
+                </div>
+              </div>
+
+              <!-- Hàng 4: Tồn Kho + Màu Sắc -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                <div>
+                  <div style="font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.5);font-weight:700;margin-bottom:6px">TỒN KHO</div>
+                  <input class="db-input" id="shop-p-sl" type="number" placeholder="25" style="width:100%;box-sizing:border-box">
+                </div>
+                <div>
+                  <div style="font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.5);font-weight:700;margin-bottom:6px">MÀU SẮC</div>
+                  <input class="db-input" id="shop-p-mau" placeholder="Trắng" style="width:100%;box-sizing:border-box">
+                </div>
+              </div>
+
+              <!-- Hàng 5: Size + Trạng Thái -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                <div>
+                  <div style="font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.5);font-weight:700;margin-bottom:6px">SIZE (CÁCH NHAU BỞI DẤU PHẨY)</div>
+                  <input class="db-input" id="shop-p-sizes" placeholder="36,37,38,39,40,41" style="width:100%;box-sizing:border-box">
+                </div>
+                <div>
+                  <div style="font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.5);font-weight:700;margin-bottom:6px">TRẠNG THÁI</div>
+                  <select class="db-input" id="shop-p-tt" style="width:100%;box-sizing:border-box">
+                    <option value="Đang bán">✅ Đang Bán</option>
+                    <option value="Hết hàng">⚠️ Hết Hàng</option>
+                    <option value="Ẩn">🙈 Ẩn</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Hàng 6: Mô tả full width -->
+              <div>
+                <div style="font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.5);font-weight:700;margin-bottom:6px">MÔ TẢ SẢN PHẨM</div>
+                <textarea class="db-input" id="shop-p-mota" rows="3" placeholder="Giày sneaker Nike chính hãng, thiết kế trẻ trung, phù hợp đi học, đi chơi..." style="width:100%;box-sizing:border-box;resize:vertical"></textarea>
+              </div>
+
+              <!-- Lỗi + Nút lưu -->
+              <div id="shop-prod-form-error" style="display:none;padding:10px 14px;background:rgba(244,67,54,0.1);border:1px solid rgba(244,67,54,0.3);color:#f44336;font-size:12px;border-radius:4px"></div>
+
+              <div style="display:flex;gap:10px">
+                <button class="db-btn-sm primary" id="shop-prod-submit-btn" onclick="adminSaveProduct()" style="padding:10px 28px;font-size:13px;font-weight:700">
+                  💾 Lưu Sản Phẩm
+                </button>
+                <button class="db-btn-sm" onclick="shopHideProdForm()" style="padding:10px 20px">Hủy</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Hidden field lưu SKU riêng nếu cần -->
+          <input type="hidden" id="shop-p-sku">
+        </div>
+
         <!-- PANEL: DANH SÁCH -->
         <div id="prod-panel-list">
           <div class="db-table-wrap">
@@ -10912,80 +11059,217 @@ async function adminDeleteProduct(ma) {
 }
 
 function adminEditProduct(ma) {
-  // Mở modal sửa sản phẩm
-  fetch(`/api/admin/sanpham?search=${ma}`, { headers: adminHeaders() })
+  fetch(`/api/admin/sanpham?search=${encodeURIComponent(ma)}`, { headers: adminHeaders() })
     .then(r => r.json()).then(json => {
       const p = (json.data || []).find(x => (x.masanpham||x.MaSanPham) === ma);
       if (!p) { showToast('Lỗi', 'Không tìm thấy sản phẩm'); return; }
-      showAdminProductModal(p);
+      shopShowProdForm(p);
     });
 }
 
-function adminAddProduct() { showAdminProductModal(null); }
+// ── Biến trạng thái form thêm/sửa sản phẩm (Shop Dashboard) ─
+let _shopProdImgData  = null; // base64 ảnh đã chọn
+let _shopProdEditMa   = null; // null = thêm mới, string = đang sửa
+let _shopCameraStream = null;
 
-function showAdminProductModal(p) {
-  const isEdit = !!p;
-  const ma = p ? (p.masanpham || p.MaSanPham || '') : '';
-  const html = `
-  <div id="modal-prod-admin" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)this.remove()">
-    <div style="background:var(--surface,#1a1a1a);border:1px solid rgba(255,255,255,0.1);width:100%;max-width:560px;max-height:90vh;overflow-y:auto;padding:24px;position:relative">
-      <div style="font-weight:700;font-size:16px;margin-bottom:20px;letter-spacing:.5px">${isEdit ? '-️ Sửa Sản Phẩm' : '- Thêm Sản Phẩm Mới'}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div><label style="font-size:12px;color:#aaa">Mã Sản Phẩm *</label><input id="mp-ma" class="db-input" value="${ma}" ${isEdit?'readonly style="opacity:.6"':''}></div>
-        <div><label style="font-size:12px;color:#aaa">SKU</label><input id="mp-sku" class="db-input" value="${p?.sku||p?.SKU||''}"></div>
-        <div style="grid-column:1/-1"><label style="font-size:12px;color:#aaa">Tên Sản Phẩm *</label><input id="mp-ten" class="db-input" value="${p?.tensanpham||p?.TenSanPham||''}"></div>
-        <div><label style="font-size:12px;color:#aaa">Thương Hiệu</label><input id="mp-th" class="db-input" value="${p?.thuonghieu||p?.ThuongHieu||''}"></div>
-        <div><label style="font-size:12px;color:#aaa">Danh Mục</label><input id="mp-dm" class="db-input" value="${p?.danhmuc||p?.DanhMuc||''}"></div>
-        <div><label style="font-size:12px;color:#aaa">Giá Nhập</label><input id="mp-gn" class="db-input" type="number" value="${p?.gianhap||p?.GiaNhap||''}"></div>
-        <div><label style="font-size:12px;color:#aaa">Giá Bán</label><input id="mp-gb" class="db-input" type="number" value="${p?.giaban||p?.GiaBan||''}"></div>
-        <div><label style="font-size:12px;color:#aaa">Tồn Kho</label><input id="mp-sl" class="db-input" type="number" value="${p?.soluongton||p?.SoLuongTon||0}"></div>
-        <div><label style="font-size:12px;color:#aaa">Size</label><input id="mp-size" class="db-input" value="${p?.size||p?.Size||''}"></div>
-        <div><label style="font-size:12px;color:#aaa">Màu Sắc</label><input id="mp-mau" class="db-input" value="${p?.mausac||p?.MauSac||''}"></div>
-        <div style="grid-column:1/-1"><label style="font-size:12px;color:#aaa">Trạng Thái</label>
-          <select id="mp-tt" class="db-select" style="width:100%">
-            <option value="Đang bán" ${(p?.tinhtrang||p?.TinhTrang||'Đang bán')==='Đang bán'?'selected':''}>Đang bán</option>
-            <option value="Ẩn" ${(p?.tinhtrang||p?.TinhTrang)==='Ẩn'?'selected':''}>Ẩn</option>
-          </select>
-        </div>
-        <div style="grid-column:1/-1"><label style="font-size:12px;color:#aaa">Mô Tả</label><textarea id="mp-mota" class="db-input" rows="3" style="resize:vertical">${p?.motasanpham||p?.MoTaSanPham||''}</textarea></div>
-      </div>
-      <div style="display:flex;gap:8px;margin-top:20px;justify-content:flex-end">
-        <button class="db-btn-sm" onclick="document.getElementById('modal-prod-admin').remove()">Hủy</button>
-        <button class="db-btn-sm primary" onclick="adminSaveProduct('${ma}')">💾 Lưu</button>
-      </div>
-    </div>
-  </div>`;
-  document.body.insertAdjacentHTML('beforeend', html);
+function adminAddProduct() { shopShowProdForm(null); }
+
+function shopShowProdForm(p) {
+  _shopProdEditMa  = p ? (p.masanpham || p.MaSanPham || '') : null;
+  _shopProdImgData = null;
+
+  const isEdit    = !!_shopProdEditMa;
+  const formEl    = document.getElementById('shop-prod-form-wrap');
+  if (!formEl) return;
+
+  // Reset preview ảnh
+  const previewEl = document.getElementById('shop-p-img-preview');
+  const imgVal    = p?.hinhanh || p?.HinhAnh || '';
+  if (previewEl) {
+    previewEl.style.display = imgVal ? 'block' : 'none';
+    previewEl.src = imgVal || '';
+  }
+  const placeholderEl = document.getElementById('shop-p-img-placeholder');
+  if (placeholderEl) placeholderEl.style.display = imgVal ? 'none' : 'flex';
+
+  // Điền dữ liệu
+  const v = (id, val) => { const el = document.getElementById(id); if (el) el.value = val ?? ''; };
+  v('shop-p-ma',    _shopProdEditMa || '');
+  v('shop-p-sku',   p?.sku   || p?.SKU   || '');
+  v('shop-p-ten',   p?.tensanpham  || p?.TenSanPham  || '');
+  v('shop-p-th',    p?.thuonghieu  || p?.ThuongHieu  || '');
+  v('shop-p-dm',    p?.danhmuc     || p?.DanhMuc     || '');
+  v('shop-p-gb',    p?.giaban      || p?.GiaBan      || '');
+  v('shop-p-gn',    p?.gianhap     || p?.GiaNhap     || '');
+  v('shop-p-sl',    p?.soluongton  ?? p?.SoLuongTon  ?? 0);
+  v('shop-p-mau',   p?.mausac      || p?.MauSac      || '');
+  v('shop-p-sizes', p?.size        || p?.Size        || '');
+  v('shop-p-mota',  p?.motasanpham || p?.MoTaSanPham || '');
+  v('shop-p-imgurl','');
+
+  const ttEl = document.getElementById('shop-p-tt');
+  if (ttEl) ttEl.value = p?.tinhtrang || p?.TinhTrang || 'Đang bán';
+
+  const maEl = document.getElementById('shop-p-ma');
+  if (maEl) { maEl.readOnly = isEdit; maEl.style.opacity = isEdit ? '0.6' : '1'; }
+
+  const titleEl = document.getElementById('shop-prod-form-title');
+  if (titleEl) titleEl.textContent = isEdit ? '✏️ Sửa: ' + (p?.tensanpham || p?.TenSanPham) : '+ Thêm Sản Phẩm Mới';
+
+  const errEl = document.getElementById('shop-prod-form-error');
+  if (errEl) { errEl.textContent = ''; errEl.style.display = 'none'; }
+
+  formEl.style.display = 'block';
+  formEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-async function adminSaveProduct(existingMa) {
-  const ma    = document.getElementById('mp-ma')?.value.trim();
-  const ten   = document.getElementById('mp-ten')?.value.trim();
-  if (!ma || !ten) { showToast('Lỗi -', 'Mã và tên sản phẩm không được trống'); return; }
-  const body = {
-    MaSanPham: ma, TenSanPham: ten,
-    SKU: document.getElementById('mp-sku')?.value.trim(),
-    ThuongHieu: document.getElementById('mp-th')?.value.trim(),
-    DanhMuc: document.getElementById('mp-dm')?.value.trim(),
-    GiaNhap: Number(document.getElementById('mp-gn')?.value) || null,
-    GiaBan: Number(document.getElementById('mp-gb')?.value) || null,
-    SoLuongTon: Number(document.getElementById('mp-sl')?.value) || 0,
-    Size: document.getElementById('mp-size')?.value.trim(),
-    MauSac: document.getElementById('mp-mau')?.value.trim(),
-    TinhTrang: document.getElementById('mp-tt')?.value,
-    MoTaSanPham: document.getElementById('mp-mota')?.value.trim(),
+function shopHideProdForm() {
+  const formEl = document.getElementById('shop-prod-form-wrap');
+  if (formEl) formEl.style.display = 'none';
+  shopStopCamera();
+  _shopProdImgData = null;
+  _shopProdEditMa  = null;
+}
+
+function shopProdChooseFile() {
+  document.getElementById('shop-p-file-input')?.click();
+}
+
+function shopProdFileChange(inp) {
+  const file = inp.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    _shopProdImgData = e.target.result;
+    shopSetImgPreview(_shopProdImgData);
   };
+  reader.readAsDataURL(file);
+}
+
+function shopRemoveImg() {
+  _shopProdImgData = null;
+  const prev = document.getElementById('shop-p-img-preview');
+  const ph   = document.getElementById('shop-p-img-placeholder');
+  const rm   = document.getElementById('shop-p-img-remove');
+  if (prev) { prev.src = ''; prev.style.display = 'none'; }
+  if (ph)   ph.style.display = 'flex';
+  if (rm)   rm.style.display = 'none';
+  const urlEl = document.getElementById('shop-p-imgurl');
+  if (urlEl) urlEl.value = '';
+}
+
+function shopSetImgPreview(src) {
+  const prev = document.getElementById('shop-p-img-preview');
+  const ph   = document.getElementById('shop-p-img-placeholder');
+  const rm   = document.getElementById('shop-p-img-remove');
+  if (prev) { prev.src = src; prev.style.display = 'block'; }
+  if (ph)   ph.style.display = 'none';
+  if (rm)   rm.style.display = 'block';
+}
+
+function shopPreviewImgUrl(val) {
+  if (val && val.startsWith('http')) { shopSetImgPreview(val); _shopProdImgData = null; }
+}
+
+async function shopToggleCamera() {
+  const camWrap = document.getElementById('shop-cam-wrap');
+  const video   = document.getElementById('shop-cam-video');
+  if (!camWrap || !video) return;
+  if (_shopCameraStream) { shopStopCamera(); return; }
   try {
-    const isEdit = !!existingMa;
-    const url    = isEdit ? `/api/admin/sanpham/${existingMa}` : '/api/admin/sanpham';
+    _shopCameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    video.srcObject = _shopCameraStream;
+    camWrap.style.display = 'block';
+  } catch(e) { showToast('Camera', 'Không thể truy cập camera: ' + e.message); }
+}
+
+function shopCapturePhoto() {
+  const video  = document.getElementById('shop-cam-video');
+  const canvas = document.createElement('canvas');
+  canvas.width  = video.videoWidth  || 640;
+  canvas.height = video.videoHeight || 480;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  _shopProdImgData = canvas.toDataURL('image/jpeg', 0.85);
+  shopSetImgPreview(_shopProdImgData);
+  shopStopCamera();
+}
+
+function shopStopCamera() {
+  if (_shopCameraStream) {
+    _shopCameraStream.getTracks().forEach(t => t.stop());
+    _shopCameraStream = null;
+  }
+  const camWrap = document.getElementById('shop-cam-wrap');
+  if (camWrap) camWrap.style.display = 'none';
+}
+
+async function adminSaveProduct() {
+  const ma  = document.getElementById('shop-p-ma')?.value.trim();
+  const ten = document.getElementById('shop-p-ten')?.value.trim();
+  const errEl = document.getElementById('shop-prod-form-error');
+  const btn   = document.getElementById('shop-prod-submit-btn');
+
+  if (!ma || !ten) {
+    if (errEl) { errEl.textContent = 'Vui lòng điền Mã Sản Phẩm và Tên Sản Phẩm.'; errEl.style.display = 'block'; }
+    return;
+  }
+
+  if (btn) { btn.textContent = '⏳ Đang lưu...'; btn.disabled = true; }
+
+  const isEdit = !!_shopProdEditMa;
+  const body = {
+    MaSanPham:  ma,
+    TenSanPham: ten,
+    SKU:        document.getElementById('shop-p-sku')?.value.trim(),
+    ThuongHieu: document.getElementById('shop-p-th')?.value.trim(),
+    DanhMuc:    document.getElementById('shop-p-dm')?.value.trim(),
+    GiaBan:     Number(document.getElementById('shop-p-gb')?.value)  || null,
+    GiaNhap:    Number(document.getElementById('shop-p-gn')?.value)  || null,
+    SoLuongTon: Number(document.getElementById('shop-p-sl')?.value)  || 0,
+    MauSac:     document.getElementById('shop-p-mau')?.value.trim(),
+    Size:       document.getElementById('shop-p-sizes')?.value.trim(),
+    MoTaSanPham:document.getElementById('shop-p-mota')?.value.trim(),
+    TinhTrang:  document.getElementById('shop-p-tt')?.value || 'Đang bán',
+  };
+
+  // Nếu có ảnh URL nhập tay
+  const imgUrl = document.getElementById('shop-p-imgurl')?.value.trim();
+  if (imgUrl) body.HinhAnh = imgUrl;
+
+  try {
+    const url    = isEdit ? `/api/admin/sanpham/${_shopProdEditMa}` : '/api/admin/sanpham';
     const method = isEdit ? 'PUT' : 'POST';
     const res    = await fetch(url, { method, headers: adminHeaders(), body: JSON.stringify(body) });
     const json   = await res.json();
-    if (!res.ok) { showToast('Lỗi -', json.error); return; }
-    showToast('Thành Công -', isEdit ? 'Sản phẩm đã được cập nhật' : 'Đã thêm sản phẩm mới');
-    document.getElementById('modal-prod-admin')?.remove();
+    if (!res.ok) {
+      if (errEl) { errEl.textContent = json.error || 'Lỗi khi lưu sản phẩm'; errEl.style.display = 'block'; }
+      if (btn)   { btn.textContent = '💾 Lưu Sản Phẩm'; btn.disabled = false; }
+      return;
+    }
+
+    // Upload ảnh nếu có file/camera
+    if (_shopProdImgData) {
+      try {
+        const savedMa = isEdit ? _shopProdEditMa : ma;
+        const blob    = await (await fetch(_shopProdImgData)).blob();
+        const fd      = new FormData();
+        fd.append('image', blob, 'product.jpg');
+        await fetch(`/api/admin/sanpham/${savedMa}/upload-image`, {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + adminToken() },
+          body: fd
+        });
+      } catch(_) {}
+    }
+
+    showToast('Thành Công ✅', isEdit ? 'Đã cập nhật sản phẩm' : 'Đã thêm sản phẩm mới');
+    shopHideProdForm();
     adminLoadProducts();
-  } catch(e) { showToast('Lỗi -', e.message); }
+  } catch(e) {
+    if (errEl) { errEl.textContent = e.message; errEl.style.display = 'block'; }
+  } finally {
+    if (btn) { btn.textContent = '💾 Lưu Sản Phẩm'; btn.disabled = false; }
+  }
 }
 
 // ------------------------------------------------------------

@@ -1538,10 +1538,10 @@ footer {
         </div>
         <div style="font-size:11px;color:var(--gray-light);margin-bottom:14px;line-height:1.6">
           <b style="color:rgba(255,255,255,0.4)">Tài khoản demo:</b><br>
-          <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="3b53545a555c7b48555e5a505e494d5515585456">[email&#160;protected]</a> / <b>member123</b> — Thành Viên<br>
-          <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="6f1c07001f0018010a1d2f1c010a0e040a1d1901410c0002">[email&#160;protected]</a> / <b>shop@123</b> — Chủ Shop<br>
-          <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="cba0aebfa4aaa58bb8a5aeaaa0aeb9bda5e5a8a4a6">[email&#160;protected]</a> / <b>ketoan@123</b> — Kế Toán<br>
-          <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="7e1f1a1317103e0d101b1f151b0c0810501d1113">[email&#160;protected]</a> / <b>admin@super</b> — Super Admin
+          admin@sneakervn.com / <b>member123</b> — Thành Viên<br>
+          admin@sneakervn.com / <b>shop@123</b> — Chủ Shop<br>
+          admin@sneakervn.com / <b>ketoan@123</b> — Kế Toán<br>
+          admin@sneakervn.com / <b>admin@super</b> — Super Admin
         </div>
         <button class="form-submit" onclick="handleLogin()">Đăng Nhập</button>
         <div class="form-divider">hoặc đăng nhập với</div>
@@ -1579,7 +1579,7 @@ footer {
   <div class="toast-msg" id="toastMsg">Sản phẩm đã được thêm vào giỏ!</div>
 </div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script>
 // --- DATA ---
 const products = [
   { id:1, brand:'Nike', name:'Air Max 270 React', desc:'Nam · Sneakers · Đen/Trắng', price:3200000, old:4500000, emoji:'👟', badge:'sale', cat:'nike', sizes:['39','40','41','42','43'] },
@@ -2288,24 +2288,60 @@ function saFilterCatStatus(val) {
 let _saProdImgData = ''; // base64 ảnh đã chọn
 let _saCameraStream = null;
 
-function saShowAddProduct() {
+async function saShowAddProduct() {
   // Reset form
   document.getElementById('sa-prod-form-title').textContent = '➕ Thêm Sản Phẩm Mới';
   document.getElementById('sa-p-editid').value = '';
   ['sa-p-name','sa-p-sku','sa-p-price','sa-p-buyprice','sa-p-stock','sa-p-color','sa-p-sizes','sa-p-desc','sa-p-img-url'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
-  document.getElementById('sa-p-brand').value  = 'Nike';
   document.getElementById('sa-p-status').value = 'Đang bán';
   document.getElementById('sa-prod-submit-btn').textContent = '💾 Lưu Sản Phẩm';
   document.getElementById('sa-prod-form-error').style.display = 'none';
   saClearProductImg();
+
+  // Load thương hiệu từ DB
+  await saLoadBrandsAndCats();
+
   const f = document.getElementById('sa-add-prod-form');
   f.style.display = 'block';
   f.scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
-function saEditProduct(ma) {
+async function saLoadBrandsAndCats() {
+  try {
+    // Load thương hiệu từ sản phẩm thực tế
+    const [spRes, dmRes] = await Promise.all([
+      fetch('/api/sanpham?limit=200'),
+      fetch('/api/danhmuc')
+    ]);
+    const spData = await spRes.json();
+    const dmData = await dmRes.json();
+
+    // Lấy danh sách thương hiệu unique
+    const brands = [...new Set((spData.data||[]).map(p => p.thuonghieu||p.ThuongHieu).filter(Boolean))].sort();
+    const brandSel = document.getElementById('sa-p-brand');
+    if (brandSel && brands.length) {
+      const curVal = brandSel.value;
+      brandSel.innerHTML = '<option value="">-- Chọn thương hiệu --</option>' +
+        brands.map(b => `<option value="${b}" ${b===curVal?'selected':''}>${b}</option>`).join('');
+    }
+
+    // Danh mục
+    const cats = Array.isArray(dmData) ? dmData : (dmData.data||[]);
+    const catSel = document.getElementById('sa-p-cat');
+    if (catSel && cats.length) {
+      const curCat = catSel.value;
+      catSel.innerHTML = '<option value="">-- Chọn danh mục --</option>' +
+        cats.map(c => {
+          const ten = c.ten||c.Ten||'';
+          return `<option value="${ten}" ${ten===curCat?'selected':''}>${ten}</option>`;
+        }).join('');
+    }
+  } catch(e) { console.warn('saLoadBrandsAndCats:', e.message); }
+}
+
+async function saEditProduct(ma) {
   const list = window._saProdList || [];
   const p    = list.find(x => (x.masanpham||x.MaSanPham) === ma);
   if (!p) { showToast('Lỗi','Không tìm thấy sản phẩm'); return; }
@@ -2325,6 +2361,12 @@ function saEditProduct(ma) {
   document.getElementById('sa-prod-submit-btn').textContent = '💾 Lưu Thay Đổi';
   document.getElementById('sa-prod-form-error').style.display = 'none';
   saClearProductImg();
+  // Load brands/cats rồi set lại value
+  await saLoadBrandsAndCats();
+  const brandSel = document.getElementById('sa-p-brand');
+  const catSel   = document.getElementById('sa-p-cat');
+  if (brandSel) brandSel.value = p.thuonghieu||p.ThuongHieu||'';
+  if (catSel)   catSel.value   = p.danhmuc||p.DanhMuc||'';
   const f = document.getElementById('sa-add-prod-form');
   f.style.display = 'block';
   f.scrollIntoView({ behavior:'smooth', block:'start' });
@@ -2451,7 +2493,9 @@ async function saSaveProduct() {
   try {
     const url    = isEdit ? '/api/admin/sanpham/' + editId : '/api/admin/sanpham';
     const method = isEdit ? 'PUT' : 'POST';
-    const res    = await fetch(url, { method, headers: SA.h(), body: JSON.stringify(body) });
+    const tok = sessionStorage.getItem('admin_token')||localStorage.getItem('admin_token')||'';
+    const hdrs = { 'Content-Type':'application/json', 'Authorization':'Bearer '+tok };
+    const res    = await fetch(url, { method, headers: hdrs, body: JSON.stringify(body) });
     const json   = await res.json();
     if (!res.ok) { errEl.textContent = json.error||'Lỗi server'; errEl.style.display='block'; return; }
 
@@ -7522,11 +7566,6 @@ select.mp-field-input option { background: #1a1a1a; }
                   <span style="padding:3px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:3px;font-size:11px;font-family:monospace;color:var(--gray-light)">SKU</span>
                   <span style="padding:3px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:3px;font-size:11px;font-family:monospace;color:var(--gray-light)">MoTaSanPham</span>
                   <span style="padding:3px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:3px;font-size:11px;font-family:monospace;color:var(--gray-light)">TinhTrang</span>
-                  <span style="padding:3px 10px;background:rgba(76,175,80,0.12);border:1px solid rgba(76,175,80,0.3);border-radius:3px;font-size:11px;font-family:monospace;color:#81c784">HinhAnh (URL)</span>
-                </div>
-                <div style="margin-top:10px;padding:10px 14px;background:rgba(76,175,80,0.07);border:1px solid rgba(76,175,80,0.2);border-radius:6px;font-size:12px;color:#a5d6a7;line-height:1.6">
-                  📷 <strong>Ảnh nhúng trực tiếp trong ô Excel:</strong> Nhúng ảnh vào ô cùng dòng với sản phẩm (Insert → Pictures → Place in Cell). Server sẽ tự trích xuất và lưu vào <code style="background:rgba(255,255,255,0.08);padding:1px 5px;border-radius:3px">/uploads/products/</code>.<br>
-                  Hoặc điền cột <code style="background:rgba(255,255,255,0.08);padding:1px 5px;border-radius:3px">HinhAnh</code> bằng URL ảnh nếu ảnh đã có online.
                 </div>
                 <div style="margin-top:8px;font-size:11px;color:rgba(255,100,100,0.7)">* Bắt buộc</div>
               </div>
@@ -7549,10 +7588,9 @@ select.mp-field-input option { background: #1a1a1a; }
                   <tbody id="imp-preview-body"></tbody>
                 </table>
               </div>
-              <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
-                <button class="db-btn-sm primary" id="imp-direct-btn" onclick="finalizeImportDirect()" style="background:var(--red);border-color:var(--red)">🚀 Import Vào Database</button>
-                <button class="db-btn-sm" id="imp-gen-sql-btn" onclick="generateImportSQL()">📄 Xem SQL</button>
-                <button class="db-btn-sm" onclick="resetImport()">↩ Tải File Khác</button>
+              <div style="margin-top:14px;display:flex;gap:8px">
+                <button class="db-btn-sm primary" id="imp-gen-sql-btn" onclick="generateImportSQL()">⚡ Tạo Câu Lệnh SQL</button>
+                <button class="db-btn-sm" onclick="resetImport()">↩ Tải Lại File Khác</button>
               </div>
             </div>
           </div>
@@ -7568,7 +7606,7 @@ select.mp-field-input option { background: #1a1a1a; }
               </div>
               <div class="imp-sql-box" id="imp-sql-output"></div>
               <div style="margin-top:14px;display:flex;gap:8px;align-items:center">
-                <button class="db-btn-sm primary" onclick="finalizeImport()">✅ Xác Nhận Import Vào DB</button>
+                <button class="db-btn-sm primary" onclick="finalizeImport()">✅ Xác Nhận Import</button>
                 <button class="db-btn-sm" onclick="goBackToPreview()">← Quay Lại Xem Trước</button>
                 <span style="font-size:12px;color:var(--gray-light);flex:1;text-align:right">Chạy SQL trong SQL Server / MySQL để hoàn tất nhập liệu</span>
               </div>
@@ -7675,7 +7713,7 @@ select.mp-field-input option { background: #1a1a1a; }
       // --- PROCESS FILE -----------------------------------------
       let importedData = [];
       const REQUIRED = ['MaSanPham','TenSanPham'];
-      const ALL_COLS = ['MaSanPham','TenSanPham','ThuongHieu','DanhMuc','GiaNhap','GiaBan','Size','MauSac','SoLuongTon','SKU','MoTaSanPham','ChinhSachDoiTra','ChinhSachBaoHanh','TinhTrang','HinhAnh'];
+      const ALL_COLS = ['MaSanPham','TenSanPham','ThuongHieu','DanhMuc','GiaNhap','GiaBan','Size','MauSac','SoLuongTon','SKU','MoTaSanPham','ChinhSachDoiTra','ChinhSachBaoHanh','TinhTrang'];
 
       function processImportFile(file) {
         const ext = file.name.split('.').pop().toLowerCase();
@@ -7771,15 +7809,10 @@ select.mp-field-input option { background: #1a1a1a; }
         document.getElementById('imp-preview-zone').style.display = '';
         document.getElementById('imp-sql-zone').style.display = 'none';
 
+        // Update gen button
+        const genBtn = document.getElementById('imp-gen-sql-btn');
         genBtn.disabled = okCount + warnCount === 0;
-        genBtn.textContent = `📄 Xem SQL (${okCount + warnCount} dòng)`;
-
-        // Direct import button
-        const directBtn = document.getElementById('imp-direct-btn');
-        if (directBtn) {
-          directBtn.disabled = okCount + warnCount === 0;
-          directBtn.textContent = `🚀 Import Vào Database (${okCount + warnCount} sản phẩm)`;
-        }
+        genBtn.textContent = `- Tạo SQL (${okCount + warnCount} dòng hợp lệ)`;
 
         setImpStep(2);
       }
@@ -7858,173 +7891,27 @@ select.mp-field-input option { background: #1a1a1a; }
         showToast('Tải File SQL -','File .sql đã được tải về');
       }
 
-      // ─── IMPORT VÀO DATABASE THẬT ─────────────────────────────
-      let _importFile = null; // lưu file gốc để upload
-
-      // Ghi đè processImportFile để lưu file gốc
-      const _origProcessImportFile = processImportFile;
-      function processImportFile(file) {
-        _importFile = file;
-        _origProcessImportFile(file);
-      }
-
-      async function finalizeImport() {
+      function finalizeImport() {
         const validRows = importedData.filter(r => r._status !== 'err');
-        if (!validRows.length) { showToast('Lỗi -', 'Không có dòng hợp lệ để import'); return; }
+        // Add to product table
+        validRows.forEach(r => {
+          const stock = parseInt(r.SoLuongTon) || 0;
+          const stockColor = stock === 0 ? '#f44336' : stock < 20 ? 'orange' : '#4caf50';
+          const status = stock === 0 ? '<span class="db-status status-cancel">- Hết Hàng</span>' : '<span class="db-status status-done">- Đang Bán</span>';
+          const price = r.GiaBan ? Number(r.GiaBan).toLocaleString('vi-VN') + 'đ' : '--';
+          const priceIn = r.GiaNhap ? Number(r.GiaNhap).toLocaleString('vi-VN') + 'đ' : '--';
+          const tr = document.createElement('tr');
+          tr.dataset.brand = r.ThuongHieu || '';
+          tr.innerHTML = `<td>👟</td><td>${r.TenSanPham}<br><span style="font-size:11px;color:var(--gray-light)">SKU: ${r.SKU||r.MaSanPham}</span></td><td>${r.ThuongHieu||''}</td><td>${r.DanhMuc||''}</td><td style="font-family:monospace;color:var(--gray-light)">${priceIn}</td><td style="font-family:monospace;font-weight:700">${price}</td><td><span style="color:${stockColor}">${stock}</span></td><td>${status}</td><td style="display:flex;gap:4px"><button class="db-btn-sm" onclick="showToast('Chỉnh Sửa','Form chỉnh sửa sản phẩm')">Sửa</button><button class="db-btn-sm" onclick="showToast('Ẩn SP','Sản phẩm đã bị ẩn')">Ẩn</button></td>`;
+          document.getElementById('prod-tbody').appendChild(tr);
+        });
+        updateProdCount();
 
-        // Ưu tiên gọi API upload file nếu có file gốc
-        if (_importFile) {
-          await finalizeImportViaFile(_importFile, validRows.length);
-        } else {
-          await finalizeImportViaJSON(validRows);
-        }
-      }
-
-      // Cách 1: Upload file Excel/CSV lên /api/admin/sanpham/import
-      async function finalizeImportViaFile(file, expectedCount) {
-        const btn = document.querySelector('#imp-sql-zone button.db-btn-sm.primary');
-        if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang import...'; }
-
-        // Progress bar tạm thời
-        showImpProgress('Đang upload và xử lý file...', 30);
-
-        try {
-          const token = sessionStorage.getItem('admin_token') || localStorage.getItem('admin_token') || '';
-          if (!token) { showToast('Lỗi -', 'Chưa đăng nhập admin'); if(btn){btn.disabled=false;btn.textContent='✅ Xác Nhận Import Vào DB';} return; }
-
-          const formData = new FormData();
-          formData.append('file', file);
-
-          showImpProgress('Đang gửi lên server...', 60);
-          const res = await fetch('/api/admin/sanpham/import', {
-            method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + token },
-            body: formData
-          });
-
-          showImpProgress('Đang xử lý kết quả...', 90);
-          const json = await res.json();
-
-          if (!res.ok) {
-            hideImpProgress();
-            if(btn){btn.disabled=false;btn.textContent='✅ Xác Nhận Import';}
-            showToast('Lỗi Import -', json.error || 'Có lỗi xảy ra');
-            return;
-          }
-
-          hideImpProgress();
-          showImportSuccess(json.results || { success: [], errors: [], warnings: [] });
-        } catch(e) {
-          hideImpProgress();
-          if(btn){btn.disabled=false;btn.textContent='✅ Xác Nhận Import';}
-          showToast('Lỗi Kết Nối -', e.message);
-        }
-      }
-
-      // Cách 2: Gửi từng dòng qua /api/admin/sanpham (POST)
-      async function finalizeImportViaJSON(validRows) {
-        const btn = document.querySelector('#imp-sql-zone button.db-btn-sm.primary');
-        if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang import...'; }
-
-        const token = sessionStorage.getItem('admin_token') || localStorage.getItem('admin_token') || '';
-        if (!token) { showToast('Lỗi -', 'Chưa đăng nhập admin'); if(btn){btn.disabled=false;btn.textContent='✅ Xác Nhận Import Vào DB';} return; }
-
-        const results = { success: [], errors: [], warnings: [] };
-        let done = 0;
-
-        for (const r of validRows) {
-          showImpProgress(`Đang thêm ${done+1}/${validRows.length}: ${r.TenSanPham||r.MaSanPham}`, Math.round((done/validRows.length)*90)+5);
-          try {
-            const body = {
-              MaSanPham: r.MaSanPham, TenSanPham: r.TenSanPham,
-              ThuongHieu: r.ThuongHieu||'', DanhMuc: r.DanhMuc||'',
-              GiaNhap: r.GiaNhap ? Number(r.GiaNhap) : null,
-              GiaBan:  r.GiaBan  ? Number(r.GiaBan)  : null,
-              Size: r.Size||'', MauSac: r.MauSac||'',
-              SoLuongTon: parseInt(r.SoLuongTon)||0,
-              SKU: r.SKU||'', MoTaSanPham: r.MoTaSanPham||'',
-              ChinhSachDoiTra: r.ChinhSachDoiTra||'',
-              ChinhSachBaoHanh: r.ChinhSachBaoHanh||'',
-              TinhTrang: r.TinhTrang||'Đang bán'
-            };
-            const res = await fetch('/api/admin/sanpham', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-              body: JSON.stringify(body)
-            });
-            const json = await res.json();
-            if (!res.ok) {
-              results.errors.push({ line: r._idx, reason: json.error || 'Lỗi không xác định' });
-            } else {
-              results.success.push(r.MaSanPham);
-            }
-          } catch(e) {
-            results.errors.push({ line: r._idx, reason: e.message });
-          }
-          done++;
-        }
-
-        hideImpProgress();
-        if(btn){btn.disabled=false;btn.textContent='✅ Xác Nhận Import';}
-        showImportSuccess(results);
-      }
-
-      function showImportSuccess(results) {
-        // Hỗ trợ cả 2 format: từ API file upload và từ import từng dòng
-        let ok, warn, err;
-        if (typeof results.imported === 'number') {
-          // Format từ /api/admin/sanpham/import
-          ok   = results.imported;
-          warn = results.skipped;
-          err  = results.failed;
-        } else {
-        } else {
-          // Format từ import từng dòng qua /api/admin/sanpham
-          ok   = (results.success  || []).length;
-          warn = (results.warnings || []).length;
-          err  = (results.errors   || []).length;
-        }
-
-        let detail = `✅ Thêm mới: ${ok} sản phẩm`;
-        if (results.withImage) detail += ` (📷 ${results.withImage} có ảnh)`;
-        if (warn) detail += ` · ⚠️ Đã tồn tại (bỏ qua): ${warn}`;
-        if (err)  detail += ` · ❌ Lỗi: ${err}`;
-
-        document.getElementById('imp-success-msg').textContent = detail;
+        document.getElementById('imp-success-msg').textContent = `Đã thêm ${validRows.length} sản phẩm vào danh sách`;
         document.getElementById('imp-sql-zone').style.display = 'none';
-        document.getElementById('imp-preview-zone').style.display = 'none';
         document.getElementById('imp-success-zone').style.display = '';
         setImpStep(4);
-        showToast('Import Hoàn Tất 🎉', `${ok} sản phẩm mới · ${warn} bỏ qua · ${err} lỗi`);
-
-        // Reload danh sách sản phẩm
-        if (typeof adminLoadProducts === 'function') adminLoadProducts();
-      }
-
-      // Progress bar helper
-      function showImpProgress(msg, pct) {
-        let el = document.getElementById('imp-progress-bar-wrap');
-        if (!el) {
-          el = document.createElement('div');
-          el.id = 'imp-progress-bar-wrap';
-          el.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:99999;display:flex;align-items:center;justify-content:center';
-          el.innerHTML = `<div style="background:#1a1a1a;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:32px 40px;min-width:320px;text-align:center">
-            <div style="font-size:28px;margin-bottom:12px">📥</div>
-            <div id="imp-prog-msg" style="font-size:14px;font-weight:600;margin-bottom:16px;color:#fff">Đang xử lý...</div>
-            <div style="background:rgba(255,255,255,0.07);border-radius:4px;height:8px;overflow:hidden">
-              <div id="imp-prog-fill" style="height:100%;background:var(--red,#e62020);border-radius:4px;transition:width .3s;width:0%"></div>
-            </div>
-            <div id="imp-prog-pct" style="font-size:11px;color:#888;margin-top:8px">0%</div>
-          </div>`;
-          document.body.appendChild(el);
-        }
-        document.getElementById('imp-prog-msg').textContent = msg;
-        document.getElementById('imp-prog-fill').style.width = pct + '%';
-        document.getElementById('imp-prog-pct').textContent = pct + '%';
-      }
-      function hideImpProgress() {
-        const el = document.getElementById('imp-progress-bar-wrap');
-        if (el) el.remove();
+        showToast('Import Hoàn Tất 🎉', `${validRows.length} sản phẩm đã được thêm vào danh sách`);
       }
 
       function goBackToPreview() {
@@ -8041,18 +7928,6 @@ select.mp-field-input option { background: #1a1a1a; }
         document.getElementById('imp-success-zone').style.display = 'none';
         document.getElementById('imp-file-input').value = '';
         setImpStep(1);
-      }
-
-      // Import thẳng từ bước Preview (không qua bước SQL)
-      async function finalizeImportDirect() {
-        const validRows = importedData.filter(r => r._status !== 'err');
-        if (!validRows.length) { showToast('Không có dữ liệu -', 'Vui lòng kiểm tra file'); return; }
-        if (!confirm(`Import ${validRows.length} sản phẩm vào database?`)) return;
-        if (_importFile) {
-          await finalizeImportViaFile(_importFile, validRows.length);
-        } else {
-          await finalizeImportViaJSON(validRows);
-        }
       }
 
       function setImpStep(n) {
@@ -9827,17 +9702,44 @@ select.mp-field-input option { background: #1a1a1a; }
         <div class="db-page-sub">Toàn bộ sản phẩm trong hệ thống — thêm, sửa, xóa, ẩn/hiện</div>
 
         <!-- Toolbar -->
-        <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
-          <button class="db-btn-sm primary" onclick="saShowAddProduct()">+ Thêm Sản Phẩm</button>
-          <input class="db-input" id="sa-prod-search" placeholder="🔍 Tên, SKU, thương hiệu..." style="max-width:220px" oninput="saFilterProducts(this.value)">
-          <select class="db-input" style="max-width:160px" onchange="saFilterProducts()">
-            <option>Tất Cả Danh Mục</option>
-            <option>Giày Sneaker</option><option>Streetwear</option><option>Phụ Kiện</option>
-          </select>
-          <select class="db-input" style="max-width:140px" id="sa-prod-status-filter">
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+          <button class="db-btn-sm primary" onclick="saShowAddProduct()">+ Thêm SP</button>
+          <button class="db-btn-sm" onclick="saToggleImportPanel()" style="color:#2196f3;border-color:rgba(33,150,243,0.4)">📥 Import Excel</button>
+          <button class="db-btn-sm" onclick="saDownloadTemplate()">📋 Template</button>
+          <input class="db-input" id="sa-prod-search" placeholder="🔍 Tên, SKU..." style="max-width:180px" oninput="saFilterProducts(this.value)">
+          <select class="db-input" style="max-width:130px" id="sa-prod-status-filter">
             <option>Tất Cả</option><option>Đang Bán</option><option>Hết Hàng</option><option>Ẩn</option>
           </select>
-          <span style="font-size:12px;color:var(--gray-light);margin-left:auto">Tổng: <b style="color:var(--white)" id="sa-prod-count">285</b> sản phẩm</span>
+          <span style="font-size:12px;color:var(--gray-light);margin-left:auto">Tổng: <b style="color:var(--white)" id="sa-prod-count">--</b> SP</span>
+        </div>
+
+        <!-- Import Excel Panel -->
+        <div id="sa-import-panel" style="display:none;background:rgba(33,150,243,0.05);border:1px solid rgba(33,150,243,0.3);border-radius:6px;padding:20px;margin-bottom:20px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div style="font-size:14px;font-weight:700;color:#2196f3">📥 Nhập Sản Phẩm Từ File Excel</div>
+            <button class="db-btn-sm" onclick="saToggleImportPanel()">✕</button>
+          </div>
+          <div style="font-size:11px;color:var(--gray-light);margin-bottom:14px;background:rgba(255,255,255,0.03);padding:8px 12px;border-radius:4px">
+            Cột bắt buộc: <b style="color:#fff">MaSanPham, TenSanPham</b> &nbsp;·&nbsp;
+            Tùy chọn: ThuongHieu, DanhMuc, GiaNhap, GiaBan, Size, MauSac, SoLuongTon, SKU, MoTaSanPham, TinhTrang
+          </div>
+          <div id="sa-import-drop"
+            style="border:2px dashed rgba(33,150,243,0.3);border-radius:8px;padding:24px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:14px"
+            onclick="document.getElementById('sa-import-file').click()"
+            ondragover="event.preventDefault();this.style.borderColor='#2196f3';this.style.background='rgba(33,150,243,0.07)'"
+            ondragleave="this.style.borderColor='rgba(33,150,243,0.3)';this.style.background=''"
+            ondrop="saImportDrop(event)">
+            <div id="sa-import-filename">
+              <div style="font-size:28px;margin-bottom:6px">📊</div>
+              <div style="font-size:13px;color:var(--gray-light)">Kéo thả file .xlsx / .xls vào đây hoặc click để chọn</div>
+            </div>
+          </div>
+          <input type="file" id="sa-import-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="saImportSelectFile(this)">
+          <div id="sa-import-result" style="display:none;margin-bottom:14px;padding:12px;border-radius:6px;font-size:13px;line-height:1.6"></div>
+          <div style="display:flex;gap:10px">
+            <button class="db-btn-sm primary" id="sa-import-btn" onclick="saImportSubmit()" disabled style="opacity:0.5">⬆️ Upload & Import</button>
+            <button class="db-btn-sm" onclick="saImportReset()">🔄 Reset</button>
+          </div>
         </div>
 
         <!-- Add / Edit product form -->
@@ -9896,12 +9798,14 @@ select.mp-field-input option { background: #1a1a1a; }
               <div><label class="db-label">Mã SP / SKU *</label><input class="db-input" id="sa-p-sku" placeholder="NK-AM270-001" style="width:100%"></div>
               <div><label class="db-label">Thương Hiệu</label>
                 <select class="db-input" id="sa-p-brand" style="width:100%">
+                  <option value="">-- Chọn thương hiệu --</option>
                   <option>Nike</option><option>Adidas</option><option>MLB</option><option>Puma</option>
                   <option>Fila</option><option>New Balance</option><option>Converse</option><option>Vans</option>
                 </select>
               </div>
               <div><label class="db-label">Danh Mục</label>
                 <select class="db-input" id="sa-p-cat" style="width:100%">
+                  <option value="">-- Chọn danh mục --</option>
                   <option>Giày dép</option><option>Streetwear</option><option>Phụ kiện</option>
                 </select>
               </div>
@@ -10444,7 +10348,7 @@ select.mp-field-input option { background: #1a1a1a; }
 
     </div>
   </div>
-</div> src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+</div><script>
 // -- ROLE SYSTEM --
 let selectedRole = 'member';
 let currentUser = null;
@@ -10992,19 +10896,15 @@ async function adminLoadProducts(page) {
       const tt = p.tinhtrang ?? p.TinhTrang ?? 'Đang bán';
       const ttClass = tt === 'Ẩn' ? 'status-cancel' : 'status-done';
       const ma = p.masanpham ?? p.MaSanPham ?? '';
-      const hinh = p.hinhanh ?? p.HinhAnh ?? '';
-      const imgHtml = hinh
-        ? `<img src="${hinh}" style="width:44px;height:44px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,0.1)" onerror="this.outerHTML='👟'">`
-        : `<div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.04);border-radius:6px;font-size:22px;cursor:pointer" title="Click để tải ảnh" onclick="adminUploadImage('${ma}')">📷</div>`;
       return `<tr data-ma="${ma}">
-        <td>${imgHtml}</td>
+        <td>👟</td>
         <td><strong>${p.tensanpham ?? p.TenSanPham ?? '--'}</strong><br><span style="font-size:11px;color:var(--gray-light)">SKU: ${p.sku ?? p.SKU ?? '--'}</span></td>
         <td>${p.thuonghieu ?? p.ThuongHieu ?? '--'}</td>
         <td>${p.danhmuc ?? p.DanhMuc ?? '--'}</td>
         <td style="font-family:monospace;color:var(--gray-light)">${fmtMoney(p.gianhap ?? p.GiaNhap)}</td>
         <td style="font-family:monospace;font-weight:700">${fmtMoney(p.giaban ?? p.GiaBan)}</td>
         <td><span style="color:${tonColor}">${ton}</span></td>
-        <td><span class="db-status ${ttClass}">${tt === 'Ẩn' ? '🙈 Đã Ẩn' : '✅ Đang Bán'}</span></td>
+        <td><span class="db-status ${ttClass}">${tt === 'Ẩn' ? '🙈 Đã Ẩn' : '- Đang Bán'}</span></td>
         <td style="display:flex;gap:4px">
           <button class="db-btn-sm" onclick="adminEditProduct('${ma}')">Sửa</button>
           <button class="db-btn-sm" onclick="adminToggleProduct('${ma}', this)">${tt === 'Ẩn' ? 'Hiện' : 'Ẩn'}</button>
@@ -11130,25 +11030,8 @@ function showAdminProductModal(p) {
   const ma = p ? (p.masanpham || p.MaSanPham || '') : '';
   const html = `
   <div id="modal-prod-admin" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)this.remove()">
-    <div style="background:var(--surface,#1a1a1a);border:1px solid rgba(255,255,255,0.1);width:100%;max-width:580px;max-height:92vh;overflow-y:auto;padding:24px;position:relative">
-      <div style="font-weight:700;font-size:16px;margin-bottom:20px;letter-spacing:.5px">${isEdit ? '✏️ Sửa Sản Phẩm' : '➕ Thêm Sản Phẩm Mới'}</div>
-
-      <!-- Ảnh sản phẩm -->
-      <div style="margin-bottom:16px">
-        <label style="font-size:12px;color:#aaa;display:block;margin-bottom:8px">Ảnh Sản Phẩm</label>
-        <div style="display:flex;gap:12px;align-items:flex-start">
-          <div id="mp-img-preview" style="width:80px;height:80px;border-radius:8px;background:rgba(255,255,255,0.05);border:1px dashed rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:32px;flex-shrink:0;overflow:hidden">
-            ${p?.hinhanh||p?.HinhAnh ? `<img src="${p.hinhanh||p.HinhAnh}" style="width:100%;height:100%;object-fit:cover" onerror="this.outerHTML='📷'">` : '📷'}
-          </div>
-          <div style="flex:1">
-            <input type="file" id="mp-img-file" accept="image/*" style="display:none" onchange="previewProdImg(this)">
-            <button class="db-btn-sm" onclick="document.getElementById('mp-img-file').click()" style="margin-bottom:6px">📁 Chọn Ảnh Từ Máy</button>
-            <div style="font-size:11px;color:#666">Hoặc nhập URL ảnh:</div>
-            <input id="mp-hinhanh" class="db-input" style="margin-top:4px;font-size:11px" value="${p?.hinhanh||p?.HinhAnh||''}" placeholder="https://... hoặc /uploads/products/..." oninput="previewProdImgUrl(this.value)">
-          </div>
-        </div>
-      </div>
-
+    <div style="background:var(--surface,#1a1a1a);border:1px solid rgba(255,255,255,0.1);width:100%;max-width:560px;max-height:90vh;overflow-y:auto;padding:24px;position:relative">
+      <div style="font-weight:700;font-size:16px;margin-bottom:20px;letter-spacing:.5px">${isEdit ? '-️ Sửa Sản Phẩm' : '- Thêm Sản Phẩm Mới'}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div><label style="font-size:12px;color:#aaa">Mã Sản Phẩm *</label><input id="mp-ma" class="db-input" value="${ma}" ${isEdit?'readonly style="opacity:.6"':''}></div>
         <div><label style="font-size:12px;color:#aaa">SKU</label><input id="mp-sku" class="db-input" value="${p?.sku||p?.SKU||''}"></div>
@@ -11177,56 +11060,10 @@ function showAdminProductModal(p) {
   document.body.insertAdjacentHTML('beforeend', html);
 }
 
-function previewProdImg(input) {
-  if (!input.files[0]) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    const prev = document.getElementById('mp-img-preview');
-    if (prev) prev.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover">`;
-    // Xóa URL text khi đã chọn file
-    const urlInput = document.getElementById('mp-hinhanh');
-    if (urlInput) urlInput.value = '';
-  };
-  reader.readAsDataURL(input.files[0]);
-}
-
-function previewProdImgUrl(url) {
-  if (!url) return;
-  const prev = document.getElementById('mp-img-preview');
-  if (prev) prev.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover" onerror="this.outerHTML='📷'">`;
-  // Xóa file input khi nhập URL
-  const fi = document.getElementById('mp-img-file');
-  if (fi) fi.value = '';
-}
-
-// Upload ảnh đơn lẻ cho sản phẩm đã có (click vào 📷 trong bảng)
-function adminUploadImage(ma) {
-  const input = document.createElement('input');
-  input.type = 'file'; input.accept = 'image/*';
-  input.onchange = async () => {
-    if (!input.files[0]) return;
-    const fd = new FormData();
-    fd.append('image', input.files[0]);
-    try {
-      const res = await fetch(`/api/admin/sanpham/${ma}/upload-image`, {
-        method: 'POST', headers: { 'Authorization': 'Bearer ' + (sessionStorage.getItem('admin_token')||localStorage.getItem('admin_token')||'') },
-        body: fd
-      });
-      const json = await res.json();
-      if (!res.ok) { showToast('Lỗi -', json.error); return; }
-      showToast('Ảnh Đã Lưu ✅', `Sản phẩm ${ma}`);
-      adminLoadProducts();
-    } catch(e) { showToast('Lỗi -', e.message); }
-  };
-  input.click();
-}
-
 async function adminSaveProduct(existingMa) {
   const ma    = document.getElementById('mp-ma')?.value.trim();
   const ten   = document.getElementById('mp-ten')?.value.trim();
   if (!ma || !ten) { showToast('Lỗi -', 'Mã và tên sản phẩm không được trống'); return; }
-
-  // 1. Lưu thông tin sản phẩm trước
   const body = {
     MaSanPham: ma, TenSanPham: ten,
     SKU: document.getElementById('mp-sku')?.value.trim(),
@@ -11239,9 +11076,7 @@ async function adminSaveProduct(existingMa) {
     MauSac: document.getElementById('mp-mau')?.value.trim(),
     TinhTrang: document.getElementById('mp-tt')?.value,
     MoTaSanPham: document.getElementById('mp-mota')?.value.trim(),
-    HinhAnh: document.getElementById('mp-hinhanh')?.value.trim() || '',
   };
-
   try {
     const isEdit = !!existingMa;
     const url    = isEdit ? `/api/admin/sanpham/${existingMa}` : '/api/admin/sanpham';
@@ -11249,26 +11084,7 @@ async function adminSaveProduct(existingMa) {
     const res    = await fetch(url, { method, headers: adminHeaders(), body: JSON.stringify(body) });
     const json   = await res.json();
     if (!res.ok) { showToast('Lỗi -', json.error); return; }
-
-    const savedMa = json.data?.masanpham || json.data?.MaSanPham || ma;
-
-    // 2. Nếu có file ảnh → upload riêng
-    const imgFile = document.getElementById('mp-img-file')?.files?.[0];
-    if (imgFile) {
-      const fd = new FormData();
-      fd.append('image', imgFile);
-      try {
-        const imgRes = await fetch(`/api/admin/sanpham/${savedMa}/upload-image`, {
-          method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + (sessionStorage.getItem('admin_token')||localStorage.getItem('admin_token')||'') },
-          body: fd
-        });
-        const imgJson = await imgRes.json();
-        if (!imgRes.ok) showToast('Cảnh Báo -', 'Sản phẩm đã lưu nhưng ảnh lỗi: ' + imgJson.error);
-      } catch(e) { showToast('Cảnh Báo -', 'Ảnh chưa lưu: ' + e.message); }
-    }
-
-    showToast('Thành Công ✅', isEdit ? 'Sản phẩm đã được cập nhật' : 'Đã thêm sản phẩm mới');
+    showToast('Thành Công -', isEdit ? 'Sản phẩm đã được cập nhật' : 'Đã thêm sản phẩm mới');
     document.getElementById('modal-prod-admin')?.remove();
     adminLoadProducts();
   } catch(e) { showToast('Lỗi -', e.message); }
@@ -14776,6 +14592,114 @@ document.addEventListener('click', function(e) {
   const modal = document.getElementById('img-search-modal');
   if (modal && e.target === modal) imgSearchClose();
 });
+
+// ── SA IMPORT EXCEL ──────────────────────────────────────────
+let _saImportFile = null;
+
+function saToggleImportPanel() {
+  const p = document.getElementById('sa-import-panel');
+  const f = document.getElementById('sa-add-prod-form');
+  if (!p) return;
+  const isOpen = p.style.display !== 'none';
+  p.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen && f) f.style.display = 'none';
+}
+
+function saImportSelectFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  _saImportFile = file;
+  const nameEl = document.getElementById('sa-import-filename');
+  const btn    = document.getElementById('sa-import-btn');
+  if (nameEl) nameEl.innerHTML = '<div style="font-size:20px;margin-bottom:4px">📄</div><div style="font-weight:600;color:#fff">' + file.name + '</div><div style="font-size:11px;color:var(--gray-light);margin-top:2px">' + (file.size/1024).toFixed(1) + ' KB</div>';
+  if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+  document.getElementById('sa-import-result').style.display = 'none';
+}
+
+function saImportDrop(e) {
+  e.preventDefault();
+  document.getElementById('sa-import-drop').style.borderColor = 'rgba(33,150,243,0.3)';
+  document.getElementById('sa-import-drop').style.background = '';
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  const fake = { files: [file] };
+  const inp  = document.getElementById('sa-import-file');
+  // Gán file vào input qua DataTransfer
+  const dt = new DataTransfer();
+  dt.items.add(file);
+  inp.files = dt.files;
+  saImportSelectFile(inp);
+}
+
+function saImportReset() {
+  _saImportFile = null;
+  const inp  = document.getElementById('sa-import-file');
+  const name = document.getElementById('sa-import-filename');
+  const btn  = document.getElementById('sa-import-btn');
+  const res  = document.getElementById('sa-import-result');
+  if (inp)  inp.value = '';
+  if (name) name.innerHTML = '<div style="font-size:28px;margin-bottom:6px">📊</div><div style="font-size:13px;color:var(--gray-light)">Kéo thả file .xlsx / .xls vào đây hoặc click để chọn</div>';
+  if (btn)  { btn.disabled = true; btn.style.opacity = '0.5'; }
+  if (res)  res.style.display = 'none';
+}
+
+async function saImportSubmit() {
+  const file = _saImportFile || document.getElementById('sa-import-file').files[0];
+  if (!file) { showToast('Lỗi', 'Chưa chọn file'); return; }
+
+  const btn = document.getElementById('sa-import-btn');
+  const res = document.getElementById('sa-import-result');
+  btn.disabled = true; btn.textContent = '⏳ Đang import...';
+  res.style.display = 'none';
+
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await fetch('/api/admin/sanpham/import', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + (sessionStorage.getItem('admin_token') || localStorage.getItem('admin_token') || '') },
+      body: formData
+    });
+    const json = await response.json();
+
+    if (!response.ok) {
+      res.style.cssText = 'display:block;background:rgba(244,67,54,0.1);border:1px solid rgba(244,67,54,0.3);border-radius:6px;padding:12px;font-size:13px;color:#f44336;margin-bottom:14px';
+      res.textContent = '❌ Lỗi: ' + (json.error || 'Không thể import');
+      return;
+    }
+
+    const color = json.failed > 0 ? '#ff9800' : '#4caf50';
+    res.style.cssText = 'display:block;background:rgba(76,175,80,0.1);border:1px solid rgba(76,175,80,0.3);border-radius:6px;padding:12px;font-size:13px;margin-bottom:14px';
+    res.innerHTML = `
+      <div style="font-weight:700;color:${color};margin-bottom:8px">
+        ${json.failed === 0 ? '✅' : '⚠️'} Import hoàn tất
+      </div>
+      <div>✅ Thêm thành công: <b style="color:#4caf50">${json.imported}</b> sản phẩm</div>
+      <div>⏭️ Bỏ qua (đã tồn tại): <b style="color:#ff9800">${json.skipped}</b></div>
+      <div>❌ Lỗi: <b style="color:#f44336">${json.failed}</b></div>
+      ${json.details?.errors?.length ? '<div style="margin-top:8px;font-size:11px;color:#f44336">' +
+        json.details.errors.slice(0,3).map(e => 'Dòng ' + e.line + ': ' + e.reason).join('<br>') + '</div>' : ''}
+    `;
+    if (json.imported > 0) SA.loadProducts();
+
+  } catch(e) {
+    res.style.cssText = 'display:block;background:rgba(244,67,54,0.1);border:1px solid rgba(244,67,54,0.3);border-radius:6px;padding:12px;font-size:13px;color:#f44336;margin-bottom:14px';
+    res.textContent = '❌ Lỗi kết nối: ' + e.message;
+  } finally {
+    btn.disabled = false; btn.textContent = '⬆️ Upload & Import';
+  }
+}
+
+function saDownloadTemplate() {
+  var headers = 'MaSanPham,TenSanPham,ThuongHieu,DanhMuc,GiaNhap,GiaBan,Size,MauSac,SoLuongTon,SKU,MoTaSanPham,TinhTrang';
+  var sample  = '"NK-001","Nike Air Max 270","Nike","Giy dep","2200000","3200000","36,37,38,39,40,41,42","Den/Trang","50","NK-AM270-001","Giy th thao Nike Air Max","ang bn"';
+  var csv = headers + '\n' + sample;
+  var a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'Template_SanPham_SneakerVN.csv';
+  a.click();
+  showToast('Template', 'Da tai Template_SanPham_SneakerVN.csv');
+}
 
 // Đếm số sản phẩm thực tế theo brand từ mảng products
 function initBrandCounts() {

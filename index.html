@@ -9698,14 +9698,17 @@ select.mp-field-input option { background: #1a1a1a; }
       <!-- SA PRODUCTS — QUẢN LÝ SẢN PHẨM                 -->
       <!-- ═══════════════════════════════════════════════ -->
       <div class="db-panel" id="panel-sa-products">
-        <div class="db-page-title">Quản Lý Sản Phẩm</div>
-        <div class="db-page-sub">Toàn bộ sản phẩm trong hệ thống — thêm, sửa, xóa, ẩn/hiện</div>
+        <div class="db-page-title">Xem Sản Phẩm</div>
+        <div class="db-page-sub">Chế độ xem — Việc thêm, sửa, xóa sản phẩm do Chủ Shop quản lý</div>
 
-        <!-- Toolbar -->
+        <!-- Thông báo phân quyền -->
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;background:rgba(255,152,0,0.08);border:1px solid rgba(255,152,0,0.25);border-radius:6px;margin-bottom:16px;font-size:12px;color:rgba(255,200,100,0.9)">
+          <span style="font-size:16px">🔒</span>
+          <span>Bạn đang ở chế độ <b>chỉ xem</b>. Chủ Shop có toàn quyền thêm / sửa / xóa sản phẩm. Super Admin quản lý hệ thống & người dùng.</span>
+        </div>
+
+        <!-- Toolbar (chỉ tìm kiếm, không có nút thao tác) -->
         <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
-          <button class="db-btn-sm primary" onclick="saShowAddProduct()">+ Thêm SP</button>
-          <button class="db-btn-sm" onclick="saToggleImportPanel()" style="color:#2196f3;border-color:rgba(33,150,243,0.4)">📥 Import Excel</button>
-          <button class="db-btn-sm" onclick="saDownloadTemplate()">📋 Template</button>
           <input class="db-input" id="sa-prod-search" placeholder="🔍 Tên, SKU..." style="max-width:180px" oninput="saFilterProducts(this.value)">
           <select class="db-input" style="max-width:130px" id="sa-prod-status-filter">
             <option>Tất Cả</option><option>Đang Bán</option><option>Hết Hàng</option><option>Ẩn</option>
@@ -9713,48 +9716,9 @@ select.mp-field-input option { background: #1a1a1a; }
           <span style="font-size:12px;color:var(--gray-light);margin-left:auto">Tổng: <b style="color:var(--white)" id="sa-prod-count">--</b> SP</span>
         </div>
 
-        <!-- Import Excel Panel -->
-        <div id="sa-import-panel" style="display:none;background:rgba(33,150,243,0.05);border:1px solid rgba(33,150,243,0.3);border-radius:6px;padding:20px;margin-bottom:20px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-            <div style="font-size:14px;font-weight:700;color:#2196f3">📥 Nhập Sản Phẩm Từ File Excel</div>
-            <button class="db-btn-sm" onclick="saToggleImportPanel()">✕</button>
-          </div>
-          <div style="font-size:11px;color:var(--gray-light);margin-bottom:14px;background:rgba(255,255,255,0.03);padding:8px 12px;border-radius:4px">
-            Cột bắt buộc: <b style="color:#fff">MaSanPham, TenSanPham</b> &nbsp;·&nbsp;
-            Tùy chọn: ThuongHieu, DanhMuc, GiaNhap, GiaBan, Size, MauSac, SoLuongTon, SKU, MoTaSanPham, TinhTrang
-          </div>
-          <div id="sa-import-drop"
-            style="border:2px dashed rgba(33,150,243,0.3);border-radius:8px;padding:24px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:14px"
-            onclick="document.getElementById('sa-import-file').click()"
-            ondragover="event.preventDefault();this.style.borderColor='#2196f3';this.style.background='rgba(33,150,243,0.07)'"
-            ondragleave="this.style.borderColor='rgba(33,150,243,0.3)';this.style.background=''"
-            ondrop="saImportDrop(event)">
-            <div id="sa-import-filename">
-              <div style="font-size:28px;margin-bottom:6px">📊</div>
-              <div style="font-size:13px;color:var(--gray-light)">Kéo thả file .xlsx / .xls vào đây hoặc click để chọn</div>
-            </div>
-          </div>
-          <input type="file" id="sa-import-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="saImportSelectFile(this)">
-          <div id="sa-import-result" style="display:none;margin-bottom:14px;padding:12px;border-radius:6px;font-size:13px;line-height:1.6"></div>
-          <div style="display:flex;gap:10px">
-            <button class="db-btn-sm primary" id="sa-import-btn" onclick="saImportSubmit()" disabled style="opacity:0.5">⬆️ Upload & Import</button>
-            <button class="db-btn-sm" onclick="saImportReset()">🔄 Reset</button>
-          </div>
-        </div>
+        <!-- Import Excel Panel — bị xóa: Super Admin chỉ xem, không được thêm/import -->
+        <!-- Add / Edit product form — bị xóa: Super Admin chỉ xem, không được sửa -->
 
-        <!-- Add / Edit product form -->
-        <div id="sa-add-prod-form" style="display:none;background:rgba(255,255,255,0.03);border:1px solid rgba(230,32,32,0.25);border-radius:6px;padding:20px;margin-bottom:20px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
-            <div style="font-size:14px;font-weight:700;color:var(--white)" id="sa-prod-form-title">➕ Thêm Sản Phẩm Mới</div>
-            <button class="db-btn-sm" onclick="document.getElementById('sa-add-prod-form').style.display='none'">✕ Đóng</button>
-          </div>
-          <input type="hidden" id="sa-p-editid">
-
-          <div style="display:grid;grid-template-columns:220px 1fr;gap:20px;align-items:start">
-
-            <!-- CỘT TRÁI: Upload ảnh -->
-            <div>
-              <label class="db-label">Ảnh Sản Phẩm</label>
               <!-- Preview -->
               <div id="sa-p-img-preview" style="width:100%;aspect-ratio:1;background:rgba(255,255,255,0.04);border:2px dashed rgba(255,255,255,0.12);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;position:relative;cursor:pointer;margin-bottom:10px" onclick="document.getElementById('sa-p-img-file').click()">
                 <div id="sa-p-img-placeholder" style="text-align:center;color:var(--gray-light)">
@@ -9781,118 +9745,52 @@ select.mp-field-input option { background: #1a1a1a; }
                 <div style="display:flex;gap:12px">
                   <button class="db-btn-sm primary" style="padding:10px 24px;font-size:14px" onclick="saCapturePhoto()">📸 Chụp</button>
                   <button class="db-btn-sm" onclick="saCloseCamera()">✕ Hủy</button>
-                </div>
-              </div>
-
-              <!-- URL ảnh thay thế -->
-              <div style="margin-top:4px">
-                <label class="db-label" style="font-size:10px">Hoặc nhập URL ảnh</label>
-                <input class="db-input" id="sa-p-img-url" placeholder="https://..." style="font-size:12px;width:100%"
-                  oninput="saPreviewImgUrl(this.value)">
-              </div>
-            </div>
-
-            <!-- CỘT PHẢI: Thông tin sản phẩm -->
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-              <div><label class="db-label">Tên Sản Phẩm *</label><input class="db-input" id="sa-p-name" placeholder="Nike Air Max 270 React" style="width:100%"></div>
-              <div><label class="db-label">Mã SP / SKU *</label><input class="db-input" id="sa-p-sku" placeholder="NK-AM270-001" style="width:100%"></div>
-              <div><label class="db-label">Thương Hiệu</label>
-                <select class="db-input" id="sa-p-brand" style="width:100%">
-                  <option value="">-- Chọn thương hiệu --</option>
-                  <option>Nike</option><option>Adidas</option><option>MLB</option><option>Puma</option>
-                  <option>Fila</option><option>New Balance</option><option>Converse</option><option>Vans</option>
-                </select>
-              </div>
-              <div><label class="db-label">Danh Mục</label>
-                <select class="db-input" id="sa-p-cat" style="width:100%">
-                  <option value="">-- Chọn danh mục --</option>
-                  <option>Giày dép</option><option>Streetwear</option><option>Phụ kiện</option>
-                </select>
-              </div>
-              <div><label class="db-label">Giá Bán (đ) *</label><input class="db-input" id="sa-p-price" type="number" placeholder="3200000" style="width:100%"></div>
-              <div><label class="db-label">Giá Nhập (đ)</label><input class="db-input" id="sa-p-buyprice" type="number" placeholder="2400000" style="width:100%"></div>
-              <div><label class="db-label">Tồn Kho</label><input class="db-input" id="sa-p-stock" type="number" placeholder="50" style="width:100%"></div>
-              <div><label class="db-label">Màu Sắc</label><input class="db-input" id="sa-p-color" placeholder="Đen / Trắng" style="width:100%"></div>
-              <div><label class="db-label">Size (cách nhau bởi dấu phẩy)</label>
-                <input class="db-input" id="sa-p-sizes" placeholder="36,37,38,39,40,41,42" style="width:100%">
-              </div>
-              <div><label class="db-label">Trạng Thái</label>
-                <select class="db-input" id="sa-p-status" style="width:100%">
-                  <option value="Đang bán">✅ Đang Bán</option>
-                  <option value="Hết hàng">⚠️ Hết Hàng</option>
-                  <option value="Ẩn">🙈 Ẩn</option>
-                </select>
-              </div>
-              <div style="grid-column:1/-1"><label class="db-label">Mô Tả Sản Phẩm</label>
-                <textarea class="db-input" id="sa-p-desc" placeholder="Mô tả chi tiết về sản phẩm..." rows="3" style="width:100%;resize:vertical"></textarea>
-              </div>
-            </div>
-          </div>
-
-          <div id="sa-prod-form-error" style="display:none;margin-top:12px;padding:8px 12px;background:rgba(244,67,54,0.1);border:1px solid rgba(244,67,54,0.3);color:#f44336;font-size:12px;border-radius:4px"></div>
-          <div style="display:flex;gap:10px;margin-top:16px">
-            <button class="db-btn-sm primary" id="sa-prod-submit-btn" onclick="saSaveProduct()">💾 Lưu Sản Phẩm</button>
-            <button class="db-btn-sm" onclick="document.getElementById('sa-add-prod-form').style.display='none'">Hủy</button>
-          </div>
-        </div>
-
         <!-- Product table -->
         <div class="db-widget" style="padding:0;overflow:hidden">
           <table class="db-table" style="width:100%" id="sa-prod-table">
             <thead><tr>
-              <th style="width:44px"><input type="checkbox" style="accent-color:var(--red)" onclick="saSelectAllProd(this)"></th>
-              <th>Sản Phẩm</th><th>SKU</th><th>Danh Mục</th><th>Giá</th><th>Tồn</th><th>Trạng Thái</th><th>Hành Động</th>
+              <th>Sản Phẩm</th><th>Thương Hiệu</th><th>Danh Mục</th><th>Giá Bán</th><th>Tồn</th><th>Trạng Thái</th>
             </tr></thead>
             <tbody id="sa-prod-tbody">
               <tr>
-                <td><input type="checkbox" style="accent-color:var(--red)"></td>
-                <td><div style="display:flex;align-items:center;gap:10px"><span style="font-size:28px">👟</span><div><div style="font-weight:600;font-size:13px">Nike Air Max 270 React</div><div style="font-size:11px;color:var(--gray-light)">Nike · Nam</div></div></div></td>
-                <td style="font-size:12px;color:var(--gray-light)">NK-AM270-001</td>
+                <td><div style="display:flex;align-items:center;gap:10px"><span style="font-size:28px">👟</span><div><div style="font-weight:600;font-size:13px">Nike Air Max 270 React</div><div style="font-size:11px;color:var(--gray-light)">SKU: NK-AM270-001</div></div></div></td>
+                <td style="font-size:12px">Nike</td>
                 <td style="font-size:12px">Sneaker › Lifestyle</td>
-                <td><div style="font-weight:700;color:var(--red)">3.200.000đ</div><div style="font-size:11px;text-decoration:line-through;color:var(--gray-light)">4.500.000đ</div></td>
+                <td><div style="font-weight:700;color:var(--red)">3.200.000đ</div></td>
                 <td><span style="color:#4caf50;font-weight:700">42</span></td>
                 <td><span class="db-status status-done" style="font-size:11px">● Đang Bán</span></td>
-                <td style="display:flex;gap:5px"><button class="db-btn-sm" onclick="saEditProduct('Nike Air Max 270 React')">Sửa</button><button class="db-btn-sm" onclick="showToast('Ẩn Sản Phẩm','Sản phẩm đã ẩn khỏi cửa hàng')">Ẩn</button></td>
               </tr>
               <tr>
-                <td><input type="checkbox" style="accent-color:var(--red)"></td>
-                <td><div style="display:flex;align-items:center;gap:10px"><span style="font-size:28px">🏃</span><div><div style="font-weight:600;font-size:13px">Adidas Ultraboost 22</div><div style="font-size:11px;color:var(--gray-light)">Adidas · Nam / Nữ</div></div></div></td>
-                <td style="font-size:12px;color:var(--gray-light)">AD-UB22-002</td>
+                <td><div style="display:flex;align-items:center;gap:10px"><span style="font-size:28px">🏃</span><div><div style="font-weight:600;font-size:13px">Adidas Ultraboost 22</div><div style="font-size:11px;color:var(--gray-light)">SKU: AD-UB22-002</div></div></div></td>
+                <td style="font-size:12px">Adidas</td>
                 <td style="font-size:12px">Sneaker › Chạy Bộ</td>
                 <td><div style="font-weight:700;color:var(--red)">4.100.000đ</div></td>
                 <td><span style="color:#4caf50;font-weight:700">18</span></td>
                 <td><span class="db-status status-done" style="font-size:11px">● Đang Bán</span></td>
-                <td style="display:flex;gap:5px"><button class="db-btn-sm" onclick="saEditProduct('Adidas Ultraboost 22')">Sửa</button><button class="db-btn-sm" onclick="showToast('Ẩn','Đã ẩn sản phẩm')">Ẩn</button></td>
               </tr>
               <tr>
-                <td><input type="checkbox" style="accent-color:var(--red)"></td>
-                <td><div style="display:flex;align-items:center;gap:10px"><span style="font-size:28px">🧢</span><div><div style="font-weight:600;font-size:13px">MLB NY Yankees Cap</div><div style="font-size:11px;color:var(--gray-light)">MLB · Unisex</div></div></div></td>
-                <td style="font-size:12px;color:var(--gray-light)">MLB-NY-003</td>
+                <td><div style="display:flex;align-items:center;gap:10px"><span style="font-size:28px">🧢</span><div><div style="font-weight:600;font-size:13px">MLB NY Yankees Cap</div><div style="font-size:11px;color:var(--gray-light)">SKU: MLB-NY-003</div></div></div></td>
+                <td style="font-size:12px">MLB</td>
                 <td style="font-size:12px">Streetwear › Mũ</td>
                 <td><div style="font-weight:700;color:var(--red)">720.000đ</div></td>
                 <td><span style="color:orange;font-weight:700">5</span></td>
                 <td><span class="db-status status-shipping" style="font-size:11px">⚠️ Sắp Hết</span></td>
-                <td style="display:flex;gap:5px"><button class="db-btn-sm" onclick="saEditProduct('MLB NY Yankees Cap')">Sửa</button><button class="db-btn-sm primary" onclick="showToast('Nhập Hàng','Form nhập thêm tồn kho')">Nhập</button></td>
               </tr>
               <tr>
-                <td><input type="checkbox" style="accent-color:var(--red)"></td>
-                <td><div style="display:flex;align-items:center;gap:10px"><span style="font-size:28px">🏀</span><div><div style="font-weight:600;font-size:13px">Nike Dunk Low Retro</div><div style="font-size:11px;color:var(--gray-light)">Nike · Nam</div></div></div></td>
-                <td style="font-size:12px;color:var(--gray-light)">NK-DL-004</td>
+                <td><div style="display:flex;align-items:center;gap:10px"><span style="font-size:28px">🏀</span><div><div style="font-weight:600;font-size:13px">Nike Dunk Low Retro</div><div style="font-size:11px;color:var(--gray-light)">SKU: NK-DL-004</div></div></div></td>
+                <td style="font-size:12px">Nike</td>
                 <td style="font-size:12px">Sneaker › Lifestyle</td>
                 <td><div style="font-weight:700;color:var(--red)">2.600.000đ</div></td>
                 <td><span style="color:#f44336;font-weight:700">0</span></td>
                 <td><span class="db-status status-cancel" style="font-size:11px">● Hết Hàng</span></td>
-                <td style="display:flex;gap:5px"><button class="db-btn-sm" onclick="saEditProduct('Nike Dunk Low')">Sửa</button><button class="db-btn-sm primary" onclick="showToast('Nhập Hàng','Form nhập thêm tồn kho')">Nhập</button></td>
               </tr>
               <tr>
-                <td><input type="checkbox" style="accent-color:var(--red)"></td>
-                <td><div style="display:flex;align-items:center;gap:10px"><span style="font-size:28px">💼</span><div><div style="font-weight:600;font-size:13px">Nike Heritage Backpack</div><div style="font-size:11px;color:var(--gray-light)">Nike · Phụ Kiện</div></div></div></td>
-                <td style="font-size:12px;color:var(--gray-light)">NK-BAG-005</td>
+                <td><div style="display:flex;align-items:center;gap:10px"><span style="font-size:28px">💼</span><div><div style="font-weight:600;font-size:13px">Nike Heritage Backpack</div><div style="font-size:11px;color:var(--gray-light)">SKU: NK-BAG-005</div></div></div></td>
+                <td style="font-size:12px">Nike</td>
                 <td style="font-size:12px">Phụ Kiện › Balo</td>
                 <td><div style="font-weight:700;color:var(--red)">890.000đ</div></td>
                 <td><span style="color:var(--gray-light);font-weight:700">—</span></td>
                 <td><span class="db-status status-cancel" style="font-size:11px;opacity:.5">● Đã Ẩn</span></td>
-                <td style="display:flex;gap:5px"><button class="db-btn-sm" onclick="saEditProduct('Nike Heritage Backpack')">Sửa</button><button class="db-btn-sm primary" onclick="showToast('Hiện Sản Phẩm','Sản phẩm đã được hiện lại')">Hiện</button></td>
               </tr>
             </tbody>
           </table>
@@ -13683,20 +13581,20 @@ const SA = {
   async loadProducts() {
     const tbody = document.getElementById('sa-prod-tbody');
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--gray-light)">⏳ Đang tải...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--gray-light)">⏳ Đang tải...</td></tr>';
     try {
       const res  = await fetch('/api/admin/sanpham?limit=50', {headers:this.h()});
       const json = await res.json();
       const rows = json.data||[];
       const cntEl = document.getElementById('sa-prod-count');
       if (cntEl) cntEl.textContent = json.total||rows.length;
-      if (!rows.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--gray-light)">Chưa có sản phẩm</td></tr>'; return; }
+      if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--gray-light)">Chưa có sản phẩm</td></tr>'; return; }
       tbody.innerHTML = rows.map(p => {
         const ton = p.soluongton??p.SoLuongTon??0;
         const tc  = ton===0?'#f44336':ton<10?'orange':'#4caf50';
         const tt  = p.tinhtrang||p.TinhTrang||'Đang bán';
         const ma  = p.masanpham||p.MaSanPham||'';
-        return `<tr><td><input type="checkbox" style="accent-color:var(--red)"></td>
+        return `<tr>
           <td><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px">👟</span>
             <div><div style="font-weight:600;font-size:13px">${p.tensanpham||p.TenSanPham||'--'}</div>
             <div style="font-size:11px;color:var(--gray-light)">SKU: ${p.sku||p.SKU||'--'}</div></div></div></td>
@@ -13705,12 +13603,9 @@ const SA = {
           <td style="font-weight:700;color:var(--red)">${typeof fmtMoney==='function'?fmtMoney(p.giaban||p.GiaBan):'--'}</td>
           <td><span style="color:${tc};font-weight:700">${ton}</span></td>
           <td><span class="db-status ${tt==='Ẩn'?'status-cancel':'status-done'}">${tt==='Ẩn'?'🙈 Ẩn':'✅ Đang Bán'}</span></td>
-          <td style="display:flex;gap:5px">
-            <button class="db-btn-sm" onclick="saEditProduct('${ma}')">Sửa</button>
-            <button class="db-btn-sm" onclick="adminToggleProduct('${ma}',this)">${tt==='Ẩn'?'Hiện':'Ẩn'}</button>
-          </td></tr>`;
+        </tr>`;
       }).join('');
-    } catch(e) { tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#f44336;padding:16px">Lỗi: ${e.message}</td></tr>`; }
+    } catch(e) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#f44336;padding:16px">Lỗi: ${e.message}</td></tr>`; }
   },
 
   async loadOrders() {

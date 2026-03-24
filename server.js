@@ -840,7 +840,7 @@ app.get(
 
 app.post(
   "/api/admin/sanpham",
-  requireRole("shop", "admin"),
+  requireRole("shop"),
   async (req, res) => {
     try {
       const {
@@ -872,7 +872,7 @@ app.post(
 
 app.put(
   "/api/admin/sanpham/:ma",
-  requireRole("shop", "admin"),
+  requireRole("shop"),
   async (req, res) => {
     try {
       const fields = req.body;
@@ -897,7 +897,7 @@ app.put(
 
 app.delete(
   "/api/admin/sanpham/:ma",
-  requireRole("shop", "admin"),
+  requireRole("shop"),
   async (req, res) => {
     try {
       const r = await pool.query(
@@ -915,7 +915,7 @@ app.delete(
 
 app.patch(
   "/api/admin/sanpham/:ma/toggle",
-  requireRole("shop", "admin"),
+  requireRole("shop"),
   async (req, res) => {
     try {
       const r = await pool.query(
@@ -939,7 +939,7 @@ app.patch(
 // ── UPLOAD ẢNH SẢN PHẨM ĐƠN LẺ ──────────────────────────────
 app.post(
   "/api/admin/sanpham/:ma/upload-image",
-  requireRole("shop", "admin"),
+  requireRole("shop"),
   upload.single("image"),
   async (req, res) => {
     try {
@@ -961,7 +961,7 @@ app.post(
 // ── IMPORT EXCEL (admin/shop) — có trích xuất ảnh nhúng ──────
 app.post(
   "/api/admin/sanpham/import",
-  requireRole("shop", "admin"),
+  requireRole("shop"),
   upload.single("file"),
   async (req, res) => {
     try {

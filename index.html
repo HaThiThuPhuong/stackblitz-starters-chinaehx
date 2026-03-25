@@ -7483,22 +7483,6 @@ select.mp-field-input option { background: #1a1a1a; }
                 <button id="shop-p-img-remove" onclick="shopRemoveImg()" style="display:none;position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;background:rgba(244,67,54,0.9);border:none;color:#fff;font-size:13px;cursor:pointer;line-height:1">✕</button>
               </div>
 
-              <!-- Chọn File / Camera -->
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
-                <button class="db-btn-sm" onclick="shopProdChooseFile()" style="display:flex;align-items:center;justify-content:center;gap:5px;padding:8px 4px;font-size:12px">
-                  <span>📁</span> Chọn File
-                </button>
-                <button class="db-btn-sm" onclick="shopToggleCamera()" style="display:flex;align-items:center;justify-content:center;gap:5px;padding:8px 4px;font-size:12px">
-                  <span>📷</span> Camera
-                </button>
-              </div>
-              <input type="file" id="shop-p-file-input" accept="image/*" style="display:none" onchange="shopProdFileChange(this)">
-
-              <!-- Camera -->
-              <div id="shop-cam-wrap" style="display:none;margin-bottom:10px">
-                <video id="shop-cam-video" autoplay playsinline style="width:100%;border-radius:6px;background:#000;margin-bottom:6px"></video>
-                <button class="db-btn-sm primary" style="width:100%" onclick="shopCapturePhoto()">📸 Chụp Ảnh</button>
-              </div>
 
               <!-- URL ảnh -->
               <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-bottom:5px">HOẶC NHẬP URL ẢNH</div>
@@ -7523,8 +7507,8 @@ select.mp-field-input option { background: #1a1a1a; }
               <!-- Hàng 2: Thương Hiệu + Danh Mục -->
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
                 <div>
-                  <div style="font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.5);font-weight:700;margin-bottom:6px">THƯƠNG HIỆU</div>
-                  <select class="db-input" id="shop-p-th" style="width:100%;box-sizing:border-box">
+                  <div style="font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.9);font-weight:700;margin-bottom:6px">THƯƠNG HIỆU <span style="color:var(--red)">*</span></div>
+                  <select class="db-input" id="shop-p-th" style="width:100%;box-sizing:border-box;border:1px solid rgba(255,255,255,0.3);background:#1a1a1a;color:#fff;font-size:13px;font-weight:600">
                     <option value="">-- Chọn thương hiệu --</option>
                     <option>Nike</option><option>Adidas</option><option>MLB</option><option>Puma</option>
                     <option>Fila</option><option>New Balance</option><option>Converse</option><option>Vans</option>
@@ -7532,8 +7516,8 @@ select.mp-field-input option { background: #1a1a1a; }
                   </select>
                 </div>
                 <div>
-                  <div style="font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.5);font-weight:700;margin-bottom:6px">DANH MỤC</div>
-                  <select class="db-input" id="shop-p-dm" style="width:100%;box-sizing:border-box">
+                  <div style="font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.9);font-weight:700;margin-bottom:6px">DANH MỤC <span style="color:var(--red)">*</span></div>
+                  <select class="db-input" id="shop-p-dm" style="width:100%;box-sizing:border-box;border:1px solid rgba(255,255,255,0.3);background:#1a1a1a;color:#fff;font-size:13px;font-weight:600">
                     <option value="">-- Chọn danh mục --</option>
                     <option>Giày dép</option><option>Sneaker</option><option>Streetwear</option>
                     <option>Chạy bộ</option><option>Bóng rổ</option><option>Phụ kiện</option>
@@ -9877,21 +9861,7 @@ select.mp-field-input option { background: #1a1a1a; }
                 <div id="sa-p-img-remove" style="display:none;position:absolute;top:6px;right:6px;background:rgba(244,67,54,0.9);border-radius:50%;width:24px;height:24px;display:none;align-items:center;justify-content:center;cursor:pointer;font-size:13px" onclick="event.stopPropagation();saClearProductImg()">✕</div>
               </div>
 
-              <!-- Buttons -->
-              <div style="display:flex;gap:6px;margin-bottom:8px">
-                <button class="db-btn-sm" style="flex:1" onclick="document.getElementById('sa-p-img-file').click()">📁 Chọn File</button>
-                <button class="db-btn-sm" style="flex:1" onclick="saOpenCamera()">📷 Camera</button>
-              </div>
-              <input type="file" id="sa-p-img-file" accept="image/*" style="display:none" onchange="saHandleProductImg(this)">
-
-              <!-- Camera modal -->
-              <div id="sa-camera-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:16px">
-                <div style="font-size:15px;font-weight:700;color:#fff">📷 Chụp Ảnh Sản Phẩm</div>
-                <video id="sa-camera-video" autoplay playsinline style="width:100%;max-width:400px;border-radius:8px;border:2px solid var(--red)"></video>
-                <canvas id="sa-camera-canvas" style="display:none"></canvas>
-                <div style="display:flex;gap:12px">
-                  <button class="db-btn-sm primary" style="padding:10px 24px;font-size:14px" onclick="saCapturePhoto()">📸 Chụp</button>
-                  <button class="db-btn-sm" onclick="saCloseCamera()">✕ Hủy</button>
+              <!-- Input file ẩn (không hiện nút) -->
         <!-- Product table -->
         <div class="db-widget" style="padding:0;overflow:hidden">
           <table class="db-table" style="width:100%" id="sa-prod-table">
@@ -11209,8 +11179,28 @@ async function adminSaveProduct() {
   const errEl = document.getElementById('shop-prod-form-error');
   const btn   = document.getElementById('shop-prod-submit-btn');
 
-  if (!ma || !ten) {
-    if (errEl) { errEl.textContent = 'Vui lòng điền Mã Sản Phẩm và Tên Sản Phẩm.'; errEl.style.display = 'block'; }
+  const th  = document.getElementById('shop-p-th')?.value.trim();
+  const dm  = document.getElementById('shop-p-dm')?.value.trim();
+  const gb  = Number(document.getElementById('shop-p-gb')?.value) || 0;
+
+  if (!ten) {
+    if (errEl) { errEl.textContent = 'Vui lòng nhập Tên Sản Phẩm'; errEl.style.display = 'block'; }
+    return;
+  }
+  if (!ma) {
+    if (errEl) { errEl.textContent = 'Vui lòng nhập Mã SP / SKU'; errEl.style.display = 'block'; }
+    return;
+  }
+  if (!gb) {
+    if (errEl) { errEl.textContent = 'Vui lòng nhập Giá Bán'; errEl.style.display = 'block'; }
+    return;
+  }
+  if (!th) {
+    if (errEl) { errEl.textContent = 'Vui lòng chọn Thương Hiệu'; errEl.style.display = 'block'; }
+    return;
+  }
+  if (!dm) {
+    if (errEl) { errEl.textContent = 'Vui lòng chọn Danh Mục'; errEl.style.display = 'block'; }
     return;
   }
 

@@ -7484,6 +7484,17 @@ select.mp-field-input option { background: #1a1a1a; }
               </div>
 
 
+              <!-- Chọn File / Camera -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
+                <button class="db-btn-sm" onclick="shopProdChooseFile()" style="display:flex;align-items:center;justify-content:center;gap:5px;padding:8px 4px;font-size:12px">📁 Chọn File</button>
+                <button class="db-btn-sm" onclick="shopToggleCamera()" style="display:flex;align-items:center;justify-content:center;gap:5px;padding:8px 4px;font-size:12px">📷 Camera</button>
+              </div>
+              <input type="file" id="shop-p-file-input" accept="image/*" style="display:none" onchange="shopProdFileChange(this)">
+              <!-- Camera -->
+              <div id="shop-cam-wrap" style="display:none;margin-bottom:10px">
+                <video id="shop-cam-video" autoplay playsinline style="width:100%;border-radius:6px;background:#000;margin-bottom:6px"></video>
+                <button class="db-btn-sm primary" style="width:100%" onclick="shopCapturePhoto()">📸 Chụp Ảnh</button>
+              </div>
               <!-- URL ảnh -->
               <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-bottom:5px">HOẶC NHẬP URL ẢNH</div>
               <input class="db-input" id="shop-p-imgurl" placeholder="https://..." style="width:100%;box-sizing:border-box;font-size:12px" oninput="shopPreviewImgUrl(this.value)">
@@ -7496,7 +7507,7 @@ select.mp-field-input option { background: #1a1a1a; }
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
                 <div>
                   <div style="font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.5);font-weight:700;margin-bottom:6px">TÊN SẢN PHẨM *</div>
-                  <input class="db-input" id="shop-p-ten" placeholder="Giày Sneaker Nike Deestore Mẫu 5" style="width:100%;box-sizing:border-box">
+                  <input class="db-input" id="shop-p-ten" placeholder="Giày Sneaker Nike Deestore Mẫu 5" style="width:100%;box-sizing:border-box" oninput="shopAutoDetectBrandCat(this.value)">
                 </div>
                 <div>
                   <div style="font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.5);font-weight:700;margin-bottom:6px">MÃ SP / SKU *</div>
@@ -7508,7 +7519,7 @@ select.mp-field-input option { background: #1a1a1a; }
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
                 <div>
                   <div style="font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.9);font-weight:700;margin-bottom:6px">THƯƠNG HIỆU <span style="color:var(--red)">*</span></div>
-                  <select class="db-input" id="shop-p-th" style="width:100%;box-sizing:border-box;border:1px solid rgba(255,255,255,0.3);background:#1a1a1a;color:#fff;font-size:13px;font-weight:600">
+                  <select class="db-input" id="shop-p-th" style="width:100%;box-sizing:border-box;border:1px solid rgba(255,255,255,0.3);background:#1a1a1a;color:#fff;font-size:13px;font-weight:600" onchange="this.dataset.manualSet=1">
                     <option value="">-- Chọn thương hiệu --</option>
                     <option>Nike</option><option>Adidas</option><option>MLB</option><option>Puma</option>
                     <option>Fila</option><option>New Balance</option><option>Converse</option><option>Vans</option>
@@ -7517,7 +7528,7 @@ select.mp-field-input option { background: #1a1a1a; }
                 </div>
                 <div>
                   <div style="font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.9);font-weight:700;margin-bottom:6px">DANH MỤC <span style="color:var(--red)">*</span></div>
-                  <select class="db-input" id="shop-p-dm" style="width:100%;box-sizing:border-box;border:1px solid rgba(255,255,255,0.3);background:#1a1a1a;color:#fff;font-size:13px;font-weight:600">
+                  <select class="db-input" id="shop-p-dm" style="width:100%;box-sizing:border-box;border:1px solid rgba(255,255,255,0.3);background:#1a1a1a;color:#fff;font-size:13px;font-weight:600" onchange="this.dataset.manualSet=1">
                     <option value="">-- Chọn danh mục --</option>
                     <option>Giày dép</option><option>Sneaker</option><option>Streetwear</option>
                     <option>Chạy bộ</option><option>Bóng rổ</option><option>Phụ kiện</option>
@@ -11099,6 +11110,11 @@ function shopHideProdForm() {
   shopStopCamera();
   _shopProdImgData = null;
   _shopProdEditMa  = null;
+  // Reset manual set flags
+  const th = document.getElementById('shop-p-th');
+  const dm = document.getElementById('shop-p-dm');
+  if (th) { th.dataset.manualSet = ''; th.style.borderColor = ''; }
+  if (dm) { dm.dataset.manualSet = ''; dm.style.borderColor = ''; }
 }
 
 function shopProdChooseFile() {
@@ -11173,11 +11189,67 @@ function shopStopCamera() {
   if (camWrap) camWrap.style.display = 'none';
 }
 
+function shopAutoDetectBrandCat(name) {
+  const n = name.toLowerCase();
+
+  // Auto detect thương hiệu
+  const brandMap = [
+    { keys: ['nike', 'air max', 'air force', 'air jordan', 'dunk', 'blazer'], val: 'Nike' },
+    { keys: ['adidas', 'ultraboost', 'stan smith', 'superstar', 'yeezy', 'samba', 'gazelle'], val: 'Adidas' },
+    { keys: ['mlb', 'chunky', 'new york'], val: 'MLB' },
+    { keys: ['puma'], val: 'Puma' },
+    { keys: ['new balance', 'nb 550', 'nb550', 'nb574'], val: 'New Balance' },
+    { keys: ['fila'], val: 'Fila' },
+    { keys: ['converse', 'chuck taylor', 'all star'], val: 'Converse' },
+    { keys: ['vans', 'old skool', 'slip-on', 'era '], val: 'Vans' },
+    { keys: ['reebok'], val: 'Reebok' },
+    { keys: ['jordan'], val: 'Jordan' },
+    { keys: ['skechers'], val: 'Skechers' },
+  ];
+  const thEl = document.getElementById('shop-p-th');
+  if (thEl && !thEl.dataset.manualSet) {
+    for (const b of brandMap) {
+      if (b.keys.some(k => n.includes(k))) {
+        thEl.value = b.val;
+        thEl.style.borderColor = 'var(--red)';
+        break;
+      }
+    }
+  }
+
+  // Auto detect danh mục
+  const catMap = [
+    { keys: ['giày', 'sneaker', 'boot', 'loafer', 'sandal', 'dép', 'slipper'], val: 'Sneaker' },
+    { keys: ['áo', 'hoodie', 'jacket', 'vest', 'shirt', 'tee', 't-shirt'], val: 'Streetwear' },
+    { keys: ['quần', 'short', 'pant', 'jogger'], val: 'Streetwear' },
+    { keys: ['chạy', 'running', 'marathon', 'training'], val: 'Chạy bộ' },
+    { keys: ['bóng rổ', 'basketball', 'court'], val: 'Bóng rổ' },
+    { keys: ['phụ kiện', 'túi', 'balo', 'mũ', 'cap', 'bag', 'sock', 'tất'], val: 'Phụ kiện' },
+  ];
+  const dmEl = document.getElementById('shop-p-dm');
+  if (dmEl && !dmEl.dataset.manualSet) {
+    for (const c of catMap) {
+      if (c.keys.some(k => n.includes(k))) {
+        dmEl.value = c.val;
+        dmEl.style.borderColor = 'var(--red)';
+        break;
+      }
+    }
+  }
+}
+
 async function adminSaveProduct() {
   const ma  = document.getElementById('shop-p-ma')?.value.trim();
   const ten = document.getElementById('shop-p-ten')?.value.trim();
   const errEl = document.getElementById('shop-prod-form-error');
   const btn   = document.getElementById('shop-prod-submit-btn');
+
+  // Kiểm tra token trước khi làm gì
+  const tok = adminToken();
+  if (!tok) {
+    if (errEl) { errEl.textContent = 'Phiên đăng nhập hết hạn, vui lòng đăng nhập lại'; errEl.style.display = 'block'; }
+    return;
+  }
 
   const th  = document.getElementById('shop-p-th')?.value.trim();
   const dm  = document.getElementById('shop-p-dm')?.value.trim();

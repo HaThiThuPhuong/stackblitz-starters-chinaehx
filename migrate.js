@@ -45,7 +45,9 @@ async function addCol(table, col, definition) {
     console.log(`  ⏭  ${table}.${col} — đã tồn tại`);
     return;
   }
-  await pool.query(`ALTER TABLE "${table}" ADD COLUMN "${col}" ${definition};`);
+  // Dùng lower(table) để khớp với PostgreSQL case-insensitive table names
+  const realTable = table.toLowerCase();
+  await pool.query(`ALTER TABLE ${realTable} ADD COLUMN "${col}" ${definition};`);
   console.log(`  ✅ ${table}.${col} — đã thêm`);
 }
 
@@ -241,10 +243,10 @@ async function runMigration() {
            VALUES ($1,$2,$3,$4,'Hoạt động',NOW())`,
           [a.hoTen, a.email, hashPw(a.pw), a.vaiTro]
         );
-        console.log(`  ${a.email} / ${a.pw} [${a.vaiTro}]`);
+        console.log(`  ✅ ${a.email} / ${a.pw} [${a.vaiTro}]`);
       }
     } catch (err) {
-      console.error(`  ${a.email}:`, err.message);
+      console.error(`  ❌ ${a.email}:`, err.message);
     }
   }
 
@@ -276,14 +278,14 @@ async function runMigration() {
   // ═══════════════════════════════════════════════════════
   // Bảng hash để dùng thủ công
   // ═══════════════════════════════════════════════════════
-  console.log('\nHash mật khẩu (dùng cho SQL thủ công):');
+  console.log('\n🔑 Hash mật khẩu (dùng cho SQL thủ công):');
   ['Admin@123', 'Shop@123', 'Accountant@123', 'Member@123'].forEach((pw) => {
     console.log(`   ${pw.padEnd(20)} → ${hashPw(pw)}`);
   });
 
   console.log(`
 ════════════════════════════════════════════
-MIGRATION HOÀN TẤT
+✅ MIGRATION HOÀN TẤT
 
 Lưu ý:
 • /api/giohang      → bảng GioHang_Online
@@ -300,6 +302,6 @@ Lưu ý:
 }
 
 runMigration().catch((err) => {
-  console.error('Migration thất bại:', err.message);
+  console.error('💥 Migration thất bại:', err.message);
   process.exit(1);
 });

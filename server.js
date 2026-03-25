@@ -296,7 +296,7 @@ app.get("/api/sanpham", async (req, res) => {
   try {
     const { search, danhmuc, thuonghieu, page = 1, limit = 50 } = req.query;
     let query =
-      "SELECT MaSanPham,TenSanPham,ThuongHieu,DanhMuc,GiaBan,Size,MauSac,MoTaSanPham,SoLuongTon,SKU,TinhTrang FROM SanPham WHERE TinhTrang != 'Ẩn'";
+      "SELECT MaSanPham,TenSanPham,ThuongHieu,DanhMuc,GiaBan,Size,MauSac,MoTaSanPham,SoLuongTon,SKU,TinhTrang,HinhAnh,AnhPhu,MauAnh FROM SanPham WHERE TinhTrang != 'Ẩn'";
     const params = [];
 
     if (search) {
@@ -847,13 +847,13 @@ app.post(
         MaSanPham, TenSanPham, ThuongHieu, DanhMuc,
         GiaNhap, GiaBan, Size, MauSac, MoTaSanPham,
         ChinhSachDoiTra, ChinhSachBaoHanh, TinhTrang,
-        SoLuongTon, SKU, HinhAnh,
+        SoLuongTon, SKU, HinhAnh, AnhPhu, MauAnh,
       } = req.body;
       if (!MaSanPham || !TenSanPham)
         return res.status(400).json({ error: "Thiếu MaSanPham hoặc TenSanPham" });
       const r = await pool.query(
-        `INSERT INTO SanPham (MaSanPham,TenSanPham,ThuongHieu,DanhMuc,GiaNhap,GiaBan,Size,MauSac,MoTaSanPham,ChinhSachDoiTra,ChinhSachBaoHanh,TinhTrang,SoLuongTon,SKU,HinhAnh)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
+        `INSERT INTO SanPham (MaSanPham,TenSanPham,ThuongHieu,DanhMuc,GiaNhap,GiaBan,Size,MauSac,MoTaSanPham,ChinhSachDoiTra,ChinhSachBaoHanh,TinhTrang,SoLuongTon,SKU,HinhAnh,AnhPhu,MauAnh)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING *`,
         [
           MaSanPham, TenSanPham, ThuongHieu || "", DanhMuc || "",
           GiaNhap || null, GiaBan || null,
@@ -861,6 +861,7 @@ app.post(
           ChinhSachDoiTra || "", ChinhSachBaoHanh || "",
           TinhTrang || "Đang bán", SoLuongTon || 0,
           SKU || "", HinhAnh || "",
+          JSON.stringify(AnhPhu || []), JSON.stringify(MauAnh || {}),
         ],
       );
       res.json({ success: true, data: r.rows[0] });
@@ -956,6 +957,58 @@ app.post(
       res.status(500).json({ error: e.message });
     }
   },
+);
+
+// ── UPLOAD NHIỀU ẢNH PHỤ (gallery) ─────────────────────────
+app.post(
+  "/api/admin/sanpham/:ma/upload-gallery",
+  requireRole("shop"),
+  upload.array("images", 10),
+  async (req, res) => {
+    try {
+      if (!req.files || !req.files.length) return res.status(400).json({ error: "Không có file ảnh" });
+      const ma = req.params.ma;
+      const urls = [];
+      for (const file of req.files) {
+        const ext = (file.originalname.split(".").pop() || "jpg").toLowerCase();
+        const filename = `${ma.replace(/[^a-z0-9_-]/gi, "_")}_${Date.now()}_${Math.random().toString(36).slice(2,6)}.${ext}`;
+        fs.writeFileSync(path.join(UPLOADS_DIR, filename), file.buffer);
+        urls.push(`/uploads/products/${filename}`);
+      }
+      // Lấy AnhPhu hiện tại rồi merge
+      const cur = await pool.query("SELECT AnhPhu FROM SanPham WHERE MaSanPham=$1", [ma]);
+      let existing = [];
+      try { existing = JSON.parse(cur.rows[0]?.anhphu || "[]"); } catch {}
+      const merged = [...existing, ...urls];
+      await pool.query("UPDATE SanPham SET AnhPhu=$1 WHERE MaSanPham=$2", [JSON.stringify(merged), ma]);
+      res.json({ success: true, urls, all: merged });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  }
+);
+
+// ── UPLOAD ẢNH THEO MÀU ──────────────────────────────────────
+app.post(
+  "/api/admin/sanpham/:ma/upload-color-image",
+  requireRole("shop"),
+  upload.single("image"),
+  async (req, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ error: "Không có file ảnh" });
+      const ma    = req.params.ma;
+      const color = req.body.color || "default";
+      const ext   = (req.file.originalname.split(".").pop() || "jpg").toLowerCase();
+      const filename = `${ma.replace(/[^a-z0-9_-]/gi, "_")}_color_${color.replace(/\s+/g,"_")}_${Date.now()}.${ext}`;
+      fs.writeFileSync(path.join(UPLOADS_DIR, filename), req.file.buffer);
+      const url = `/uploads/products/${filename}`;
+      // Lấy MauAnh hiện tại rồi cập nhật
+      const cur = await pool.query("SELECT MauAnh FROM SanPham WHERE MaSanPham=$1", [ma]);
+      let mauAnh = {};
+      try { mauAnh = JSON.parse(cur.rows[0]?.mauanh || "{}"); } catch {}
+      mauAnh[color] = url;
+      await pool.query("UPDATE SanPham SET MauAnh=$1 WHERE MaSanPham=$2", [JSON.stringify(mauAnh), ma]);
+      res.json({ success: true, color, url, all: mauAnh });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  }
 );
 
 // ── IMPORT EXCEL (admin/shop) — có trích xuất ảnh nhúng ──────
@@ -1685,7 +1738,7 @@ app.get("*", (req, res) => {
 // ── Khởi động server ─────────────────────────────────────────
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`✅ Server SneakerVN tại http://0.0.0.0:${PORT}`);
-  console.log(`   ⚠️  Nhớ set JWT_SECRET trong biến môi trường Replit!`);
+  console.log(`Server SneakerVN tại http://0.0.0.0:${PORT}`);
+  console.log(`   Nhớ set JWT_SECRET trong biến môi trường Replit!`);
 });
 process.env.NODE_ENV = 'production';

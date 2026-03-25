@@ -112,6 +112,12 @@ async function runMigration() {
     // SanPham — HinhAnh (đường dẫn ảnh sản phẩm)
     await addCol('SanPham', 'HinhAnh', "TEXT DEFAULT ''");
 
+    // SanPham — AnhPhu (JSON array ảnh gallery nhiều góc)
+    await addCol('SanPham', 'AnhPhu', "TEXT DEFAULT '[]'");
+
+    // SanPham — MauAnh (JSON object: {"Trắng": "url", "Đen": "url"} — ảnh theo màu)
+    await addCol('SanPham', 'MauAnh', "TEXT DEFAULT '{}'");
+
     // DanhMuc — TrangThai
     await addCol('DanhMuc', 'TrangThai', "VARCHAR(50) DEFAULT 'Hoat dong'");
   } catch (err) {
@@ -235,10 +241,10 @@ async function runMigration() {
            VALUES ($1,$2,$3,$4,'Hoạt động',NOW())`,
           [a.hoTen, a.email, hashPw(a.pw), a.vaiTro]
         );
-        console.log(`  ✅ ${a.email} / ${a.pw} [${a.vaiTro}]`);
+        console.log(`  ${a.email} / ${a.pw} [${a.vaiTro}]`);
       }
     } catch (err) {
-      console.error(`  ❌ ${a.email}:`, err.message);
+      console.error(`  ${a.email}:`, err.message);
     }
   }
 
@@ -270,14 +276,14 @@ async function runMigration() {
   // ═══════════════════════════════════════════════════════
   // Bảng hash để dùng thủ công
   // ═══════════════════════════════════════════════════════
-  console.log('\n🔑 Hash mật khẩu (dùng cho SQL thủ công):');
+  console.log('\nHash mật khẩu (dùng cho SQL thủ công):');
   ['Admin@123', 'Shop@123', 'Accountant@123', 'Member@123'].forEach((pw) => {
     console.log(`   ${pw.padEnd(20)} → ${hashPw(pw)}`);
   });
 
   console.log(`
 ════════════════════════════════════════════
-✅ MIGRATION HOÀN TẤT
+MIGRATION HOÀN TẤT
 
 Lưu ý:
 • /api/giohang      → bảng GioHang_Online
@@ -294,6 +300,6 @@ Lưu ý:
 }
 
 runMigration().catch((err) => {
-  console.error('💥 Migration thất bại:', err.message);
+  console.error('Migration thất bại:', err.message);
   process.exit(1);
 });

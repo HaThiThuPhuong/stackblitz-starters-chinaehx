@@ -7474,33 +7474,37 @@ select.mp-field-input option { background: #1a1a1a; }
 
             <!-- CỘT TRÁI: Ảnh -->
             <div>
-              <div style="font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.5);font-weight:700;margin-bottom:10px">ẢNH SẢN PHẨM</div>
-              <!-- Preview box -->
-              <div style="width:100%;aspect-ratio:1/1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;margin-bottom:10px;position:relative">
+              <div style="font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.7);font-weight:700;margin-bottom:8px">ẢNH CHÍNH</div>
+              <div style="width:100%;aspect-ratio:1/1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;margin-bottom:8px;position:relative">
                 <img id="shop-p-img-preview" src="" style="display:none;width:100%;height:100%;object-fit:contain">
-                <div id="shop-p-img-placeholder" style="display:flex;flex-direction:column;align-items:center;gap:8px;color:rgba(255,255,255,0.2)">
-                  <span style="font-size:40px">👟</span>
-                  <span style="font-size:11px">Chưa có ảnh</span>
-                </div>
-                <!-- Nút xóa ảnh -->
+                <div id="shop-p-img-placeholder" style="display:flex;flex-direction:column;align-items:center;gap:8px;color:rgba(255,255,255,0.2)"><span style="font-size:36px">🖼️</span><span style="font-size:11px">Ảnh chính</span></div>
                 <button id="shop-p-img-remove" onclick="shopRemoveImg()" style="display:none;position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;background:rgba(244,67,54,0.9);border:none;color:#fff;font-size:13px;cursor:pointer;line-height:1">✕</button>
               </div>
-
-
-              <!-- Chọn File / Camera -->
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
-                <button class="db-btn-sm" onclick="shopProdChooseFile()" style="display:flex;align-items:center;justify-content:center;gap:5px;padding:8px 4px;font-size:12px">📁 Chọn File</button>
-                <button class="db-btn-sm" onclick="shopToggleCamera()" style="display:flex;align-items:center;justify-content:center;gap:5px;padding:8px 4px;font-size:12px">📷 Camera</button>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:8px">
+                <button class="db-btn-sm" onclick="shopProdChooseFile()" style="font-size:11px;padding:6px 4px">📁 Chọn File</button>
+                <button class="db-btn-sm" onclick="shopToggleCamera()" style="font-size:11px;padding:6px 4px">📷 Camera</button>
               </div>
               <input type="file" id="shop-p-file-input" accept="image/*" style="display:none" onchange="shopProdFileChange(this)">
-              <!-- Camera -->
-              <div id="shop-cam-wrap" style="display:none;margin-bottom:10px">
+              <div id="shop-cam-wrap" style="display:none;margin-bottom:8px">
                 <video id="shop-cam-video" autoplay playsinline style="width:100%;border-radius:6px;background:#000;margin-bottom:6px"></video>
-                <button class="db-btn-sm primary" style="width:100%" onclick="shopCapturePhoto()">📸 Chụp Ảnh</button>
+                <button class="db-btn-sm primary" style="width:100%" onclick="shopCapturePhoto()">📸 Chụp</button>
               </div>
-              <!-- URL ảnh -->
-              <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-bottom:5px">HOẶC NHẬP URL ẢNH</div>
-              <input class="db-input" id="shop-p-imgurl" placeholder="https://..." style="width:100%;box-sizing:border-box;font-size:12px" oninput="shopPreviewImgUrl(this.value)">
+              <input class="db-input" id="shop-p-imgurl" placeholder="https://... (URL ảnh chính)" style="width:100%;box-sizing:border-box;font-size:11px;margin-bottom:12px" oninput="shopPreviewImgUrl(this.value)">
+
+              <div style="font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.7);font-weight:700;margin-bottom:6px">ẢNH PHỤ (NHIỀU GÓC)</div>
+              <div id="shop-gallery-preview" style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:6px;min-height:40px"></div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:12px">
+                <button class="db-btn-sm" onclick="document.getElementById('shop-gallery-input').click()" style="font-size:11px;padding:6px 4px">📁 Thêm Ảnh</button>
+                <button class="db-btn-sm" onclick="shopGalleryCamera()" style="font-size:11px;padding:6px 4px">📷 Chụp Thêm</button>
+              </div>
+              <input type="file" id="shop-gallery-input" accept="image/*" multiple style="display:none" onchange="shopGalleryFileChange(this)">
+
+              <div style="font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.7);font-weight:700;margin-bottom:6px">ẢNH THEO MÀU</div>
+              <div id="shop-color-img-list" style="margin-bottom:6px"></div>
+              <div style="display:flex;gap:5px;margin-bottom:4px">
+                <input class="db-input" id="shop-color-name-input" placeholder="Tên màu (vd: Trắng)" style="flex:1;font-size:11px;padding:5px 8px">
+                <button class="db-btn-sm" onclick="shopAddColorImgSlot()" style="font-size:11px;padding:6px 8px;white-space:nowrap">+ Thêm</button>
+              </div>
             </div>
 
             <!-- CỘT PHẢI: Fields -->
@@ -10873,7 +10877,10 @@ document.addEventListener('click', e => {
 <script>
 // -- Helper: lấy JWT của staff từ sessionStorage --------------
 function adminToken() {
-  return sessionStorage.getItem('admin_token') || localStorage.getItem('admin_token') || '';
+  return sessionStorage.getItem('admin_token') ||
+         localStorage.getItem('admin_token') ||
+         sessionStorage.getItem('staffToken') ||
+         localStorage.getItem('staffToken') || '';
 }
 function adminHeaders() {
   return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + adminToken() };
@@ -11121,6 +11128,10 @@ function shopHideProdForm() {
   shopStopCamera();
   _shopProdImgData = null;
   _shopProdEditMa  = null;
+  _shopGalleryFiles = [];
+  _shopColorImages  = {};
+  shopRenderGalleryPreview();
+  shopRenderColorImgList();
   // Reset manual set flags
   const th = document.getElementById('shop-p-th');
   const dm = document.getElementById('shop-p-dm');
@@ -11249,6 +11260,92 @@ function shopAutoDetectBrandCat(name) {
   }
 }
 
+// ── GALLERY & COLOR IMAGE JS ────────────────────────────────
+let _shopGalleryFiles = [];   // [{dataUrl, file}]
+let _shopColorImages  = {};   // {color: {dataUrl, file}}
+
+function shopGalleryFileChange(inp) {
+  const files = Array.from(inp.files);
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      _shopGalleryFiles.push({ dataUrl: e.target.result, file });
+      shopRenderGalleryPreview();
+    };
+    reader.readAsDataURL(file);
+  });
+  inp.value = '';
+}
+
+function shopRenderGalleryPreview() {
+  const grid = document.getElementById('shop-gallery-preview');
+  if (!grid) return;
+  grid.innerHTML = _shopGalleryFiles.map((g,i) => `
+    <div style="position:relative;aspect-ratio:1;border-radius:4px;overflow:hidden;background:#1a1a1a;border:1px solid rgba(255,255,255,0.1)">
+      <img src="${g.dataUrl}" style="width:100%;height:100%;object-fit:cover">
+      <button onclick="shopRemoveGalleryImg(${i})" style="position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;background:rgba(244,67,54,0.9);border:none;color:#fff;font-size:11px;cursor:pointer;line-height:1">✕</button>
+    </div>
+  `).join('');
+}
+
+function shopRemoveGalleryImg(idx) {
+  _shopGalleryFiles.splice(idx, 1);
+  shopRenderGalleryPreview();
+}
+
+function shopGalleryCamera() {
+  showToast('Camera', 'Dùng nút Camera ở ảnh chính rồi ảnh chụp sẽ thêm vào gallery');
+}
+
+function shopAddColorImgSlot() {
+  const colorInput = document.getElementById('shop-color-name-input');
+  const color = colorInput?.value.trim();
+  if (!color) { showToast('Lỗi', 'Nhập tên màu trước'); return; }
+  if (_shopColorImages[color] !== undefined) { showToast('Lỗi', 'Màu này đã có'); return; }
+  _shopColorImages[color] = null;
+  colorInput.value = '';
+  shopRenderColorImgList();
+}
+
+function shopRenderColorImgList() {
+  const list = document.getElementById('shop-color-img-list');
+  if (!list) return;
+  list.innerHTML = Object.keys(_shopColorImages).map(color => {
+    const img = _shopColorImages[color];
+    return `
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;padding:6px;background:rgba(255,255,255,0.04);border-radius:4px;border:1px solid rgba(255,255,255,0.08)">
+        <div style="width:36px;height:36px;border-radius:4px;overflow:hidden;background:#1a1a1a;border:1px solid rgba(255,255,255,0.1);flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer" onclick="shopChooseColorImg('${color}')">
+          ${img ? `<img src="${img.dataUrl}" style="width:100%;height:100%;object-fit:cover">` : '<span style="font-size:18px">📷</span>'}
+        </div>
+        <span style="flex:1;font-size:12px;font-weight:600;color:#fff">${color}</span>
+        <button onclick="shopChooseColorImg('${color}')" style="font-size:10px;padding:3px 8px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#ccc;border-radius:3px;cursor:pointer">Chọn Ảnh</button>
+        <button onclick="shopRemoveColorSlot('${color}')" style="width:20px;height:20px;border-radius:50%;background:rgba(244,67,54,0.7);border:none;color:#fff;font-size:11px;cursor:pointer">✕</button>
+      </div>
+    `;
+  }).join('');
+}
+
+function shopChooseColorImg(color) {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = 'image/*';
+  inp.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      _shopColorImages[color] = { dataUrl: ev.target.result, file };
+      shopRenderColorImgList();
+    };
+    reader.readAsDataURL(file);
+  };
+  inp.click();
+}
+
+function shopRemoveColorSlot(color) {
+  delete _shopColorImages[color];
+  shopRenderColorImgList();
+}
+
 async function adminSaveProduct() {
   const ma  = document.getElementById('shop-p-ma')?.value.trim();
   const ten = document.getElementById('shop-p-ten')?.value.trim();
@@ -11335,6 +11432,31 @@ async function adminSaveProduct() {
       } catch(_) {}
     }
 
+    // Upload ảnh gallery phụ
+    if (_shopGalleryFiles.length > 0) {
+      try {
+        const savedMa = isEdit ? _shopProdEditMa : ma;
+        const fd = new FormData();
+        _shopGalleryFiles.forEach(g => fd.append('images', g.file, 'gallery.jpg'));
+        await fetch(`/api/admin/sanpham/${savedMa}/upload-gallery`, {
+          method: 'POST', headers: { 'Authorization': 'Bearer ' + adminToken() }, body: fd
+        });
+      } catch(_) {}
+    }
+    // Upload ảnh theo màu
+    for (const [color, img] of Object.entries(_shopColorImages)) {
+      if (!img) continue;
+      try {
+        const savedMa = isEdit ? _shopProdEditMa : ma;
+        const blob = await (await fetch(img.dataUrl)).blob();
+        const fd = new FormData();
+        fd.append('image', blob, 'color.jpg');
+        fd.append('color', color);
+        await fetch(`/api/admin/sanpham/${savedMa}/upload-color-image`, {
+          method: 'POST', headers: { 'Authorization': 'Bearer ' + adminToken() }, body: fd
+        });
+      } catch(_) {}
+    }
     showToast('Thành Công ✅', isEdit ? 'Đã cập nhật sản phẩm' : 'Đã thêm sản phẩm mới');
     shopHideProdForm();
     adminLoadProducts();

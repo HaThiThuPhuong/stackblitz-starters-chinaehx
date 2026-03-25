@@ -2126,6 +2126,9 @@ function editAddress(id) {
 
 function logoutMember() {
   currentUser = null; selectedRole = 'member';
+  // Xóa token thành viên
+  localStorage.removeItem('svn_member_token');
+  sessionStorage.removeItem('svn_member_token');
   document.getElementById('navLoginBtn').style.display = '';
   document.getElementById('userNavWrap').classList.remove('visible');
   document.getElementById('userDropdown').classList.remove('open');
@@ -10456,6 +10459,9 @@ async function confirmRole() {
 
     document.getElementById('roleModalOverlay').classList.remove('open');
     const actualRole = data.user?.vaitro || data.user?.VaiTro || data.user?.role || selectedRole;
+    // Lưu role + tên để restore phiên khi reload trang
+    localStorage.setItem('svn_admin_role', actualRole);
+    localStorage.setItem('svn_admin_name', data.user?.HoTen || data.user?.hoTen || email);
     currentUser = { role: actualRole, name: data.user?.HoTen || data.user?.hoTen || email };
 
     const dashMap = { shop: 'shopDashboard', accountant: 'accountantDashboard', admin: 'superAdminDashboard' };
@@ -10512,6 +10518,11 @@ function logoutDashboard(id) {
   document.body.style.overflow = '';
   currentUser = null;
   selectedRole = 'member';
+  // Xóa token khi đăng xuất thật sự
+  localStorage.removeItem('admin_token');
+  sessionStorage.removeItem('admin_token');
+  localStorage.removeItem('svn_admin_role');
+  localStorage.removeItem('svn_admin_name');
   // Hiện lại nút đăng nhập
   const btn = document.getElementById('navLoginBtn');
   btn.style.display = '';
@@ -15145,4 +15156,68 @@ if (svnSid) {
 }
 </script>
 </body>
+
+<script>
+// ============================================================
+// AUTO-RESTORE SESSION — Giữ phiên đăng nhập qua reload
+// Chỉ đăng xuất khi: bấm Đăng Xuất / tắt tab / đóng trình duyệt
+// ============================================================
+(function restoreAdminSession() {
+  const token = localStorage.getItem('admin_token');
+  const role  = localStorage.getItem('svn_admin_role');
+  const name  = localStorage.getItem('svn_admin_name');
+  if (!token || !role) return;
+
+  // Kiểm tra token còn hạn không (decode JWT payload)
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+    if (payload.exp && payload.exp < Math.floor(Date.now()/1000)) {
+      // Token hết hạn → xóa
+      localStorage.removeItem('admin_token');
+      localStorage.removeItem('svn_admin_role');
+      localStorage.removeItem('svn_admin_name');
+      return;
+    }
+  } catch(e) { return; }
+
+  // Restore phiên
+  sessionStorage.setItem('admin_token', token);
+  currentUser = { role, name: name || role };
+
+  const dashMap = { shop: 'shopDashboard', accountant: 'accountantDashboard', admin: 'superAdminDashboard' };
+  const dashId  = dashMap[role];
+  if (!dashId) return;
+
+  // Đợi DOM sẵn sàng
+  function doRestore() {
+    const dash = document.getElementById(dashId);
+    if (!dash) return;
+    dash.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    // Ẩn nút đăng nhập
+    const loginBtn = document.getElementById('navLoginBtn');
+    if (loginBtn) { loginBtn.style.display = 'none'; }
+    updateChatVisibility && updateChatVisibility();
+    // Load dữ liệu dashboard
+    if (role === 'shop' || role === 'admin') {
+      setTimeout(() => {
+        if (typeof initAdminChart === 'function') initAdminChart();
+        if (typeof adminLoadDashboard === 'function') adminLoadDashboard();
+      }, 400);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', doRestore);
+  } else {
+    doRestore();
+  }
+})();
+
+// Xóa token khi đóng tab/trình duyệt (beforeunload)
+window.addEventListener('beforeunload', function() {
+  // Chỉ xóa sessionStorage, giữ localStorage để restore khi mở lại
+  sessionStorage.removeItem('admin_token');
+});
+</script>
 </html>

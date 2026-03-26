@@ -365,44 +365,43 @@ app.post("/api/search/image", async (req, res) => {
     );
     const brands = brandsRes.rows.map(r => r.hang).join(', ');
 
-    // Gọi Gemini Vision
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            role: 'user',
-            parts: [
-              {
-                inline_data: { mime_type: mimeType, data: base64 }
-              },
-              {
-                text: `Phân tích hình ảnh giày này và trả về JSON với format sau (chỉ JSON, không giải thích):
-{
-  "brand": "tên thương hiệu (chỉ chọn từ: ${brands})",
-  "model": "tên model nếu nhận ra",
-  "color": "màu sắc chính",
-  "type": "loại giày (sneaker/running/basketball/...)",
-  "query": "từ khóa tìm kiếm ngắn gọn bằng tiếng Việt",
-  "description": "mô tả ngắn bằng tiếng Việt"
-}`
-              }
-            ]
-          }],
-          generationConfig: { maxOutputTokens: 300, temperature: 0.3 }
-        })
+    // Gọi Gemini Vision (với xử lý lỗi 503/429)
+    let rawText = '{}';
+    try {
+      const geminiRes = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              role: 'user',
+              parts: [
+                { inline_data: { mime_type: mimeType, data: base64 } },
+                { text: `Phân tích hình ảnh giày và trả về JSON (chỉ JSON):\n{"brand":"thương hiệu từ: ${brands}","model":"model","color":"màu","type":"loại","query":"từ khóa tiếng Việt","description":"mô tả ngắn"}` }
+              ]
+            }],
+            generationConfig: { maxOutputTokens: 300, temperature: 0.3 }
+          })
+        }
+      );
+      const geminiText = await geminiRes.text();
+      if (!geminiRes.ok) {
+        // Gemini lỗi (503/429) → fallback hiển thị tất cả SP
+        console.error('Gemini HTTP ' + geminiRes.status);
+        const spFb = await pool.query(
+          "SELECT MaSanPham,TenSanPham,ThuongHieu,GiaBan,HinhAnh FROM SanPham WHERE TinhTrang!='Ẩn' ORDER BY TenSanPham LIMIT 20"
+        );
+        return res.json({ query:'', brand:'', model:'', color:'',
+          description:'Không thể phân tích ảnh, hiển thị tất cả sản phẩm',
+          fallback:true, products:spFb.rows });
       }
-    );
-
-    const geminiData = await geminiRes.json();
-    if (geminiData.error) {
-      console.error('Gemini Vision error:', geminiData.error);
-      return res.status(500).json({ error: 'Lỗi phân tích ảnh: ' + geminiData.error.message });
+      const geminiData = JSON.parse(geminiText);
+      if (geminiData.error) throw new Error(geminiData.error.message);
+      rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+    } catch(geminiErr) {
+      console.error('Gemini error:', geminiErr.message);
     }
-
-    const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
     // Parse JSON từ response
     let parsed = {};
     try {
@@ -1409,7 +1408,7 @@ app.get("/api/admin/danhgia", requireRole("shop","admin"), async (req,res) => {
       `SELECT g.ID, g.MaSanPham, g.SoSao, g.NoiDung, g.TrangThai, g.NgayDang,
               k.HoTen as TenKhach, s.TenSanPham
        FROM DANH_GIA g
-       LEFT JOIN KhachHang k ON k.MaKhachHang = g.MaKhachHang
+       LEFT JOIN KhachHang k ON k.CustomerID = g.CustomerID
        LEFT JOIN SanPham s ON s.MaSanPham = g.MaSanPham
        ORDER BY g.NgayDang DESC LIMIT 100`
     );
@@ -1440,7 +1439,7 @@ app.get("/api/admin/phieunhap", requireRole("shop","admin"), async (req,res) => 
       `SELECT p.MaPhieuNhap, p.NgayNhap, p.TongTien, p.GhiChu,
               n.TenNhaCungCap
        FROM PhieuNhap p
-       LEFT JOIN NhaCungCap n ON n.MaNhaCungCap = p.MaNhaCungCap
+       LEFT JOIN NhaCungCap n ON n.SupplierID = p.SupplierID
        ORDER BY p.NgayNhap DESC LIMIT 50`
     );
     res.json(r.rows);
@@ -1454,13 +1453,13 @@ app.get("/api/admin/baocao/doanhthu", requireRole("shop","admin","accountant"), 
   try {
     const [monthly, topSP, topKH, trangThai] = await Promise.all([
       pool.query(`
-        SELECT TO_CHAR(NgayLap,'MM/YYYY') as thang,
+        SELECT TO_CHAR(NgayBan,'MM/YYYY') as thang,
                COUNT(*) as sodon,
                COALESCE(SUM(TongTien),0) as doanhthu
         FROM HoaDonBanHang
-        WHERE NgayLap >= NOW() - INTERVAL '6 months'
-        GROUP BY TO_CHAR(NgayLap,'MM/YYYY')
-        ORDER BY MIN(NgayLap)`),
+        WHERE NgayBan >= NOW() - INTERVAL '6 months'
+        GROUP BY TO_CHAR(NgayBan,'MM/YYYY')
+        ORDER BY MIN(NgayBan)`),
       pool.query(`
         SELECT s.TenSanPham, s.ThuongHieu,
                COUNT(c.MaSanPham) as soban,
@@ -1474,8 +1473,8 @@ app.get("/api/admin/baocao/doanhthu", requireRole("shop","admin","accountant"), 
                COUNT(h.MaHoaDon) as sodon,
                COALESCE(SUM(h.TongTien),0) as tongtien
         FROM HoaDonBanHang h
-        JOIN KhachHang k ON k.MaKhachHang = h.MaKhachHang
-        GROUP BY k.MaKhachHang, k.HoTen, k.Email
+        JOIN KhachHang k ON k.CustomerID = h.CustomerID
+        GROUP BY k.CustomerID, k.HoTen, k.Email
         ORDER BY tongtien DESC LIMIT 5`),
       pool.query(`
         SELECT TrangThai, COUNT(*) as cnt, COALESCE(SUM(TongTien),0) as tong
@@ -1496,13 +1495,13 @@ app.get("/api/admin/baocao/doanhthu", requireRole("shop","admin","accountant"), 
 app.get("/api/admin/ketoan", requireRole("shop","admin","accountant"), async (req,res) => {
   try {
     const [thu, chi, hd] = await Promise.all([
-      pool.query(`SELECT COALESCE(SUM(SoTien),0) as tong, COUNT(*) as cnt FROM PhieuThu
+      pool.query(`SELECT COALESCE(SUM(SoTienThu),0) as tong, COUNT(*) as cnt FROM PhieuThu
                   WHERE NgayThu >= DATE_TRUNC('month', NOW())`),
-      pool.query(`SELECT COALESCE(SUM(SoTien),0) as tong, COUNT(*) as cnt FROM PhieuChi
+      pool.query(`SELECT COALESCE(SUM(SoTienChi),0) as tong, COUNT(*) as cnt FROM PhieuChi
                   WHERE NgayChi >= DATE_TRUNC('month', NOW())`),
       pool.query(`SELECT COALESCE(SUM(TongTien),0) as doanhthu, COUNT(*) as sodon
                   FROM HoaDonBanHang
-                  WHERE NgayLap >= DATE_TRUNC('month', NOW())`)
+                  WHERE NgayBan >= DATE_TRUNC('month', NOW())`)
     ]);
     res.json({
       tongThu:    parseFloat(thu.rows[0].tong),   soPhieuThu: parseInt(thu.rows[0].cnt),

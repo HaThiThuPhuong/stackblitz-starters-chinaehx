@@ -14988,42 +14988,43 @@ async function imgSearchSubmit() {
   const btn    = document.getElementById('img-search-btn');
   const status = document.getElementById('img-search-status');
   btn.disabled = true; btn.textContent = '⏳ Đang phân tích...';
-  status.textContent = '🤖 Gemini đang nhận diện sản phẩm...';
   status.style.color = 'rgba(255,255,255,0.7)';
-
+  status.textContent = '🤖 Đang nhận diện sản phẩm...';
   try {
-    // Gọi /api/search/image trên server
-    const res  = await fetch('/api/search/image', {
+    const res = await fetch('/api/search/image', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ image: _imgSearchData })
     });
-    const json = await res.json();
-
-    if (!res.ok || json.error) {
-      status.textContent = '❌ ' + (json.error || 'Lỗi phân tích ảnh');
+    const ct = res.headers.get('content-type') || '';
+    if (!ct.includes('application/json')) {
+      const text = await res.text();
       status.style.color = '#f44336';
+      status.textContent = 'Server lỗi: ' + text.substring(0, 80);
       return;
     }
-
-    // Hiện kết quả
-    status.textContent = '✅ ' + json.description;
+    const json = await res.json();
+    if (!res.ok || json.error) {
+      status.style.color = '#f44336';
+      status.textContent = json.error || 'Lỗi phân tích ảnh';
+      return;
+    }
+    if (json.fallback) {
+      status.style.color = '#ff9800';
+      status.textContent = '⚠️ Chưa cấu hình Gemini API — hiện toàn bộ sản phẩm';
+      setTimeout(() => { imgSearchClose(); document.getElementById('products')?.scrollIntoView({behavior:'smooth'}); }, 1000);
+      return;
+    }
     status.style.color = '#4caf50';
-
-    // Đóng modal và tìm kiếm
+    status.textContent = '✅ ' + json.description;
     setTimeout(() => {
       imgSearchClose();
       const input = document.getElementById('productSearchInput');
-      if (input) {
-        input.value = json.query;
-        searchProducts(json.query);
-        document.getElementById('products').scrollIntoView({ behavior: 'smooth' });
-      }
+      if (input) { input.value = json.query; searchProducts(json.query); document.getElementById('products')?.scrollIntoView({behavior:'smooth'}); }
     }, 1200);
-
   } catch(e) {
-    status.textContent = '❌ Lỗi kết nối: ' + e.message;
     status.style.color = '#f44336';
+    status.textContent = 'Lỗi kết nối: ' + e.message;
   } finally {
     btn.disabled = false; btn.textContent = '🔍 Tìm Kiếm';
   }

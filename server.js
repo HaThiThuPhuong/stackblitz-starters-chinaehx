@@ -1,3 +1,6 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 // ============================================================
 // server.js — Backend API cho SneakerVN
 // Xác thực JWT, phân quyền rõ ràng:
@@ -327,14 +330,29 @@ app.get("/api/sanpham", async (req, res) => {
 });
 
 // Danh mục & Nhà cung cấp — công khai
-// ── TÌM KIẾM BẰNG HÌNH ẢNH — Gemini Vision ─────────────────
+// ── TÌM KIẾM BẰNG HÌNH ẢNH — Gemini Vision + Fallback ───────
 app.post("/api/search/image", async (req, res) => {
   try {
     const { image } = req.body;
     if (!image) return res.status(400).json({ error: "Thiếu ảnh" });
 
     const GEMINI_KEY = process.env.GEMINI_API_KEY;
-    if (!GEMINI_KEY) return res.status(500).json({ error: "Chưa cấu hình Gemini API" });
+
+    // ── Fallback: không có Gemini → tìm tất cả sản phẩm đang bán ──
+    if (!GEMINI_KEY) {
+      const spRes = await pool.query(
+        "SELECT MaSanPham, TenSanPham, ThuongHieu, GiaBan, HinhAnh FROM SanPham WHERE TinhTrang != 'Ẩn' ORDER BY TenSanPham LIMIT 20"
+      );
+      return res.json({
+        query: '',
+        brand: '',
+        model: '',
+        color: '',
+        description: 'Hiển thị tất cả sản phẩm (chưa cấu hình Gemini API)',
+        fallback: true,
+        products: spRes.rows
+      });
+    }
 
     // Chuyển base64 data URL thành raw base64
     const base64 = image.replace(/^data:image\/\w+;base64,/, '');

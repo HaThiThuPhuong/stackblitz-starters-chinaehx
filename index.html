@@ -8384,15 +8384,18 @@ select.mp-field-input option { background: #1a1a1a; }
       <!-- REVIEWS PANEL -->
       <div class="db-panel" id="panel-admin-reviews">
         <div class="db-page-title">Quản Lý Đánh Giá</div>
-        <div class="db-page-sub">5 đánh giá chờ duyệt — Rating trung bình: 4.8⭐</div>
+        <div class="db-page-sub">Đang tải...</div>
         <div class="db-table-wrap">
-          <div class="db-table-header"><div class="db-table-title">Đánh Giá Gần Đây</div><div class="db-table-actions"><button class="db-btn-sm primary" onclick="showToast('Duyệt Tất Cả','5 đánh giá đã được duyệt')">✓ Duyệt Tất Cả</button></div></div>
+          <div class="db-table-header">
+            <div class="db-table-title">Đánh Giá Từ Khách Hàng</div>
+            <div class="db-table-actions">
+              <button class="db-btn-sm primary" onclick="adminDuyetTatCaDG()">✓ Duyệt Tất Cả</button>
+              <button class="db-btn-sm" onclick="adminLoadReviews()">🔄 Làm Mới</button>
+            </div>
+          </div>
           <table class="db-table">
             <thead><tr><th>Khách Hàng</th><th>Sản Phẩm</th><th>Rating</th><th>Nội Dung</th><th>Ngày</th><th>Trạng Thái</th><th>Hành Động</th></tr></thead>
-            <tbody>
-              <tr><td>Minh Hoàng</td><td>Nike Air Max 270</td><td style="color:var(--gold)">★★★★★</td><td>Giày đẹp, giao nhanh!</td><td>12/03/2026</td><td><span class="db-status status-pending">⏳ Chờ Duyệt</span></td><td style="display:flex;gap:4px"><button class="db-btn-sm primary" onclick="showToast('Đã Duyệt ✅','Đánh giá đã hiển thị công khai')">Duyệt</button><button class="db-btn-sm" onclick="showToast('Từ Chối ❌','Đánh giá đã bị từ chối')">Từ Chối</button></td></tr>
-              <tr><td>Khánh Linh</td><td>Adidas Stan Smith</td><td style="color:var(--gold)">★★★★★</td><td>Hàng chính hãng, đúng mô tả</td><td>11/03/2026</td><td><span class="db-status status-done">✅ Đã Duyệt</span></td><td><button class="db-btn-sm" onclick="showToast('Trả Lời','Form trả lời đánh giá')">Trả Lời</button></td></tr>
-            </tbody>
+            <tbody id="reviews-tbody"><tr><td colspan="7" style="text-align:center;padding:20px;color:var(--gray-light)">Đang tải...</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -8613,35 +8616,27 @@ select.mp-field-input option { background: #1a1a1a; }
       <!-- FINANCE PANEL (in admin) -->
       <div class="db-panel" id="panel-admin-finance">
         <div class="db-page-title">Kế Toán & Tài Chính</div>
-        <div class="db-page-sub">Báo cáo tài chính tháng 03/2026</div>
-        <div class="db-stats-grid">
-          <div class="db-stat-card red"><div class="db-stat-label">Doanh Thu Tháng</div><div class="db-stat-val">2.84 Tỷ</div><div class="db-stat-change db-stat-up">↑ +18.4% vs tháng trước</div></div>
-          <div class="db-stat-card green"><div class="db-stat-label">Lợi Nhuận Gộp</div><div class="db-stat-val">854M</div><div class="db-stat-change db-stat-up">Margin: 30.1%</div></div>
-          <div class="db-stat-card blue"><div class="db-stat-label">Chi Phí Vận Hành</div><div class="db-stat-val">320M</div><div class="db-stat-change db-stat-down">↑ +2.4% vs tháng trước</div></div>
-          <div class="db-stat-card gold"><div class="db-stat-label">Lợi Nhuận Ròng</div><div class="db-stat-val">534M</div><div class="db-stat-change db-stat-up">Margin: 18.8%</div></div>
+        <div class="db-page-sub" id="finance-sub">Đang tải...</div>
+        <div class="db-stats-grid" id="finance-stats">
+          <div class="db-stat-card red"><div class="db-stat-label">Doanh Thu Tháng</div><div class="db-stat-val" id="fin-doanhthu">--</div><div class="db-stat-change" id="fin-sodon">-- đơn hàng</div></div>
+          <div class="db-stat-card green"><div class="db-stat-label">Lợi Nhuận Ước Tính</div><div class="db-stat-val" id="fin-loinhuan">--</div><div class="db-stat-change" id="fin-margin">Margin: --</div></div>
+          <div class="db-stat-card blue"><div class="db-stat-label">Tổng Chi Tháng</div><div class="db-stat-val" id="fin-tongchi">--</div><div class="db-stat-change" id="fin-sophieuchu">-- phiếu chi</div></div>
+          <div class="db-stat-card gold"><div class="db-stat-label">Tổng Thu Tháng</div><div class="db-stat-val" id="fin-tongthu">--</div><div class="db-stat-change" id="fin-sophieuthu">-- phiếu thu</div></div>
         </div>
-        <div class="db-grid-2">
-          <div class="db-chart-wrap">
-            <div class="db-chart-title">P&L 6 Tháng (Triệu đồng)</div>
-            <div style="display:flex;gap:8px;align-items:flex-end;height:100px;margin-bottom:8px">
-              <div style="flex:1;display:flex;flex-direction:column;gap:2px;align-items:center"><div style="width:100%;height:60px;background:rgba(230,32,32,0.5)" title="T10: 180M"></div><div style="width:100%;height:13px;background:rgba(76,175,80,0.7)" title="LN T10: 38M"></div><span style="font-size:9px;color:var(--gray-light)">T10</span></div>
-              <div style="flex:1;display:flex;flex-direction:column;gap:2px;align-items:center"><div style="width:100%;height:70px;background:rgba(230,32,32,0.5)" title="T11: 210M"></div><div style="width:100%;height:15px;background:rgba(76,175,80,0.7)" title="LN T11: 45M"></div><span style="font-size:9px;color:var(--gray-light)">T11</span></div>
-              <div style="flex:1;display:flex;flex-direction:column;gap:2px;align-items:center"><div style="width:100%;height:97px;background:rgba(230,32,32,0.5)" title="T12: 290M"></div><div style="width:100%;height:23px;background:rgba(76,175,80,0.7)" title="LN T12: 68M"></div><span style="font-size:9px;color:var(--gray-light)">T12</span></div>
-              <div style="flex:1;display:flex;flex-direction:column;gap:2px;align-items:center"><div style="width:100%;height:80px;background:rgba(230,32,32,0.5)" title="T1: 240M"></div><div style="width:100%;height:17px;background:rgba(76,175,80,0.7)" title="LN T1: 52M"></div><span style="font-size:9px;color:var(--gray-light)">T1</span></div>
-              <div style="flex:1;display:flex;flex-direction:column;gap:2px;align-items:center"><div style="width:100%;height:73px;background:rgba(230,32,32,0.5)" title="T2: 220M"></div><div style="width:100%;height:16px;background:rgba(76,175,80,0.7)" title="LN T2: 48M"></div><span style="font-size:9px;color:var(--gray-light)">T2</span></div>
-              <div style="flex:1;display:flex;flex-direction:column;gap:2px;align-items:center"><div style="width:100%;height:95px;background:rgba(230,32,32,0.5)" title="T3: 284M"></div><div style="width:100%;height:18px;background:rgba(76,175,80,0.7)" title="LN T3: 53M"></div><span style="font-size:9px;color:var(--gray-light)">T3</span></div>
-            </div>
-            <div style="display:flex;gap:16px;font-size:11px;color:var(--gray-light)"><span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:12px;height:8px;background:rgba(230,32,32,0.5)"></span>Doanh Thu</span><span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:12px;height:8px;background:rgba(76,175,80,0.7)"></span>Lợi Nhuận</span></div>
-          </div>
+        <div class="db-grid-2" style="margin-top:16px">
           <div class="db-table-wrap">
-            <div class="db-table-header"><div class="db-table-title">Hóa Đơn VAT</div><button class="db-btn-sm primary" onclick="showToast('Xuất Hóa Đơn','Hóa đơn VAT đang được tạo')">📄 Tạo HĐ</button></div>
+            <div class="db-table-header">
+              <div class="db-table-title">Đơn Hàng Gần Đây</div>
+              <button class="db-btn-sm" onclick="adminLoadFinance()">🔄 Làm Mới</button>
+            </div>
             <table class="db-table">
-              <thead><tr><th>Số HĐ</th><th>Khách Hàng</th><th>Giá Trị</th><th>Trạng Thái</th></tr></thead>
-              <tbody>
-                <tr><td>0001/2026</td><td>Cty TNHH ABC</td><td>15.600.000đ</td><td><span class="db-status status-done">✅ Đã Ký</span></td></tr>
-                <tr><td>0002/2026</td><td>Cty CP XYZ</td><td>8.400.000đ</td><td><span class="db-status status-pending">⏳ Chờ Ký</span></td></tr>
-              </tbody>
+              <thead><tr><th>Mã ĐH</th><th>Khách Hàng</th><th>Tổng Tiền</th><th>Trạng Thái</th></tr></thead>
+              <tbody id="finance-orders-tbody"><tr><td colspan="4" style="text-align:center;padding:16px;color:var(--gray-light)">Đang tải...</td></tr></tbody>
             </table>
+          </div>
+          <div class="db-widget">
+            <div class="db-widget-title">📊 Tổng Quan Tháng Này</div>
+            <div id="finance-summary" style="padding:12px 0;color:var(--gray-light);font-size:13px">Đang tải...</div>
           </div>
         </div>
       </div>
@@ -8650,188 +8645,55 @@ select.mp-field-input option { background: #1a1a1a; }
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
           <div class="db-page-title" style="margin-bottom:0">Báo Cáo & Thống Kê</div>
           <div style="display:flex;gap:8px">
-            <select style="background:var(--surface);border:1px solid rgba(255,255,255,0.1);color:var(--white);padding:6px 10px;font-size:12px;cursor:pointer">
-              <option>Tháng 03/2026</option><option>Tháng 02/2026</option><option>Tháng 01/2026</option><option>Quý 1/2026</option><option>Năm 2025</option>
-            </select>
-            <button class="db-btn-sm" onclick="showToast('Xuất Báo Cáo','Đang tạo file Excel/PDF...')">📥 Xuất Excel</button>
-            <button class="db-btn-sm primary" onclick="showToast('Gửi Báo Cáo','Báo cáo đã gửi tới email của bạn')">📧 Gửi Email</button>
+            <button class="db-btn-sm" onclick="adminLoadReports()">🔄 Làm Mới</button>
+            <button class="db-btn-sm" onclick="showToast('Xuất Báo Cáo','Đang tạo file...')">📥 Xuất Excel</button>
           </div>
         </div>
-        <div class="db-page-sub">Phân tích toàn diện hiệu suất kinh doanh — Tháng 03/2026</div>
+        <div class="db-page-sub" id="rpt-sub">Đang tải dữ liệu...</div>
 
-        <!-- Tab bar -->
-        <div style="display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,0.07);margin-bottom:16px">
-          <button id="rpt-tab-sales" onclick="switchRptTab('sales',this)" style="padding:10px 18px;background:none;border:none;border-bottom:2px solid var(--red);color:var(--white);font-size:12px;font-weight:700;cursor:pointer">Doanh Số</button>
-          <button id="rpt-tab-products" onclick="switchRptTab('products',this)" style="padding:10px 18px;background:none;border:none;border-bottom:2px solid transparent;color:var(--gray-light);font-size:12px;font-weight:700;cursor:pointer">Sản Phẩm</button>
-          <button id="rpt-tab-customers" onclick="switchRptTab('customers',this)" style="padding:10px 18px;background:none;border:none;border-bottom:2px solid transparent;color:var(--gray-light);font-size:12px;font-weight:700;cursor:pointer">Khách Hàng</button>
-          <button id="rpt-tab-channels" onclick="switchRptTab('channels',this)" style="padding:10px 18px;background:none;border:none;border-bottom:2px solid transparent;color:var(--gray-light);font-size:12px;font-weight:700;cursor:pointer">Kênh Bán</button>
+        <!-- KPI tổng -->
+        <div class="db-stats-grid" style="margin-bottom:16px">
+          <div class="db-stat-card red"><div class="db-stat-label">Tổng Doanh Thu</div><div class="db-stat-val" id="rpt-doanhthu">--</div><div class="db-stat-change" id="rpt-doanhthu-sub">6 tháng gần nhất</div></div>
+          <div class="db-stat-card green"><div class="db-stat-label">Tổng Đơn Hàng</div><div class="db-stat-val" id="rpt-sodon">--</div><div class="db-stat-change" id="rpt-sodon-sub">6 tháng gần nhất</div></div>
+          <div class="db-stat-card blue"><div class="db-stat-label">Giá Trị ĐH TB</div><div class="db-stat-val" id="rpt-giatb">--</div><div class="db-stat-change">Trung bình / đơn</div></div>
+          <div class="db-stat-card gold"><div class="db-stat-label">Trạng Thái ĐH</div><div class="db-stat-val" id="rpt-dagiao">--</div><div class="db-stat-change">Đơn đã giao</div></div>
         </div>
 
-        <!-- Tab: Doanh Số -->
-        <div id="rpt-panel-sales">
-          <div class="db-stats-grid" style="margin-bottom:16px">
-            <div class="db-stat-card red"><div class="db-stat-label">Tổng Doanh Thu</div><div class="db-stat-val">2.84 Tỷ</div><div class="db-stat-change db-stat-up">↑ +18.4% vs T2</div></div>
-            <div class="db-stat-card green"><div class="db-stat-label">Lợi Nhuận Gộp</div><div class="db-stat-val">854M</div><div class="db-stat-change db-stat-up">Margin 30.1%</div></div>
-            <div class="db-stat-card blue"><div class="db-stat-label">Tổng Đơn Hàng</div><div class="db-stat-val">1,247</div><div class="db-stat-change db-stat-up">↑ +18.2%</div></div>
-            <div class="db-stat-card gold"><div class="db-stat-label">Giá Trị ĐH TB</div><div class="db-stat-val">1.79M</div><div class="db-stat-change db-stat-up">↑ +5.2%</div></div>
-          </div>
-
-          <div class="db-grid-2" style="margin-bottom:16px">
-            <!-- Biểu đồ cột doanh thu theo ngày -->
-            <div class="db-chart-wrap">
-              <div class="db-chart-title">Doanh Thu Theo Ngày — Tháng 03/2026 (Triệu đồng)</div>
-              <div style="display:flex;gap:3px;align-items:flex-end;height:120px;margin-bottom:8px">
-                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="width:100%;height:60px;background:rgba(230,32,32,0.5)"></div><span style="font-size:8px;color:var(--gray-light)">1</span></div>
-                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="width:100%;height:80px;background:rgba(230,32,32,0.5)"></div><span style="font-size:8px;color:var(--gray-light)">2</span></div>
-                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="width:100%;height:70px;background:rgba(230,32,32,0.5)"></div><span style="font-size:8px;color:var(--gray-light)">3</span></div>
-                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="width:100%;height:110px;background:rgba(230,32,32,0.7)"></div><span style="font-size:8px;color:var(--gray-light)">4</span></div>
-                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="width:100%;height:95px;background:rgba(230,32,32,0.5)"></div><span style="font-size:8px;color:var(--gray-light)">5</span></div>
-                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="width:100%;height:115px;background:rgba(230,32,32,0.8);border:1px solid var(--red)"></div><span style="font-size:8px;color:var(--gray-light)">6</span></div>
-                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="width:100%;height:100px;background:rgba(230,32,32,0.8)"></div><span style="font-size:8px;color:var(--gray-light)">7</span></div>
-                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="width:100%;height:65px;background:rgba(230,32,32,0.5)"></div><span style="font-size:8px;color:var(--gray-light)">8</span></div>
-                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="width:100%;height:75px;background:rgba(230,32,32,0.5)"></div><span style="font-size:8px;color:var(--gray-light)">9</span></div>
-                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="width:100%;height:85px;background:rgba(230,32,32,0.5)"></div><span style="font-size:8px;color:var(--gray-light)">10</span></div>
-                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="width:100%;height:50px;background:rgba(230,32,32,0.4)"></div><span style="font-size:8px;color:var(--gray-light)">...</span></div>
-              </div>
-              <div style="font-size:11px;color:var(--gray-light)">📌 Cuối tuần doanh thu cao hơn 40% ngày thường</div>
-            </div>
-
-            <!-- So sánh tháng -->
-            <div class="db-table-wrap">
-              <div class="db-table-header"><div class="db-table-title">So Sánh 6 Tháng</div></div>
-              <table class="db-table">
-                <thead><tr><th>Tháng</th><th>Doanh Thu</th><th>Đơn Hàng</th><th>LN Gộp</th><th>vs Tháng Trước</th></tr></thead>
-                <tbody>
-                  <tr style="background:rgba(230,32,32,0.06)"><td><strong style="color:var(--red)">T3/26</strong></td><td style="font-weight:600">2.84 Tỷ</td><td>1,247</td><td style="color:#4caf50">854M</td><td><span style="color:#4caf50">↑ +18.4%</span></td></tr>
-                  <tr><td>T2/26</td><td>2.20 Tỷ</td><td>1,055</td><td style="color:#4caf50">660M</td><td><span style="color:#f44336">↓ -8.3%</span></td></tr>
-                  <tr><td>T1/26</td><td>2.40 Tỷ</td><td>1,147</td><td style="color:#4caf50">720M</td><td><span style="color:#4caf50">↑ +3.1%</span></td></tr>
-                  <tr><td>T12/25</td><td>2.90 Tỷ</td><td>1,384</td><td style="color:#4caf50">870M</td><td><span style="color:#4caf50">↑ +38%</span></td></tr>
-                  <tr><td>T11/25</td><td>2.10 Tỷ</td><td>1,002</td><td style="color:#4caf50">630M</td><td><span style="color:#f44336">↓ -14%</span></td></tr>
-                  <tr><td>T10/25</td><td>1.80 Tỷ</td><td>860</td><td style="color:#4caf50">540M</td><td><span style="color:#4caf50">↑ +6.2%</span></td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- Phân tích chi tiết -->
-          <div class="db-grid-2">
-            <div class="db-widget">
-              <div class="db-widget-title">📊 Phân Tích Đơn Hàng</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
-                <div style="background:rgba(255,255,255,0.04);padding:12px;text-align:center"><div style="font-size:11px;color:var(--gray-light)">Tỷ Lệ Hoàn Thành</div><div style="font-size:22px;font-weight:700;color:#4caf50">94.2%</div></div>
-                <div style="background:rgba(255,255,255,0.04);padding:12px;text-align:center"><div style="font-size:11px;color:var(--gray-light)">Tỷ Lệ Hủy Đơn</div><div style="font-size:22px;font-weight:700;color:#f44336">3.5%</div></div>
-                <div style="background:rgba(255,255,255,0.04);padding:12px;text-align:center"><div style="font-size:11px;color:var(--gray-light)">Tỷ Lệ Hoàn Trả</div><div style="font-size:22px;font-weight:700;color:orange">2.1%</div></div>
-                <div style="background:rgba(255,255,255,0.04);padding:12px;text-align:center"><div style="font-size:11px;color:var(--gray-light)">Đơn Có Dùng KM</div><div style="font-size:22px;font-weight:700;color:#2196f3">41.2%</div></div>
-              </div>
-            </div>
-            <div class="db-widget">
-              <div class="db-widget-title">💳 Phương Thức Thanh Toán</div>
-              <div style="margin-top:10px">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-size:12px">💳 Chuyển Khoản / QR</span><div style="display:flex;align-items:center;gap:8px"><div style="width:80px;height:6px;background:rgba(255,255,255,0.08);border-radius:3px"><div style="width:58%;height:100%;background:#2196f3;border-radius:3px"></div></div><span style="font-size:12px;font-weight:600;min-width:36px;text-align:right">58%</span></div></div>
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-size:12px">💵 Tiền Mặt (COD)</span><div style="display:flex;align-items:center;gap:8px"><div style="width:80px;height:6px;background:rgba(255,255,255,0.08);border-radius:3px"><div style="width:28%;height:100%;background:var(--gold);border-radius:3px"></div></div><span style="font-size:12px;font-weight:600;min-width:36px;text-align:right">28%</span></div></div>
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-size:12px">💠 Ví Điện Tử</span><div style="display:flex;align-items:center;gap:8px"><div style="width:80px;height:6px;background:rgba(255,255,255,0.08);border-radius:3px"><div style="width:10%;height:100%;background:#9c27b0;border-radius:3px"></div></div><span style="font-size:12px;font-weight:600;min-width:36px;text-align:right">10%</span></div></div>
-                <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px">💳 Thẻ Tín Dụng</span><div style="display:flex;align-items:center;gap:8px"><div style="width:80px;height:6px;background:rgba(255,255,255,0.08);border-radius:3px"><div style="width:4%;height:100%;background:#4caf50;border-radius:3px"></div></div><span style="font-size:12px;font-weight:600;min-width:36px;text-align:right">4%</span></div></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tab: Sản Phẩm -->
-        <div id="rpt-panel-products" style="display:none">
-          <div class="db-stats-grid" style="margin-bottom:16px">
-            <div class="db-stat-card blue"><div class="db-stat-label">Tổng SKU Active</div><div class="db-stat-val">285</div><div class="db-stat-change">Trên 8 thương hiệu</div></div>
-            <div class="db-stat-card green"><div class="db-stat-label">SKU Bán Được</div><div class="db-stat-val">198</div><div class="db-stat-change db-stat-up">69.5% tổng danh mục</div></div>
-            <div class="db-stat-card red"><div class="db-stat-label">SKU Tồn > 90 Ngày</div><div class="db-stat-val">24</div><div class="db-stat-change db-stat-down">Cần xử lý</div></div>
-            <div class="db-stat-card gold"><div class="db-stat-label">Sản Phẩm Mới T3</div><div class="db-stat-val">12</div><div class="db-stat-change">Vừa nhập về</div></div>
-          </div>
+        <div class="db-grid-2" style="margin-bottom:16px">
+          <!-- Top Sản Phẩm -->
           <div class="db-table-wrap">
-            <div class="db-table-header"><div class="db-table-title">Hiệu Suất Sản Phẩm — Top 10 Tháng 03</div><button class="db-btn-sm" onclick="showToast('Xuất Báo Cáo','Đang xuất danh sách sản phẩm...')">📥 Xuất</button></div>
+            <div class="db-table-header"><div class="db-table-title">🏆 Top Sản Phẩm Bán Chạy</div></div>
             <table class="db-table">
-              <thead><tr><th>#</th><th>Sản Phẩm</th><th>Thương Hiệu</th><th>Đã Bán</th><th>Doanh Thu</th><th>Tồn Kho</th><th>Tỷ Lệ Bán</th><th>Xu Hướng</th></tr></thead>
-              <tbody>
-                <tr><td style="color:var(--gold);font-weight:700">1</td><td><strong>Nike Air Force 1 Low</strong></td><td>Nike</td><td>142</td><td style="color:#4caf50;font-weight:600">677.4M</td><td>58</td><td><div style="display:flex;align-items:center;gap:6px"><div style="width:50px;height:4px;background:rgba(255,255,255,0.1)"><div style="width:71%;height:100%;background:#4caf50"></div></div><span style="font-size:11px">71%</span></div></td><td><span style="color:#4caf50">↑ +24%</span></td></tr>
-                <tr><td style="color:rgba(192,192,192,0.8);font-weight:700">2</td><td><strong>Nike Dunk Low Panda</strong></td><td>Nike</td><td>98</td><td style="color:#4caf50;font-weight:600">470.4M</td><td>32</td><td><div style="display:flex;align-items:center;gap:6px"><div style="width:50px;height:4px;background:rgba(255,255,255,0.1)"><div style="width:75%;height:100%;background:#4caf50"></div></div><span style="font-size:11px">75%</span></div></td><td><span style="color:#4caf50">↑ +11%</span></td></tr>
-                <tr><td style="color:rgba(205,127,50,0.8);font-weight:700">3</td><td><strong>Adidas Ultraboost 22</strong></td><td>Adidas</td><td>87</td><td style="color:#4caf50;font-weight:600">521.7M</td><td>8</td><td><div style="display:flex;align-items:center;gap:6px"><div style="width:50px;height:4px;background:rgba(255,255,255,0.1)"><div style="width:92%;height:100%;background:orange"></div></div><span style="font-size:11px;color:orange">92%</span></div></td><td><span style="color:#f44336">↓ -3%</span></td></tr>
-                <tr><td style="font-weight:600">4</td><td><strong>MLB Big Ball Chunky</strong></td><td>MLB</td><td>74</td><td style="color:#4caf50;font-weight:600">296M</td><td>45</td><td><div style="display:flex;align-items:center;gap:6px"><div style="width:50px;height:4px;background:rgba(255,255,255,0.1)"><div style="width:62%;height:100%;background:#4caf50"></div></div><span style="font-size:11px">62%</span></div></td><td><span style="color:#4caf50">↑ +8%</span></td></tr>
-                <tr><td style="font-weight:600">5</td><td><strong>New Balance 550</strong></td><td>New Balance</td><td>64</td><td style="color:#4caf50;font-weight:600">198.4M</td><td>21</td><td><div style="display:flex;align-items:center;gap:6px"><div style="width:50px;height:4px;background:rgba(255,255,255,0.1)"><div style="width:75%;height:100%;background:#4caf50"></div></div><span style="font-size:11px">75%</span></div></td><td><span style="color:#4caf50">↑ +31%</span></td></tr>
-              </tbody>
+              <thead><tr><th>Sản Phẩm</th><th>Thương Hiệu</th><th>Đã Bán</th><th>Doanh Thu</th></tr></thead>
+              <tbody id="rpt-top-sp-tbody"><tr><td colspan="4" style="text-align:center;padding:16px;color:var(--gray-light)">Đang tải...</td></tr></tbody>
+            </table>
+          </div>
+          <!-- Top Khách Hàng -->
+          <div class="db-table-wrap">
+            <div class="db-table-header"><div class="db-table-title">👑 Top Khách Hàng</div></div>
+            <table class="db-table">
+              <thead><tr><th>Khách Hàng</th><th>Số Đơn</th><th>Tổng Chi</th></tr></thead>
+              <tbody id="rpt-top-kh-tbody"><tr><td colspan="3" style="text-align:center;padding:16px;color:var(--gray-light)">Đang tải...</td></tr></tbody>
             </table>
           </div>
         </div>
 
-        <!-- Tab: Khách Hàng -->
-        <div id="rpt-panel-customers" style="display:none">
-          <div class="db-stats-grid" style="margin-bottom:16px">
-            <div class="db-stat-card blue"><div class="db-stat-label">Tổng Khách Hàng</div><div class="db-stat-val">12,847</div><div class="db-stat-change db-stat-up">↑ +184 T3</div></div>
-            <div class="db-stat-card green"><div class="db-stat-label">Khách Quay Lại</div><div class="db-stat-val">68.4%</div><div class="db-stat-change db-stat-up">↑ +2.1%</div></div>
-            <div class="db-stat-card gold"><div class="db-stat-label">CLV Trung Bình</div><div class="db-stat-val">4.2M</div><div class="db-stat-change db-stat-up">↑ +8.4%</div></div>
-            <div class="db-stat-card red"><div class="db-stat-label">NPS Score</div><div class="db-stat-val">72</div><div class="db-stat-change db-stat-up">↑ +3 điểm</div></div>
-          </div>
-          <div class="db-grid-2">
-            <div class="db-widget">
-              <div class="db-widget-title">👥 Phân Khúc Khách Hàng</div>
-              <div style="margin-top:10px">
-                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06)">
-                  <div><div style="font-size:13px;font-weight:600">💎 VIP (>10M)</div><div style="font-size:11px;color:var(--gray-light)">284 khách hàng</div></div>
-                  <div style="text-align:right"><div style="font-weight:600;color:var(--gold)">784M</div><div style="font-size:11px;color:var(--gray-light)">27.6% DT</div></div>
-                </div>
-                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06)">
-                  <div><div style="font-size:13px;font-weight:600">🥇 Thân Thiết (3–10M)</div><div style="font-size:11px;color:var(--gray-light)">1,847 khách hàng</div></div>
-                  <div style="text-align:right"><div style="font-weight:600;color:#4caf50">1.12 Tỷ</div><div style="font-size:11px;color:var(--gray-light)">39.4% DT</div></div>
-                </div>
-                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06)">
-                  <div><div style="font-size:13px;font-weight:600">🥈 Thường (1–3M)</div><div style="font-size:11px;color:var(--gray-light)">4,215 khách hàng</div></div>
-                  <div style="text-align:right"><div style="font-weight:600;color:#2196f3">682M</div><div style="font-size:11px;color:var(--gray-light)">24.0% DT</div></div>
-                </div>
-                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0">
-                  <div><div style="font-size:13px;font-weight:600">🆕 Mới (&lt;1M)</div><div style="font-size:11px;color:var(--gray-light)">6,501 khách hàng</div></div>
-                  <div style="text-align:right"><div style="font-weight:600;color:var(--gray-light)">254M</div><div style="font-size:11px;color:var(--gray-light)">9.0% DT</div></div>
-                </div>
-              </div>
-            </div>
-            <div class="db-widget">
-              <div class="db-widget-title">📍 Phân Bổ Địa Lý</div>
-              <div style="margin-top:10px">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span style="font-size:12px">🏙️ TP. Hồ Chí Minh</span><div style="display:flex;align-items:center;gap:8px"><div style="width:80px;height:6px;background:rgba(255,255,255,0.08);border-radius:3px"><div style="width:52%;height:100%;background:var(--red);border-radius:3px"></div></div><span style="font-size:12px;font-weight:600">52%</span></div></div>
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span style="font-size:12px">🏙️ Hà Nội</span><div style="display:flex;align-items:center;gap:8px"><div style="width:80px;height:6px;background:rgba(255,255,255,0.08);border-radius:3px"><div style="width:31%;height:100%;background:#2196f3;border-radius:3px"></div></div><span style="font-size:12px;font-weight:600">31%</span></div></div>
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span style="font-size:12px">🌆 Đà Nẵng</span><div style="display:flex;align-items:center;gap:8px"><div style="width:80px;height:6px;background:rgba(255,255,255,0.08);border-radius:3px"><div style="width:9%;height:100%;background:#4caf50;border-radius:3px"></div></div><span style="font-size:12px;font-weight:600">9%</span></div></div>
-                <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px">📍 Tỉnh Thành Khác</span><div style="display:flex;align-items:center;gap:8px"><div style="width:80px;height:6px;background:rgba(255,255,255,0.08);border-radius:3px"><div style="width:8%;height:100%;background:var(--gold);border-radius:3px"></div></div><span style="font-size:12px;font-weight:600">8%</span></div></div>
-                <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06)">
-                  <div style="font-size:11px;color:var(--gray-light);margin-bottom:6px">Độ Tuổi Khách Hàng</div>
-                  <div style="display:flex;gap:4px;align-items:flex-end;height:50px">
-                    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="width:100%;height:18px;background:rgba(255,255,255,0.2)"></div><span style="font-size:8px;color:var(--gray-light)">≤18</span></div>
-                    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="width:100%;height:50px;background:var(--red)"></div><span style="font-size:8px;color:var(--gray-light)">19–24</span></div>
-                    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="width:100%;height:40px;background:rgba(230,32,32,0.7)"></div><span style="font-size:8px;color:var(--gray-light)">25–34</span></div>
-                    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="width:100%;height:22px;background:rgba(230,32,32,0.4)"></div><span style="font-size:8px;color:var(--gray-light)">35–44</span></div>
-                    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="width:100%;height:10px;background:rgba(255,255,255,0.2)"></div><span style="font-size:8px;color:var(--gray-light)">≥45</span></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+        <!-- Doanh thu theo tháng -->
+        <div class="db-table-wrap">
+          <div class="db-table-header"><div class="db-table-title">📅 Doanh Thu Theo Tháng</div></div>
+          <table class="db-table">
+            <thead><tr><th>Tháng</th><th>Số Đơn</th><th>Doanh Thu</th><th>TB/Đơn</th></tr></thead>
+            <tbody id="rpt-monthly-tbody"><tr><td colspan="4" style="text-align:center;padding:16px;color:var(--gray-light)">Đang tải...</td></tr></tbody>
+          </table>
         </div>
 
-        <!-- Tab: Kênh Bán -->
-        <div id="rpt-panel-channels" style="display:none">
-          <div class="db-stats-grid" style="margin-bottom:16px">
-            <div class="db-stat-card red"><div class="db-stat-label">Website / App</div><div class="db-stat-val">420M</div><div class="db-stat-change db-stat-up">↑ +22%  · 14.8%</div></div>
-            <div class="db-stat-card blue"><div class="db-stat-label">Shopee</div><div class="db-stat-val">1.08 Tỷ</div><div class="db-stat-change db-stat-up">↑ +15% · 38.2%</div></div>
-            <div class="db-stat-card gold"><div class="db-stat-label">TikTok Shop</div><div class="db-stat-val">607M</div><div class="db-stat-change db-stat-up">↑ +48% · 21.4%</div></div>
-            <div class="db-stat-card green"><div class="db-stat-label">Tại Cửa Hàng</div><div class="db-stat-val">715M</div><div class="db-stat-change">+5% · 25.2%</div></div>
-          </div>
-          <div class="db-table-wrap">
-            <div class="db-table-header"><div class="db-table-title">Hiệu Suất Chi Tiết Theo Kênh</div></div>
-            <table class="db-table">
-              <thead><tr><th>Kênh</th><th>Doanh Thu</th><th>Đơn Hàng</th><th>AOV</th><th>Chi Phí KM</th><th>ROAS</th><th>Tỷ Lệ Hoàn</th><th>Xu Hướng</th></tr></thead>
-              <tbody>
-                <tr><td>🛒 Website</td><td style="font-weight:600">420M</td><td>234</td><td>1.79M</td><td>8.4M</td><td style="color:#4caf50;font-weight:600">x50</td><td>1.8%</td><td><span style="color:#4caf50">↑ +22%</span></td></tr>
-                <tr><td>🛍️ Shopee</td><td style="font-weight:600">1.08 Tỷ</td><td>602</td><td>1.80M</td><td>54M</td><td style="color:#4caf50;font-weight:600">x20</td><td>2.8%</td><td><span style="color:#4caf50">↑ +15%</span></td></tr>
-                <tr><td>📱 TikTok Shop</td><td style="font-weight:600">607M</td><td>338</td><td>1.80M</td><td>30M</td><td style="color:#4caf50;font-weight:600">x20.2</td><td>1.4%</td><td><span style="color:#4caf50">↑ +48%</span></td></tr>
-                <tr><td>🏪 Cửa Hàng HCM</td><td style="font-weight:600">498M</td><td>186</td><td>2.68M</td><td>—</td><td style="color:var(--gray-light)">N/A</td><td>1.1%</td><td><span style="color:#4caf50">↑ +8%</span></td></tr>
-                <tr><td>🏪 Cửa Hàng HN</td><td style="font-weight:600">217M</td><td>87</td><td>2.49M</td><td>—</td><td style="color:var(--gray-light)">N/A</td><td>0.8%</td><td><span style="color:orange">↔ +1%</span></td></tr>
-              </tbody>
-            </table>
-          </div>
+        <!-- Theo trạng thái -->
+        <div class="db-table-wrap" style="margin-top:16px">
+          <div class="db-table-header"><div class="db-table-title">📊 Đơn Hàng Theo Trạng Thái</div></div>
+          <table class="db-table">
+            <thead><tr><th>Trạng Thái</th><th>Số Đơn</th><th>Tổng Tiền</th></tr></thead>
+            <tbody id="rpt-status-tbody"><tr><td colspan="3" style="text-align:center;padding:16px;color:var(--gray-light)">Đang tải...</td></tr></tbody>
+          </table>
         </div>
       </div>
 
@@ -10477,7 +10339,7 @@ async function confirmRole() {
     if (dashId && document.getElementById(dashId)) {
       document.getElementById(dashId).classList.add('open');
       document.body.style.overflow = 'hidden';
-      if (dashId === 'shopDashboard') { initAdminChart(); setTimeout(adminLoadDashboard, 300); }
+      if (dashId === 'shopDashboard') { initAdminChart(); setTimeout(adminLoadDashboard, 300); setTimeout(adminLoadOrders, 400); setTimeout(adminLoadProducts, 500); }
       updateChatVisibility();
     }
 
@@ -10589,8 +10451,14 @@ function switchDbPanel(dashId, panelId, navItem) {
   const panel = document.getElementById(panelId);
   if (panel) panel.classList.add('active');
   if (navItem) navItem.classList.add('active');
-  if (panelId === 'panel-admin-home' && dashId === 'shopDashboard') initAdminChart();
-  if (panelId === 'panel-admin-customers') loadKhachHang();
+  if (panelId === 'panel-admin-home' && dashId === 'shopDashboard') { initAdminChart(); adminLoadDashboard(); }
+  if (panelId === 'panel-admin-customers')  loadKhachHang();
+  if (panelId === 'panel-admin-products')   adminLoadProducts();
+  if (panelId === 'panel-admin-orders')     adminLoadOrders();
+  if (panelId === 'panel-admin-inventory')  adminLoadInventory();
+  if (panelId === 'panel-admin-reviews')    adminLoadReviews();
+  if (panelId === 'panel-admin-finance')    adminLoadFinance();
+  if (panelId === 'panel-admin-reports')    adminLoadReports();
 }
 
 function initAdminChart() {
@@ -11465,6 +11333,206 @@ async function adminSaveProduct() {
   } finally {
     if (btn) { btn.textContent = '💾 Lưu Sản Phẩm'; btn.disabled = false; }
   }
+}
+
+
+// ============================================================
+// PANEL: ĐÁNH GIÁ
+// ============================================================
+async function adminLoadReviews() {
+  const tbody = document.getElementById('reviews-tbody');
+  const sub   = document.querySelector('#panel-admin-reviews .db-page-sub');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--gray-light)">Đang tải...</td></tr>';
+  try {
+    const res  = await fetch('/api/admin/danhgia', { headers: adminHeaders() });
+    const data = await res.json();
+    if (!res.ok) { tbody.innerHTML = `<tr><td colspan="7" style="color:#f44">${data.error}</td></tr>`; return; }
+    const choDuyet = data.filter(d => d.trangthai === 'Chờ duyệt').length;
+    const avgStar  = data.length ? (data.reduce((s,d) => s + (d.sosao||0), 0) / data.length).toFixed(1) : 0;
+    if (sub) sub.textContent = `${choDuyet} đánh giá chờ duyệt — Rating trung bình: ${avgStar}⭐`;
+    if (!data.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--gray-light)">Chưa có đánh giá nào</td></tr>'; return; }
+    tbody.innerHTML = data.map(d => {
+      const stars = '★'.repeat(d.sosao||0) + '☆'.repeat(5-(d.sosao||0));
+      const status = d.trangthai === 'Đã duyệt'
+        ? '<span class="db-status status-done">✅ Đã Duyệt</span>'
+        : d.trangthai === 'Từ chối'
+        ? '<span class="db-status status-cancel">❌ Từ Chối</span>'
+        : '<span class="db-status status-pending">⏳ Chờ Duyệt</span>';
+      const actions = d.trangthai === 'Chờ duyệt'
+        ? `<button class="db-btn-sm primary" onclick="adminDuyetDG(${d.id})">Duyệt</button>
+           <button class="db-btn-sm" onclick="adminTuChoiDG(${d.id})">Từ Chối</button>`
+        : `<button class="db-btn-sm" onclick="adminTuChoiDG(${d.id})">Ẩn</button>`;
+      return `<tr>
+        <td>${d.tenkhach||'Ẩn danh'}</td>
+        <td>${d.tensanpham||d.masanpham}</td>
+        <td style="color:var(--gold)">${stars}</td>
+        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">${d.noidung||''}</td>
+        <td>${d.ngaydang ? new Date(d.ngaydang).toLocaleDateString('vi-VN') : '--'}</td>
+        <td>${status}</td>
+        <td style="display:flex;gap:4px">${actions}</td>
+      </tr>`;
+    }).join('');
+  } catch(e) { tbody.innerHTML = `<tr><td colspan="7" style="color:#f44">Lỗi: ${e.message}</td></tr>`; }
+}
+
+async function adminDuyetDG(id) {
+  await fetch(`/api/admin/danhgia/${id}/duyet`, { method:'PATCH', headers: adminHeaders() });
+  adminLoadReviews();
+  showToast('Đã Duyệt ✅', 'Đánh giá đã hiển thị công khai');
+}
+async function adminDuyetTatCaDG() {
+  const tbody = document.getElementById('reviews-tbody');
+  if (!tbody) return;
+  const rows = tbody.querySelectorAll('button[onclick*="adminDuyetDG"]');
+  // extract ids from onclick
+  const ids = Array.from(rows).map(b => b.getAttribute('onclick').match(/\d+/)?.[0]).filter(Boolean);
+  await Promise.all(ids.map(id => fetch(`/api/admin/danhgia/${id}/duyet`, { method:'PATCH', headers:adminHeaders() })));
+  adminLoadReviews();
+  showToast('Đã Duyệt Tất Cả ✅', `${ids.length} đánh giá đã duyệt`);
+}
+
+async function adminTuChoiDG(id) {
+  await fetch(`/api/admin/danhgia/${id}/tuchoi`, { method:'PATCH', headers: adminHeaders() });
+  adminLoadReviews();
+  showToast('Đã Từ Chối ❌', 'Đánh giá đã bị ẩn');
+}
+
+// ============================================================
+// PANEL: KẾ TOÁN / TÀI CHÍNH
+// ============================================================
+async function adminLoadFinance() {
+  try {
+    const [finRes, ordRes] = await Promise.all([
+      fetch('/api/admin/ketoan', { headers: adminHeaders() }),
+      fetch('/api/admin/hoadon?limit=8', { headers: adminHeaders() })
+    ]);
+    const d   = await finRes.json();
+    const ord = await ordRes.json();
+    if (!finRes.ok) return;
+    const fmtM = n => (Number(n||0)/1e6).toFixed(1) + 'M';
+    const fmt  = n => Number(n||0).toLocaleString('vi-VN') + 'đ';
+    const now  = new Date();
+
+    // Stat cards
+    const el = id => document.getElementById(id);
+    if (el('fin-doanhthu'))  el('fin-doanhthu').textContent  = fmtM(d.doanhThu);
+    if (el('fin-sodon'))     el('fin-sodon').textContent     = `${d.soHoaDon||0} đơn hàng`;
+    if (el('fin-loinhuan'))  el('fin-loinhuan').textContent  = fmtM(d.loiNhuan > 0 ? d.loiNhuan : 0);
+    if (el('fin-margin'))    el('fin-margin').textContent    = d.doanhThu > 0 ? `Margin: ${((d.loiNhuan/d.doanhThu)*100).toFixed(1)}%` : 'Margin: --';
+    if (el('fin-tongchi'))   el('fin-tongchi').textContent   = fmtM(d.tongChi);
+    if (el('fin-sophieuchu'))el('fin-sophieuchu').textContent= `${d.soPhieuChi||0} phiếu chi`;
+    if (el('fin-tongthu'))   el('fin-tongthu').textContent   = fmtM(d.tongThu);
+    if (el('fin-sophieuthu'))el('fin-sophieuthu').textContent= `${d.soPhieuThu||0} phiếu thu`;
+    if (el('finance-sub'))   el('finance-sub').textContent   = `Báo cáo tài chính tháng ${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
+
+    // Summary
+    if (el('finance-summary')) {
+      el('finance-summary').innerHTML = `
+        <div style="display:grid;gap:10px">
+          <div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:8px">
+            <span>💰 Doanh thu</span><strong style="color:var(--red)">${fmt(d.doanhThu)}</strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:8px">
+            <span>💸 Chi phí</span><strong style="color:#f44336">${fmt(d.tongChi)}</strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:8px">
+            <span>✅ Lợi nhuận</span><strong style="color:#4caf50">${fmt(d.loiNhuan > 0 ? d.loiNhuan : 0)}</strong>
+          </div>
+          <div style="display:flex;justify-content:space-between">
+            <span>📦 Số đơn hàng</span><strong>${d.soHoaDon||0} đơn</strong>
+          </div>
+        </div>`;
+    }
+
+    // Orders table
+    const tbody = el('finance-orders-tbody');
+    if (tbody && ord.data) {
+      const statusColor = { 'Đã giao': '#4caf50', 'Chờ xử lý': '#ff9800', 'Đã hủy': '#f44336', 'Đang giao': '#2196f3' };
+      tbody.innerHTML = (ord.data||[]).map(o => `
+        <tr>
+          <td style="font-weight:700;color:var(--red)">#${o.mahoadon||o.MaHoaDon}</td>
+          <td>${o.hotenkhach||o.HoTenNguoiNhan||'Khách lẻ'}</td>
+          <td style="font-weight:700">${Number(o.tongtien||o.TongTien||0).toLocaleString('vi-VN')}đ</td>
+          <td><span style="color:${statusColor[o.trangthai||o.TrangThai]||'#aaa'};font-size:11px;font-weight:700">${o.trangthai||o.TrangThai||'--'}</span></td>
+        </tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--gray-light)">Chưa có đơn hàng</td></tr>';
+    }
+  } catch(e) { console.error('adminLoadFinance:', e); }
+}
+
+// ============================================================
+// PANEL: BÁO CÁO & THỐNG KÊ
+// ============================================================
+async function adminLoadReports() {
+  try {
+    const res = await fetch('/api/admin/baocao/doanhthu', { headers: adminHeaders() });
+    const d   = await res.json();
+    if (!res.ok) return;
+    const fmt  = n => Number(n||0).toLocaleString('vi-VN') + 'đ';
+    const fmtM = n => (Number(n||0)/1e6).toFixed(1) + 'M';
+    const el   = id => document.getElementById(id);
+
+    const totDT  = d.monthly.reduce((s,m) => s + Number(m.doanhthu||0), 0);
+    const totDon = d.monthly.reduce((s,m) => s + Number(m.sodon||0), 0);
+    const giatb  = totDon > 0 ? totDT / totDon : 0;
+    const daGiao = (d.theoTrangThai.find(t => t.trangthai === 'Đã giao') || {}).cnt || 0;
+
+    if (el('rpt-doanhthu')) el('rpt-doanhthu').textContent = fmtM(totDT);
+    if (el('rpt-sodon'))    el('rpt-sodon').textContent    = totDon.toLocaleString('vi-VN');
+    if (el('rpt-giatb'))    el('rpt-giatb').textContent    = fmtM(giatb);
+    if (el('rpt-dagiao'))   el('rpt-dagiao').textContent   = daGiao;
+    if (el('rpt-sub'))      el('rpt-sub').textContent      = `Thống kê tổng hợp — ${d.monthly.length} tháng gần nhất`;
+
+    // Top sản phẩm
+    if (el('rpt-top-sp-tbody')) {
+      el('rpt-top-sp-tbody').innerHTML = d.topSanPham.length
+        ? d.topSanPham.map((p,i) => `<tr>
+            <td><strong>${['🥇','🥈','🥉','4.','5.'][i]||''} ${p.tensanpham}</strong></td>
+            <td>${p.thuonghieu||''}</td>
+            <td>${Number(p.soban||0)}</td>
+            <td style="font-weight:700;color:var(--red)">${fmtM(p.doanhthu)}</td>
+          </tr>`).join('')
+        : '<tr><td colspan="4" style="text-align:center;padding:16px;color:var(--gray-light)">Chưa có dữ liệu bán hàng</td></tr>';
+    }
+
+    // Top khách hàng
+    if (el('rpt-top-kh-tbody')) {
+      el('rpt-top-kh-tbody').innerHTML = d.topKhachHang.length
+        ? d.topKhachHang.map((k,i) => `<tr>
+            <td><strong>${['🥇','🥈','🥉','4.','5.'][i]||''} ${k.hoten}</strong></td>
+            <td>${Number(k.sodon||0)}</td>
+            <td style="font-weight:700;color:var(--red)">${fmtM(k.tongtien)}</td>
+          </tr>`).join('')
+        : '<tr><td colspan="3" style="text-align:center;padding:16px;color:var(--gray-light)">Chưa có dữ liệu</td></tr>';
+    }
+
+    // Doanh thu theo tháng
+    if (el('rpt-monthly-tbody')) {
+      el('rpt-monthly-tbody').innerHTML = d.monthly.length
+        ? d.monthly.map(m => {
+            const avg = m.sodon > 0 ? Number(m.doanhthu)/Number(m.sodon) : 0;
+            return `<tr>
+              <td><strong>${m.thang}</strong></td>
+              <td>${Number(m.sodon||0)}</td>
+              <td style="font-weight:700;color:var(--red)">${fmtM(m.doanhthu)}</td>
+              <td>${fmtM(avg)}</td>
+            </tr>`;
+          }).join('')
+        : '<tr><td colspan="4" style="text-align:center;padding:16px;color:var(--gray-light)">Chưa có dữ liệu</td></tr>';
+    }
+
+    // Theo trạng thái
+    if (el('rpt-status-tbody')) {
+      const statusIcon = {'Đã giao':'✅','Chờ xử lý':'⏳','Đang giao':'🚚','Đã hủy':'❌'};
+      el('rpt-status-tbody').innerHTML = d.theoTrangThai.length
+        ? d.theoTrangThai.map(t => `<tr>
+            <td>${statusIcon[t.trangthai]||'📦'} ${t.trangthai}</td>
+            <td>${Number(t.cnt||0)}</td>
+            <td style="font-weight:700">${fmtM(t.tong)}</td>
+          </tr>`).join('')
+        : '<tr><td colspan="3" style="text-align:center;padding:16px;color:var(--gray-light)">Chưa có dữ liệu</td></tr>';
+    }
+  } catch(e) { console.error('adminLoadReports:', e); }
 }
 
 // ------------------------------------------------------------

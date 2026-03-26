@@ -1381,6 +1381,120 @@ app.get(
   },
 );
 
+
+// ═══════════════════════════════════════════════════════════
+// ĐÁNH GIÁ
+// ═══════════════════════════════════════════════════════════
+app.get("/api/admin/danhgia", requireRole("shop","admin"), async (req,res) => {
+  try {
+    const r = await pool.query(
+      `SELECT g.ID, g.MaSanPham, g.SoSao, g.NoiDung, g.TrangThai, g.NgayDang,
+              k.HoTen as TenKhach, s.TenSanPham
+       FROM DANH_GIA g
+       LEFT JOIN KhachHang k ON k.MaKhachHang = g.MaKhachHang
+       LEFT JOIN SanPham s ON s.MaSanPham = g.MaSanPham
+       ORDER BY g.NgayDang DESC LIMIT 100`
+    );
+    res.json(r.rows);
+  } catch(e) { res.status(500).json({error:e.message}); }
+});
+
+app.patch("/api/admin/danhgia/:id/duyet", requireRole("shop","admin"), async (req,res) => {
+  try {
+    await pool.query("UPDATE DANH_GIA SET TrangThai='Đã duyệt' WHERE ID=$1", [req.params.id]);
+    res.json({success:true});
+  } catch(e) { res.status(500).json({error:e.message}); }
+});
+
+app.patch("/api/admin/danhgia/:id/tuchoi", requireRole("shop","admin"), async (req,res) => {
+  try {
+    await pool.query("UPDATE DANH_GIA SET TrangThai='Từ chối' WHERE ID=$1", [req.params.id]);
+    res.json({success:true});
+  } catch(e) { res.status(500).json({error:e.message}); }
+});
+
+// ═══════════════════════════════════════════════════════════
+// KHO HÀNG — Phiếu nhập
+// ═══════════════════════════════════════════════════════════
+app.get("/api/admin/phieunhap", requireRole("shop","admin"), async (req,res) => {
+  try {
+    const r = await pool.query(
+      `SELECT p.MaPhieuNhap, p.NgayNhap, p.TongTien, p.GhiChu,
+              n.TenNhaCungCap
+       FROM PhieuNhap p
+       LEFT JOIN NhaCungCap n ON n.MaNhaCungCap = p.MaNhaCungCap
+       ORDER BY p.NgayNhap DESC LIMIT 50`
+    );
+    res.json(r.rows);
+  } catch(e) { res.status(500).json({error:e.message}); }
+});
+
+// ═══════════════════════════════════════════════════════════
+// BÁO CÁO — Doanh thu theo tháng
+// ═══════════════════════════════════════════════════════════
+app.get("/api/admin/baocao/doanhthu", requireRole("shop","admin","accountant"), async (req,res) => {
+  try {
+    const [monthly, topSP, topKH, trangThai] = await Promise.all([
+      pool.query(`
+        SELECT TO_CHAR(NgayLap,'MM/YYYY') as thang,
+               COUNT(*) as sodon,
+               COALESCE(SUM(TongTien),0) as doanhthu
+        FROM HoaDonBanHang
+        WHERE NgayLap >= NOW() - INTERVAL '6 months'
+        GROUP BY TO_CHAR(NgayLap,'MM/YYYY')
+        ORDER BY MIN(NgayLap)`),
+      pool.query(`
+        SELECT s.TenSanPham, s.ThuongHieu,
+               COUNT(c.MaSanPham) as soban,
+               COALESCE(SUM(c.SoLuong * c.DonGia),0) as doanhthu
+        FROM CHI_TIET_HOA_DON c
+        JOIN SanPham s ON s.MaSanPham = c.MaSanPham
+        GROUP BY s.MaSanPham, s.TenSanPham, s.ThuongHieu
+        ORDER BY doanhthu DESC LIMIT 5`),
+      pool.query(`
+        SELECT k.HoTen, k.Email,
+               COUNT(h.MaHoaDon) as sodon,
+               COALESCE(SUM(h.TongTien),0) as tongtien
+        FROM HoaDonBanHang h
+        JOIN KhachHang k ON k.MaKhachHang = h.MaKhachHang
+        GROUP BY k.MaKhachHang, k.HoTen, k.Email
+        ORDER BY tongtien DESC LIMIT 5`),
+      pool.query(`
+        SELECT TrangThai, COUNT(*) as cnt, COALESCE(SUM(TongTien),0) as tong
+        FROM HoaDonBanHang GROUP BY TrangThai`)
+    ]);
+    res.json({
+      monthly: monthly.rows,
+      topSanPham: topSP.rows,
+      topKhachHang: topKH.rows,
+      theoTrangThai: trangThai.rows
+    });
+  } catch(e) { res.status(500).json({error:e.message}); }
+});
+
+// ═══════════════════════════════════════════════════════════
+// KẾ TOÁN — Phiếu thu / chi tổng hợp
+// ═══════════════════════════════════════════════════════════
+app.get("/api/admin/ketoan", requireRole("shop","admin","accountant"), async (req,res) => {
+  try {
+    const [thu, chi, hd] = await Promise.all([
+      pool.query(`SELECT COALESCE(SUM(SoTien),0) as tong, COUNT(*) as cnt FROM PhieuThu
+                  WHERE NgayThu >= DATE_TRUNC('month', NOW())`),
+      pool.query(`SELECT COALESCE(SUM(SoTien),0) as tong, COUNT(*) as cnt FROM PhieuChi
+                  WHERE NgayChi >= DATE_TRUNC('month', NOW())`),
+      pool.query(`SELECT COALESCE(SUM(TongTien),0) as doanhthu, COUNT(*) as sodon
+                  FROM HoaDonBanHang
+                  WHERE NgayLap >= DATE_TRUNC('month', NOW())`)
+    ]);
+    res.json({
+      tongThu:    parseFloat(thu.rows[0].tong),   soPhieuThu: parseInt(thu.rows[0].cnt),
+      tongChi:    parseFloat(chi.rows[0].tong),   soPhieuChi: parseInt(chi.rows[0].cnt),
+      doanhThu:   parseFloat(hd.rows[0].doanhthu), soHoaDon:  parseInt(hd.rows[0].sodon),
+      loiNhuan:   parseFloat(hd.rows[0].doanhthu) - parseFloat(chi.rows[0].tong)
+    });
+  } catch(e) { res.status(500).json({error:e.message}); }
+});
+
 // ── QUẢN LÝ NGƯỜI DÙNG (super admin) ─────────────────────────
 app.get("/api/admin/users", requireRole("admin"), async (req, res) => {
   try {

@@ -1087,7 +1087,33 @@ footer {
 #svn-inp::placeholder{color:rgba(255,255,255,.3);}
 #svn-send{background:#e62020;color:#fff;border:none;width:34px;height:34px;border-radius:8px;cursor:pointer;font-size:15px;flex-shrink:0;}
 </style>
-</head>
+<style>
+#svc-btn{position:fixed;bottom:24px;right:24px;z-index:9999;width:54px;height:54px;border-radius:50%;border:none;cursor:pointer;background:#e62020;color:#fff;font-size:22px;box-shadow:0 4px 16px rgba(230,32,32,.5);transition:transform .2s;display:flex;align-items:center;justify-content:center;}
+#svc-btn:hover{transform:scale(1.08);}
+#svc-dot{position:absolute;top:2px;right:2px;width:11px;height:11px;background:#4caf50;border-radius:50%;border:2px solid #111;display:none;}
+#svc-box{position:fixed;bottom:88px;right:24px;z-index:9999;width:320px;max-height:480px;background:#1a1a1a;border:1px solid rgba(255,255,255,.12);border-radius:14px;display:none;flex-direction:column;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.7);}
+#svc-box.open{display:flex;}
+.svc-hdr{background:linear-gradient(135deg,#b01208,#e62020);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.svc-avt{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:14px;}
+.svc-hn{font-weight:700;font-size:13px;color:#fff;}
+.svc-hs{font-size:10px;color:rgba(255,255,255,.7);}
+.svc-xb{background:none;border:none;color:#fff;font-size:16px;cursor:pointer;opacity:.8;}
+#svc-start{padding:16px;display:flex;flex-direction:column;gap:9px;}
+#svc-start p{font-size:12px;color:#aaa;text-align:center;line-height:1.6;margin:0;}
+#svc-start input{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#fff;padding:8px 11px;border-radius:7px;font-size:12px;width:100%;box-sizing:border-box;}
+#svc-start input::placeholder{color:rgba(255,255,255,.35);}
+#svc-start button{background:#e62020;color:#fff;border:none;padding:9px;border-radius:7px;font-weight:700;cursor:pointer;font-size:12px;}
+#svc-msgs{flex:1;overflow-y:auto;padding:11px;display:flex;flex-direction:column;gap:7px;}
+.svc-m{max-width:82%;padding:8px 11px;border-radius:11px;font-size:12px;line-height:1.5;word-break:break-word;}
+.svc-m.u{align-self:flex-end;background:#e62020;color:#fff;border-bottom-right-radius:3px;}
+.svc-m.a{align-self:flex-start;background:rgba(255,255,255,.08);color:#ddd;border-bottom-left-radius:3px;}
+.svc-lbl{font-size:10px;color:#666;margin-bottom:2px;}
+.svc-typ{align-self:flex-start;background:rgba(255,255,255,.06);color:#777;padding:7px 11px;border-radius:10px;font-size:11px;font-style:italic;}
+#svc-iw{padding:9px;border-top:1px solid rgba(255,255,255,.07);display:flex;gap:5px;align-items:flex-end;flex-shrink:0;}
+#svc-i{flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#fff;padding:7px 9px;border-radius:7px;font-size:12px;resize:none;font-family:inherit;line-height:1.4;}
+#svc-i::placeholder{color:rgba(255,255,255,.3);}
+#svc-sb{background:#e62020;color:#fff;border:none;width:32px;height:32px;border-radius:7px;cursor:pointer;font-size:14px;flex-shrink:0;}
+</style></head>
 <body>
 
 <!-- HEADER -->
@@ -2155,7 +2181,7 @@ function renderMpWishlist() {
 // -- SA MANAGEMENT FUNCTIONS --
 // -- SA CATEGORY FUNCTIONS (CRUD thực) --
 function saOpenCreateCat() {
-  document.getElementById('sa-cat-form-title').textContent = '➕ Thêm Danh Mục Mới';
+  document.getElementById('sa-cat-form-title').textContent = '- Thêm Danh Mục Mới';
   document.getElementById('sa-cat-edit-id').value   = '';
   document.getElementById('sa-cat-ten').value       = '';
   document.getElementById('sa-cat-ma').value        = '';
@@ -2174,7 +2200,7 @@ function saOpenEditCat(id) {
   const list = window._saCatList || [];
   const cat  = list.find(c => String(c.id||c.ID) === String(id));
   if (!cat) { showToast('Lỗi','Không tìm thấy danh mục'); return; }
-  document.getElementById('sa-cat-form-title').textContent = '✏️ Sửa: ' + (cat.ten||cat.Ten);
+  document.getElementById('sa-cat-form-title').textContent = '-️ Sửa: ' + (cat.ten||cat.Ten);
   document.getElementById('sa-cat-edit-id').value   = id;
   document.getElementById('sa-cat-ten').value       = cat.ten||cat.Ten||'';
   document.getElementById('sa-cat-ma').value        = cat.ma||cat.Ma||'';
@@ -2233,7 +2259,7 @@ async function saSubmitCat() {
     const json   = await res.json();
     if (!res.ok) { errEl.textContent=json.error||'Lỗi server'; errEl.style.display='block'; return; }
     saCloseCatForm();
-    showToast(isEdit?'✅ Đã Cập Nhật':'✅ Đã Tạo', ten);
+    showToast(isEdit?'- Đã Cập Nhật':'- Đã Tạo', ten);
     SA.loadCategories();
   } catch(e) { errEl.textContent='Lỗi: '+e.message; errEl.style.display='block'; }
   finally { btn.disabled=false; btn.textContent=editId?'💾 Lưu Thay Đổi':'💾 Tạo Danh Mục'; }
@@ -2262,7 +2288,7 @@ async function saToggleCat(id, currentStatus) {
     });
     const json = await res.json();
     if (!res.ok) { showToast('Lỗi', json.error); return; }
-    showToast(newStatus==='An'?'🙈 Đã Ẩn':'✅ Đã Hiện', cat.ten||cat.Ten);
+    showToast(newStatus==='An'?'🙈 Đã Ẩn':'- Đã Hiện', cat.ten||cat.Ten);
     SA.loadCategories();
   } catch(e) { showToast('Lỗi', e.message); }
 }
@@ -2281,13 +2307,13 @@ function saFilterCatStatus(val) {
   });
 }
 
-// ── SA PRODUCT FORM — ảnh upload + camera + API ──────────────
+// -- SA PRODUCT FORM — ảnh upload + camera + API --------------
 let _saProdImgData = ''; // base64 ảnh đã chọn
 let _saCameraStream = null;
 
 async function saShowAddProduct() {
   // Reset form
-  document.getElementById('sa-prod-form-title').textContent = '➕ Thêm Sản Phẩm Mới';
+  document.getElementById('sa-prod-form-title').textContent = '- Thêm Sản Phẩm Mới';
   document.getElementById('sa-p-editid').value = '';
   ['sa-p-name','sa-p-sku','sa-p-price','sa-p-buyprice','sa-p-stock','sa-p-color','sa-p-sizes','sa-p-desc','sa-p-img-url'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
@@ -2346,7 +2372,7 @@ async function saEditProduct(ma) {
   const list = window._saProdList || [];
   const p    = list.find(x => (x.masanpham||x.MaSanPham) === ma);
   if (!p) { showToast('Lỗi','Không tìm thấy sản phẩm'); return; }
-  document.getElementById('sa-prod-form-title').textContent = '✏️ Sửa: ' + (p.tensanpham||p.TenSanPham);
+  document.getElementById('sa-prod-form-title').textContent = '-️ Sửa: ' + (p.tensanpham||p.TenSanPham);
   document.getElementById('sa-p-editid').value   = ma;
   document.getElementById('sa-p-name').value     = p.tensanpham||p.TenSanPham||'';
   document.getElementById('sa-p-sku').value      = p.sku||p.SKU||'';
@@ -2373,7 +2399,7 @@ async function saEditProduct(ma) {
   f.scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
-// ── Xử lý ảnh từ file ────────────────────────────────────────
+// -- Xử lý ảnh từ file ----------------------------------------
 function saHandleProductImg(input) {
   const file = input.files[0];
   if (!file) return;
@@ -2412,7 +2438,7 @@ function saClearProductImg() {
   if (fi)   fi.value='';
 }
 
-// ── Camera ────────────────────────────────────────────────────
+// -- Camera ----------------------------------------------------
 async function saOpenCamera() {
   const modal = document.getElementById('sa-camera-modal');
   const video = document.getElementById('sa-camera-video');
@@ -2447,7 +2473,7 @@ function saCloseCamera() {
   if (video) video.srcObject = null;
 }
 
-// ── Lưu sản phẩm (tạo / sửa) ─────────────────────────────────
+// -- Lưu sản phẩm (tạo / sửa) ---------------------------------
 async function saSaveProduct() {
   const editId = document.getElementById('sa-p-editid').value;
   const isEdit = !!editId;
@@ -2503,7 +2529,7 @@ async function saSaveProduct() {
     if (!res.ok) { errEl.textContent = json.error||'Lỗi server'; errEl.style.display='block'; return; }
 
     document.getElementById('sa-add-prod-form').style.display = 'none';
-    showToast(isEdit ? '✅ Đã Cập Nhật' : '✅ Đã Thêm Sản Phẩm', name + (imgUrl?' (có ảnh)':''));
+    showToast(isEdit ? '- Đã Cập Nhật' : '- Đã Thêm Sản Phẩm', name + (imgUrl?' (có ảnh)':''));
     SA.loadProducts();
   } catch(e) {
     errEl.textContent = 'Lỗi kết nối: ' + e.message; errEl.style.display='block';
@@ -2538,7 +2564,7 @@ function saFilterOrderTab(btn, key) {
 }
 
 // -- SA PROFILE FUNCTIONS --
-// ── SA PROFILE — load + save thực ────────────────────────────
+// -- SA PROFILE — load + save thực ----------------------------
 async function saLoadProfile() {
   try {
     // Lấy thông tin từ /api/admin/users (tìm chính mình qua email trong token)
@@ -2613,7 +2639,7 @@ function saHandleAvatar(e) {
     const el = document.getElementById('sa-avatar-display');
     if (el) el.innerHTML = '<img src="' + ev.target.result + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
     localStorage.setItem('sa_avatar', ev.target.result);
-    showToast('✅ Đã Cập Nhật', 'Ảnh đại diện đã lưu');
+    showToast('- Đã Cập Nhật', 'Ảnh đại diện đã lưu');
   };
   reader.readAsDataURL(file);
 }
@@ -2638,7 +2664,7 @@ async function saSaveProfile() {
     const nameEl = document.getElementById('sa-display-name');
     if (nameEl) nameEl.textContent = name;
     if (currentUser) currentUser.name = name;
-    showToast('✅ Đã Lưu', 'Thông tin cá nhân đã được cập nhật');
+    showToast('- Đã Lưu', 'Thông tin cá nhân đã được cập nhật');
   } catch(e) { showToast('Lỗi', e.message); }
   finally { if (btn) { btn.disabled=false; btn.textContent='💾 Lưu Thông Tin'; } }
 }
@@ -2692,7 +2718,7 @@ function saUpdatePwStrength(val) {
     {w:'25%', c:'#f44336',     t:'Yếu — tối thiểu 8 ký tự'},
     {w:'50%', c:'#ff9800',     t:'Trung Bình — thêm chữ hoa và số'},
     {w:'75%', c:'#2196f3',     t:'Khá Mạnh — gần đạt tiêu chuẩn'},
-    {w:'100%',c:'#4caf50',     t:'✅ Rất Mạnh — đạt tiêu chuẩn bảo mật'},
+    {w:'100%',c:'#4caf50',     t:'- Rất Mạnh — đạt tiêu chuẩn bảo mật'},
   ];
   const lv = levels[score] || levels[0];
   bar.style.width      = lv.w;
@@ -10879,7 +10905,7 @@ function renderProductList(list) {
       <div class="product-img">
         ${p.badge ? `<div class="product-badge badge-${p.badge}">${p.badge==='new'?'MỚI':p.badge==='hot'?'HOT':'SALE'}</div>` : ''}
         <div class="product-actions">
-          <button class="product-action-btn" onclick="wishlist(${p.id})" title="Yêu thích">♡</button>
+          <button class="product-action-btn" onclick="wishlist(${p.id})" title="Yêu thích">-</button>
           <button class="product-action-btn" onclick="openPdp(${p.id})" title="Xem chi tiết">👁</button>
         </div>
         <span style="font-size:72px;cursor:pointer;" onclick="openPdp(${p.id})">${p.emoji}</span>
@@ -10934,7 +10960,7 @@ function adminEditProduct(ma) {
     });
 }
 
-// ── Biến trạng thái form thêm/sửa sản phẩm (Shop Dashboard) ─
+// -- Biến trạng thái form thêm/sửa sản phẩm (Shop Dashboard) -
 let _shopProdImgData  = null; // base64 ảnh đã chọn
 let _shopProdEditMa   = null; // null = thêm mới, string = đang sửa
 let _shopCameraStream = null;
@@ -10981,7 +11007,7 @@ function shopShowProdForm(p) {
   if (maEl) { maEl.readOnly = isEdit; maEl.style.opacity = isEdit ? '0.6' : '1'; }
 
   const titleEl = document.getElementById('shop-prod-form-title');
-  if (titleEl) titleEl.textContent = isEdit ? '✏️ Sửa: ' + (p?.tensanpham || p?.TenSanPham) : '+ Thêm Sản Phẩm Mới';
+  if (titleEl) titleEl.textContent = isEdit ? '-️ Sửa: ' + (p?.tensanpham || p?.TenSanPham) : '+ Thêm Sản Phẩm Mới';
 
   const errEl = document.getElementById('shop-prod-form-error');
   if (errEl) { errEl.textContent = ''; errEl.style.display = 'none'; }
@@ -11128,7 +11154,7 @@ function shopAutoDetectBrandCat(name) {
   }
 }
 
-// ── GALLERY & COLOR IMAGE JS ────────────────────────────────
+// -- GALLERY & COLOR IMAGE JS --------------------------------
 let _shopGalleryFiles = [];   // [{dataUrl, file}]
 let _shopColorImages  = {};   // {color: {dataUrl, file}}
 
@@ -11151,7 +11177,7 @@ function shopRenderGalleryPreview() {
   grid.innerHTML = _shopGalleryFiles.map((g,i) => `
     <div style="position:relative;aspect-ratio:1;border-radius:4px;overflow:hidden;background:#1a1a1a;border:1px solid rgba(255,255,255,0.1)">
       <img src="${g.dataUrl}" style="width:100%;height:100%;object-fit:cover">
-      <button onclick="shopRemoveGalleryImg(${i})" style="position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;background:rgba(244,67,54,0.9);border:none;color:#fff;font-size:11px;cursor:pointer;line-height:1">✕</button>
+      <button onclick="shopRemoveGalleryImg(${i})" style="position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;background:rgba(244,67,54,0.9);border:none;color:#fff;font-size:11px;cursor:pointer;line-height:1">-</button>
     </div>
   `).join('');
 }
@@ -11187,7 +11213,7 @@ function shopRenderColorImgList() {
         </div>
         <span style="flex:1;font-size:12px;font-weight:600;color:#fff">${color}</span>
         <button onclick="shopChooseColorImg('${color}')" style="font-size:10px;padding:3px 8px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#ccc;border-radius:3px;cursor:pointer">Chọn Ảnh</button>
-        <button onclick="shopRemoveColorSlot('${color}')" style="width:20px;height:20px;border-radius:50%;background:rgba(244,67,54,0.7);border:none;color:#fff;font-size:11px;cursor:pointer">✕</button>
+        <button onclick="shopRemoveColorSlot('${color}')" style="width:20px;height:20px;border-radius:50%;background:rgba(244,67,54,0.7);border:none;color:#fff;font-size:11px;cursor:pointer">-</button>
       </div>
     `;
   }).join('');
@@ -11325,7 +11351,7 @@ async function adminSaveProduct() {
         });
       } catch(_) {}
     }
-    showToast('Thành Công ✅', isEdit ? 'Đã cập nhật sản phẩm' : 'Đã thêm sản phẩm mới');
+    showToast('Thành Công -', isEdit ? 'Đã cập nhật sản phẩm' : 'Đã thêm sản phẩm mới');
     shopHideProdForm();
     adminLoadProducts();
   } catch(e) {
@@ -11353,11 +11379,11 @@ async function adminLoadReviews() {
     if (sub) sub.textContent = `${choDuyet} đánh giá chờ duyệt — Rating trung bình: ${avgStar}⭐`;
     if (!data.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--gray-light)">Chưa có đánh giá nào</td></tr>'; return; }
     tbody.innerHTML = data.map(d => {
-      const stars = '★'.repeat(d.sosao||0) + '☆'.repeat(5-(d.sosao||0));
+      const stars = '-'.repeat(d.sosao||0) + '-'.repeat(5-(d.sosao||0));
       const status = d.trangthai === 'Đã duyệt'
-        ? '<span class="db-status status-done">✅ Đã Duyệt</span>'
+        ? '<span class="db-status status-done">- Đã Duyệt</span>'
         : d.trangthai === 'Từ chối'
-        ? '<span class="db-status status-cancel">❌ Từ Chối</span>'
+        ? '<span class="db-status status-cancel">- Từ Chối</span>'
         : '<span class="db-status status-pending">⏳ Chờ Duyệt</span>';
       const actions = d.trangthai === 'Chờ duyệt'
         ? `<button class="db-btn-sm primary" onclick="adminDuyetDG(${d.id})">Duyệt</button>
@@ -11379,7 +11405,7 @@ async function adminLoadReviews() {
 async function adminDuyetDG(id) {
   await fetch(`/api/admin/danhgia/${id}/duyet`, { method:'PATCH', headers: adminHeaders() });
   adminLoadReviews();
-  showToast('Đã Duyệt ✅', 'Đánh giá đã hiển thị công khai');
+  showToast('Đã Duyệt -', 'Đánh giá đã hiển thị công khai');
 }
 async function adminDuyetTatCaDG() {
   const tbody = document.getElementById('reviews-tbody');
@@ -11389,13 +11415,13 @@ async function adminDuyetTatCaDG() {
   const ids = Array.from(rows).map(b => b.getAttribute('onclick').match(/\d+/)?.[0]).filter(Boolean);
   await Promise.all(ids.map(id => fetch(`/api/admin/danhgia/${id}/duyet`, { method:'PATCH', headers:adminHeaders() })));
   adminLoadReviews();
-  showToast('Đã Duyệt Tất Cả ✅', `${ids.length} đánh giá đã duyệt`);
+  showToast('Đã Duyệt Tất Cả -', `${ids.length} đánh giá đã duyệt`);
 }
 
 async function adminTuChoiDG(id) {
   await fetch(`/api/admin/danhgia/${id}/tuchoi`, { method:'PATCH', headers: adminHeaders() });
   adminLoadReviews();
-  showToast('Đã Từ Chối ❌', 'Đánh giá đã bị ẩn');
+  showToast('Đã Từ Chối -', 'Đánh giá đã bị ẩn');
 }
 
 // ============================================================
@@ -11437,7 +11463,7 @@ async function adminLoadFinance() {
             <span>💸 Chi phí</span><strong style="color:#f44336">${fmt(d.tongChi)}</strong>
           </div>
           <div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:8px">
-            <span>✅ Lợi nhuận</span><strong style="color:#4caf50">${fmt(d.loiNhuan > 0 ? d.loiNhuan : 0)}</strong>
+            <span>- Lợi nhuận</span><strong style="color:#4caf50">${fmt(d.loiNhuan > 0 ? d.loiNhuan : 0)}</strong>
           </div>
           <div style="display:flex;justify-content:space-between">
             <span>📦 Số đơn hàng</span><strong>${d.soHoaDon||0} đơn</strong>
@@ -11523,7 +11549,7 @@ async function adminLoadReports() {
 
     // Theo trạng thái
     if (el('rpt-status-tbody')) {
-      const statusIcon = {'Đã giao':'✅','Chờ xử lý':'⏳','Đang giao':'🚚','Đã hủy':'❌'};
+      const statusIcon = {'Đã giao':'-','Chờ xử lý':'⏳','Đang giao':'🚚','Đã hủy':'-'};
       el('rpt-status-tbody').innerHTML = d.theoTrangThai.length
         ? d.theoTrangThai.map(t => `<tr>
             <td>${statusIcon[t.trangthai]||'📦'} ${t.trangthai}</td>
@@ -14108,10 +14134,10 @@ const SA = {
           <td style="font-size:12px">${s.email||s.Email||'--'}</td>
           <td style="font-size:12px">${sdt}</td>
           <td><span style="color:${roleColors[role]||'var(--gray-light)'};font-weight:700">${roleIcons[role]||role}</span></td>
-          <td><span class="db-status ${active?'status-done':'status-cancel'}">● ${status}</span></td>
+          <td><span class="db-status ${active?'status-done':'status-cancel'}">- ${status}</span></td>
           <td style="font-size:12px;color:var(--gray-light)">${ngay}</td>
           <td style="display:flex;gap:4px;flex-wrap:wrap">
-            <button class="db-btn-sm" onclick="saOpenEditUser(${id})">✏️ Sửa</button>
+            <button class="db-btn-sm" onclick="saOpenEditUser(${id})">-️ Sửa</button>
             ${role!=='admin'?`
             <button class="db-btn-sm" style="color:${active?'#f44336':'#4caf50'};border-color:rgba(${active?'244,67,54':'76,175,80'},.35)"
               onclick="saToggleUser(${id},'${status}')">${active?'🔒 Khóa':'🔓 Mở'}</button>
@@ -14149,7 +14175,7 @@ const SA = {
           <td style="font-size:12px">${p.danhmuc||p.DanhMuc||'--'}</td>
           <td style="font-weight:700;color:var(--red)">${typeof fmtMoney==='function'?fmtMoney(p.giaban||p.GiaBan):'--'}</td>
           <td><span style="color:${tc};font-weight:700">${ton}</span></td>
-          <td><span class="db-status ${tt==='Ẩn'?'status-cancel':'status-done'}">${tt==='Ẩn'?'🙈 Ẩn':'✅ Đang Bán'}</span></td>
+          <td><span class="db-status ${tt==='Ẩn'?'status-cancel':'status-done'}">${tt==='Ẩn'?'🙈 Ẩn':'- Đang Bán'}</span></td>
         </tr>`;
       }).join('');
     } catch(e) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#f44336;padding:16px">Lỗi: ${e.message}</td></tr>`; }
@@ -14169,7 +14195,7 @@ const SA = {
       if(cards[2]) cards[2].textContent = rows.filter(o=>(o.trangthai||'').includes('giao')).length;
       if(cards[3]) cards[3].textContent = rows.filter(o=>(o.trangthai||'').includes('thành')).length;
       if (!rows.length) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--gray-light)">Chưa có đơn hàng</td></tr>'; return; }
-      const sm = {'Chờ xử lý':['⏳','status-pending'],'Đã xác nhận':['✅','status-done'],'Đang giao':['🚚','status-shipping'],'Hoàn thành':['✅','status-done'],'Đã hủy':['❌','status-cancel']};
+      const sm = {'Chờ xử lý':['⏳','status-pending'],'Đã xác nhận':['-','status-done'],'Đang giao':['🚚','status-shipping'],'Hoàn thành':['-','status-done'],'Đã hủy':['-','status-cancel']};
       tbody.innerHTML = rows.map(o => {
         const tt = o.trangthai||o.TrangThai||'Chờ xử lý';
         const [ico,cls] = sm[tt]||['⏳','status-pending'];
@@ -14185,7 +14211,7 @@ const SA = {
           <td style="font-size:11px;color:var(--gray-light)">${o.ngayban||o.NgayBan?new Date(o.ngayban||o.NgayBan).toLocaleDateString('vi-VN'):'--'}</td>
           <td colspan="2" style="display:flex;gap:4px;flex-wrap:wrap">
             <button class="db-btn-sm" onclick="adminOrderDetail('${ma}')">Xem</button>
-            ${tt==='Chờ xử lý'?`<button class="db-btn-sm primary" onclick="adminQuickStatus('${ma}','Đã xác nhận')">✓ Duyệt</button>`:''}
+            ${tt==='Chờ xử lý'?`<button class="db-btn-sm primary" onclick="adminQuickStatus('${ma}','Đã xác nhận')">- Duyệt</button>`:''}
           </td></tr>`;
       }).join('');
     } catch(e) { tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#f44336;padding:16px">Lỗi: ${e.message}</td></tr>`; }
@@ -14218,11 +14244,11 @@ const SA = {
           <td><span style="font-size:15px">📂</span> <b>${ten}</b></td>
           <td style="color:var(--gray-light);font-size:12px;font-family:monospace">${ma}</td>
           <td style="font-size:12px;color:var(--gray-light);max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${mota||'—'}</td>
-          <td><span class="db-status ${active?'status-done':'status-cancel'}">● ${active?'Hoạt Động':'Ẩn'}</span></td>
+          <td><span class="db-status ${active?'status-done':'status-cancel'}">- ${active?'Hoạt Động':'Ẩn'}</span></td>
           <td style="display:flex;gap:5px;flex-wrap:wrap">
-            <button class="db-btn-sm" onclick="saOpenEditCat('${id}')">✏️ Sửa</button>
+            <button class="db-btn-sm" onclick="saOpenEditCat('${id}')">-️ Sửa</button>
             <button class="db-btn-sm" style="color:${active?'#ff9800':'#4caf50'};border-color:rgba(${active?'255,152,0':'76,175,80'},.35)"
-              onclick="saToggleCat('${id}','${tt}')">${active?'🙈 Ẩn':'✅ Hiện'}</button>
+              onclick="saToggleCat('${id}','${tt}')">${active?'🙈 Ẩn':'- Hiện'}</button>
             <button class="db-btn-sm" style="color:#f44336;border-color:rgba(244,67,54,.3)"
               onclick="saDeleteCat('${id}','${tenEsc}')">🗑️ Xóa</button>
           </td>
@@ -14261,9 +14287,9 @@ const SA = {
   }).observe(saDiv, {attributes:true, attributeFilter:['class']});
 })();
 
-// ── MỞ FORM TẠO MỚI ──────────────────────────────────────────
+// -- MỞ FORM TẠO MỚI ------------------------------------------
 function saOpenCreateUser() {
-  document.getElementById('sa-user-form-title').textContent = '➕ Tạo Tài Khoản Mới';
+  document.getElementById('sa-user-form-title').textContent = '- Tạo Tài Khoản Mới';
   document.getElementById('sa-user-edit-id').value = '';
   document.getElementById('sa-u-hoten').value    = '';
   document.getElementById('sa-u-email').value    = '';
@@ -14281,13 +14307,13 @@ function saOpenCreateUser() {
   document.getElementById('sa-u-hoten').focus();
 }
 
-// ── MỞ FORM SỬA ──────────────────────────────────────────────
+// -- MỞ FORM SỬA ----------------------------------------------
 async function saOpenEditUser(id) {
   const list = window._saUsersList || [];
   const user = list.find(s => (s.idnguoiquanly||s.IDNguoiQuanLy) == id);
   if (!user) { showToast('Lỗi', 'Không tìm thấy user'); return; }
 
-  document.getElementById('sa-user-form-title').textContent = `✏️ Sửa Tài Khoản — ${user.hoten||user.HoTen}`;
+  document.getElementById('sa-user-form-title').textContent = `-️ Sửa Tài Khoản — ${user.hoten||user.HoTen}`;
   document.getElementById('sa-user-edit-id').value  = id;
   document.getElementById('sa-u-hoten').value        = user.hoten||user.HoTen||'';
   document.getElementById('sa-u-email').value        = user.email||user.Email||'';
@@ -14308,7 +14334,7 @@ function saCloseUserForm() {
   document.getElementById('sa-user-form').style.display = 'none';
 }
 
-// ── LƯU (TẠO / SỬA) ──────────────────────────────────────────
+// -- LƯU (TẠO / SỬA) ------------------------------------------
 async function saSubmitUser() {
   const editId   = document.getElementById('sa-user-edit-id').value;
   const isEdit   = !!editId;
@@ -14350,7 +14376,7 @@ async function saSubmitUser() {
       return;
     }
     saCloseUserForm();
-    showToast(isEdit ? 'Đã Cập Nhật ✅' : 'Tạo Thành Công ✅', hoten + ' — ' + vaitro);
+    showToast(isEdit ? 'Đã Cập Nhật -' : 'Tạo Thành Công -', hoten + ' — ' + vaitro);
     SA.loadUsers();
   } catch(e) {
     errEl.textContent = 'Lỗi kết nối: ' + e.message;
@@ -14361,7 +14387,7 @@ async function saSubmitUser() {
   }
 }
 
-// ── KHÓA / MỞ KHÓA ───────────────────────────────────────────
+// -- KHÓA / MỞ KHÓA -------------------------------------------
 async function saToggleUser(id, currentStatus) {
   const newStatus = currentStatus === 'Hoạt động' ? 'Khóa' : 'Hoạt động';
   const action = newStatus === 'Khóa' ? 'Khóa' : 'Mở khóa';
@@ -14386,7 +14412,7 @@ async function saToggleUser(id, currentStatus) {
   } catch(e) { showToast('Lỗi', e.message); }
 }
 
-// ── XÓA ──────────────────────────────────────────────────────
+// -- XÓA ------------------------------------------------------
 async function saDeleteUser(id, name) {
   if (!confirm(`Xóa vĩnh viễn tài khoản "${name}"?\nHành động này không thể hoàn tác.`)) return;
   try {
@@ -14398,7 +14424,7 @@ async function saDeleteUser(id, name) {
   } catch(e) { showToast('Lỗi', e.message); }
 }
 
-// ── XUẤT CSV ─────────────────────────────────────────────────
+// -- XUẤT CSV -------------------------------------------------
 function saExportUsers() {
   const list = window._saUsersList || [];
   if (!list.length) { showToast('Không có dữ liệu', 'Vui lòng tải danh sách trước'); return; }
@@ -14422,7 +14448,7 @@ function saExportUsers() {
   showToast('📊 Xuất Thành Công', `${list.length} tài khoản → NhanVien_${new Date().toISOString().slice(0,10)}.csv`);
 }
 
-// ── LỌC THEO TÊN/EMAIL ───────────────────────────────────────
+// -- LỌC THEO TÊN/EMAIL ---------------------------------------
 function saFilterUsersTable(q) {
   q = q.toLowerCase();
   document.querySelectorAll('#sa-users-tbody tr').forEach(tr => {
@@ -14690,10 +14716,10 @@ async function saLoadOrders() {
     } else {
       const sm = {
         'Chờ xử lý':   ['⏳ Chờ XL',     'status-pending'],
-        'Đã xác nhận': ['✅ Xác Nhận',   'status-done'],
+        'Đã xác nhận': ['- Xác Nhận',   'status-done'],
         'Đang giao':   ['🚚 Đang Giao',  'status-shipping'],
-        'Hoàn thành':  ['✅ Hoàn Thành', 'status-done'],
-        'Đã hủy':      ['❌ Đã Hủy',    'status-cancel'],
+        'Hoàn thành':  ['- Hoàn Thành', 'status-done'],
+        'Đã hủy':      ['- Đã Hủy',    'status-cancel'],
         'Hoàn trả':    ['↩️ Hoàn Trả',   'status-cancel'],
       };
       tbody.innerHTML = rows.map(o => {
@@ -14708,14 +14734,14 @@ async function saLoadOrders() {
         // SA action buttons theo trạng thái
         let actions = '';
         if (tts === 'Chờ xử lý')
-          actions += '<button class="db-btn-sm primary" title="Duyệt" onclick="saQuickOrderStatus(\'' + ma + '\',\'Đã xác nhận\')">✓</button>' +
-                     '<button class="db-btn-sm" style="color:#f44" title="Hủy" onclick="saQuickOrderStatus(\'' + ma + '\',\'Đã hủy\')">✗</button>';
+          actions += '<button class="db-btn-sm primary" title="Duyệt" onclick="saQuickOrderStatus(\'' + ma + '\',\'Đã xác nhận\')">-</button>' +
+                     '<button class="db-btn-sm" style="color:#f44" title="Hủy" onclick="saQuickOrderStatus(\'' + ma + '\',\'Đã hủy\')">-</button>';
         else if (tts === 'Đã xác nhận')
           actions += '<button class="db-btn-sm primary" onclick="saQuickOrderStatus(\'' + ma + '\',\'Đang giao\')">🚚 Giao</button>';
         else if (tts === 'Đang giao')
-          actions += '<button class="db-btn-sm primary" onclick="saQuickOrderStatus(\'' + ma + '\',\'Hoàn thành\')">✅ Xong</button>';
+          actions += '<button class="db-btn-sm primary" onclick="saQuickOrderStatus(\'' + ma + '\',\'Hoàn thành\')">- Xong</button>';
         else if (tts === 'Đã hủy')
-          actions += '<button class="db-btn-sm" onclick="saQuickOrderStatus(\'' + ma + '\',\'Chờ xử lý\')">♻️ Khôi Phục</button>';
+          actions += '<button class="db-btn-sm" onclick="saQuickOrderStatus(\'' + ma + '\',\'Chờ xử lý\')">-️ Khôi Phục</button>';
         actions += '<button class="db-btn-sm" onclick="adminOrderDetail(\'' + ma + '\')">🔍</button>';
 
         return '<tr id="sa-order-row-' + ma + '">' +
@@ -14757,7 +14783,7 @@ async function saQuickOrderStatus(ma, status) {
     const res  = await fetch('/api/admin/hoadon/' + ma + '/status', { method:'PUT', headers:SA.h(), body:JSON.stringify({TrangThai:status}) });
     const json = await res.json();
     if (!res.ok) { showToast('Lỗi', json.error); if (row) row.style.opacity='1'; return; }
-    showToast('✅ Cập Nhật', 'Đơn ' + ma + ' → ' + status);
+    showToast('- Cập Nhật', 'Đơn ' + ma + ' → ' + status);
     saLoadOrders();
   } catch(e) { showToast('Lỗi', e.message); if (row) row.style.opacity='1'; }
 }
@@ -14797,7 +14823,7 @@ function saExportAllOrders() {
   showToast('📊 Xuất Thành Công', 'File CSV đã tải xuống');
 }
 
-// ── SA FINANCE ───────────────────────────────────────────────
+// -- SA FINANCE -----------------------------------------------
 async function saLoadFinance() {
   try {
     const [tkRes, dhRes] = await Promise.all([
@@ -15011,12 +15037,12 @@ async function imgSearchSubmit() {
     }
     if (json.fallback) {
       status.style.color = '#ff9800';
-      status.textContent = '⚠️ Chưa cấu hình Gemini API — hiện toàn bộ sản phẩm';
+      status.textContent = '-️ Chưa cấu hình Gemini API — hiện toàn bộ sản phẩm';
       setTimeout(() => { imgSearchClose(); document.getElementById('products')?.scrollIntoView({behavior:'smooth'}); }, 1000);
       return;
     }
     status.style.color = '#4caf50';
-    status.textContent = '✅ ' + json.description;
+    status.textContent = '- ' + json.description;
     setTimeout(() => {
       imgSearchClose();
       const input = document.getElementById('productSearchInput');
@@ -15036,7 +15062,7 @@ document.addEventListener('click', function(e) {
   if (modal && e.target === modal) imgSearchClose();
 });
 
-// ── SA IMPORT EXCEL ──────────────────────────────────────────
+// -- SA IMPORT EXCEL ------------------------------------------
 let _saImportFile = null;
 
 function saToggleImportPanel() {
@@ -15107,7 +15133,7 @@ async function saImportSubmit() {
 
     if (!response.ok) {
       res.style.cssText = 'display:block;background:rgba(244,67,54,0.1);border:1px solid rgba(244,67,54,0.3);border-radius:6px;padding:12px;font-size:13px;color:#f44336;margin-bottom:14px';
-      res.textContent = '❌ Lỗi: ' + (json.error || 'Không thể import');
+      res.textContent = '- Lỗi: ' + (json.error || 'Không thể import');
       return;
     }
 
@@ -15115,11 +15141,11 @@ async function saImportSubmit() {
     res.style.cssText = 'display:block;background:rgba(76,175,80,0.1);border:1px solid rgba(76,175,80,0.3);border-radius:6px;padding:12px;font-size:13px;margin-bottom:14px';
     res.innerHTML = `
       <div style="font-weight:700;color:${color};margin-bottom:8px">
-        ${json.failed === 0 ? '✅' : '⚠️'} Import hoàn tất
+        ${json.failed === 0 ? '-' : '-️'} Import hoàn tất
       </div>
-      <div>✅ Thêm thành công: <b style="color:#4caf50">${json.imported}</b> sản phẩm</div>
+      <div>- Thêm thành công: <b style="color:#4caf50">${json.imported}</b> sản phẩm</div>
       <div>⏭️ Bỏ qua (đã tồn tại): <b style="color:#ff9800">${json.skipped}</b></div>
-      <div>❌ Lỗi: <b style="color:#f44336">${json.failed}</b></div>
+      <div>- Lỗi: <b style="color:#f44336">${json.failed}</b></div>
       ${json.details?.errors?.length ? '<div style="margin-top:8px;font-size:11px;color:#f44336">' +
         json.details.errors.slice(0,3).map(e => 'Dòng ' + e.line + ': ' + e.reason).join('<br>') + '</div>' : ''}
     `;
@@ -15127,7 +15153,7 @@ async function saImportSubmit() {
 
   } catch(e) {
     res.style.cssText = 'display:block;background:rgba(244,67,54,0.1);border:1px solid rgba(244,67,54,0.3);border-radius:6px;padding:12px;font-size:13px;color:#f44336;margin-bottom:14px';
-    res.textContent = '❌ Lỗi kết nối: ' + e.message;
+    res.textContent = '- Lỗi kết nối: ' + e.message;
   } finally {
     btn.disabled = false; btn.textContent = '⬆️ Upload & Import';
   }
@@ -15345,6 +15371,124 @@ function svnStartPoll() {
 if (svnSid) {
   document.addEventListener('DOMContentLoaded', function() { svnShowConv(); });
 }
+</script>
+
+<button id="svc-btn" onclick="svcToggle()">&#128172;<span id="svc-dot"></span></button>
+<div id="svc-box">
+  <div class="svc-hdr">
+    <div style="display:flex;align-items:center;gap:9px">
+      <div class="svc-avt">&#129302;</div>
+      <div><div class="svc-hn">SneakerVN AI</div><div class="svc-hs">Tu van 24/7</div></div>
+    </div>
+    <button class="svc-xb" onclick="svcToggle()">&#10005;</button>
+  </div>
+  <div id="svc-start">
+    <p>Xin chao! Toi la AI tu van cua <strong style="color:#e62020">SneakerVN</strong>.<br>Cho toi biet ten ban nhe!</p>
+    <input id="svc-gn" placeholder="Ho ten cua ban" onkeydown="if(event.key==='Enter')svcStart()">
+    <input id="svc-ge" placeholder="Email (tuy chon)" type="email">
+    <button onclick="svcStart()">Bat Dau Tu Van</button>
+  </div>
+  <div id="svc-conv" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+    <div id="svc-msgs"></div>
+    <div id="svc-iw">
+      <textarea id="svc-i" rows="1" placeholder="Hoi ve san pham, size, gia..."
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();svcSend()}"
+        oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,70)+'px'"></textarea>
+      <button id="svc-sb" onclick="svcSend()">&#10148;</button>
+    </div>
+  </div>
+</div>
+<script>
+var svcSid=localStorage.getItem('svn_chat_sid'),svcLast=0,svcPoll=null,svcBusy=false;
+
+function svcToggle(){
+  var b=document.getElementById('svc-box');
+  if(b.classList.contains('open')){
+    b.classList.remove('open');
+    if(svcPoll){clearInterval(svcPoll);svcPoll=null;}
+  } else {
+    b.classList.add('open');
+    document.getElementById('svc-dot').style.display='none';
+    if(svcSid){svcShowConv();svcLoadHist();svcPoll=setInterval(svcPollFn,5000);}
+    else setTimeout(function(){var e=document.getElementById('svc-gn');if(e)e.focus();},150);
+  }
+}
+
+function svcShowConv(){
+  document.getElementById('svc-start').style.display='none';
+  var c=document.getElementById('svc-conv');
+  c.style.display='flex';c.style.flexDirection='column';c.style.flex='1';c.style.overflow='hidden';
+}
+
+function svcStart(){
+  var n=(document.getElementById('svc-gn').value||'').trim()||'Khach';
+  var e=(document.getElementById('svc-ge').value||'').trim();
+  fetch('/api/chat/session',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({guest_name:n,guest_email:e})})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(!d.session){alert(d.error||'Loi');return;}
+    svcSid=d.session.id;localStorage.setItem('svn_chat_sid',svcSid);
+    svcShowConv();
+    svcAdd('a','Xin chao '+n+'! Toi la AI tu van SneakerVN. Ban can ho tro gi ve giay sneaker?');
+    svcPoll=setInterval(svcPollFn,5000);
+  })
+  .catch(function(e){alert('Loi: '+e.message);});
+}
+
+function svcSend(){
+  if(svcBusy||!svcSid)return;
+  var i=document.getElementById('svc-i'),msg=(i.value||'').trim();if(!msg)return;
+  i.value='';i.style.height='auto';
+  svcAdd('u',msg);svcBusy=true;
+  var t=document.createElement('div');t.className='svc-typ';t.id='svc-typ';t.textContent='AI dang soan...';
+  var w=document.getElementById('svc-msgs');w.appendChild(t);w.scrollTop=99999;
+  fetch('/api/chat/message',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({session_id:svcSid,message:msg})})
+  .then(function(r){return r.json();})
+  .then(function(d){var t=document.getElementById('svc-typ');if(t)t.remove();svcAdd('a',d.reply||'Xin loi!');svcBusy=false;})
+  .catch(function(){var t=document.getElementById('svc-typ');if(t)t.remove();svcAdd('a','Loi ket noi!');svcBusy=false;});
+}
+
+function svcLoadHist(){
+  if(!svcSid)return;
+  fetch('/api/chat/session/'+svcSid+'/messages')
+  .then(function(r){return r.json();})
+  .then(function(ms){
+    if(!Array.isArray(ms)||!ms.length)return;
+    document.getElementById('svc-msgs').innerHTML='';
+    ms.forEach(function(m){svcAdd(m.sender==='guest'?'u':'a',m.message,m.created_at);if(m.id>svcLast)svcLast=m.id;});
+  }).catch(function(){});
+}
+
+function svcAdd(who,text,time){
+  var w=document.getElementById('svc-msgs');if(!w)return;
+  var d=document.createElement('div');d.style.cssText='display:flex;flex-direction:column';
+  if(who==='a'){var l=document.createElement('div');l.className='svc-lbl';l.textContent='SneakerVN AI';d.appendChild(l);}
+  var b=document.createElement('div');b.className='svc-m '+who;
+  var s=document.createElement('span');s.textContent=text;b.innerHTML=s.innerHTML;
+  if(time){var ts=document.createElement('div');ts.style.cssText='font-size:10px;opacity:.5;margin-top:3px';
+    ts.textContent=new Date(time).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'});b.appendChild(ts);}
+  d.appendChild(b);w.appendChild(d);w.scrollTop=w.scrollHeight;
+}
+
+function svcPollFn(){
+  if(!svcSid||svcBusy)return;
+  fetch('/api/chat/session/'+svcSid+'/messages')
+  .then(function(r){return r.json();})
+  .then(function(ms){
+    if(!Array.isArray(ms))return;
+    ms.forEach(function(m){
+      if(m.id>svcLast){
+        svcAdd(m.sender==='guest'?'u':'a',m.message,m.created_at);svcLast=m.id;
+        var b=document.getElementById('svc-box');
+        if(!b||!b.classList.contains('open'))document.getElementById('svc-dot').style.display='block';
+      }
+    });
+  }).catch(function(){});
+}
+
+if(svcSid)document.addEventListener('DOMContentLoaded',function(){svcShowConv();});
 </script>
 </body>
 

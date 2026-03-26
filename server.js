@@ -361,7 +361,7 @@ app.post("/api/search/image", async (req, res) => {
 
     // Lấy danh sách thương hiệu từ DB
     const brandsRes = await pool.query(
-      "SELECT DISTINCT ThuongHieu as hang FROM SanPham WHERE TinhTrang != 'Ẩn' ORDER BY ThuongHieu"
+      "SELECT DISTINCT ThuongHieu as hang FROM SanPham WHERE TinhTrang != 'Ẩn' ORDER BY hang"
     );
     const brands = brandsRes.rows.map(r => r.hang).join(', ');
 

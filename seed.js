@@ -35,7 +35,7 @@ async function seed() {
   ];
   for (const s of staffAccounts) {
     try {
-      const ex = await pool.query('SELECT IDNguoiQuanLy FROM NguoiQuanLy WHERE Email=$1',[s.Email]);
+      const ex = await pool.query('SELECT idnguoiquanly FROM nguoiquanly WHERE email=$1',[s.Email]);
       if (ex.rows.length) {
         await pool.query(
           'UPDATE NguoiQuanLy SET HoTen=$1,MatKhau=$2,VaiTro=$3,TrangThai=\'Hoạt động\' WHERE Email=$4',
@@ -44,7 +44,7 @@ async function seed() {
         console.log(`  🔄 Cập nhật: ${s.Email} / ${s.MatKhau} [${s.VaiTro}]`);
       } else {
         await pool.query(
-          `INSERT INTO NguoiQuanLy (HoTen,Email,SoDienThoai,MatKhau,VaiTro,TrangThai,NgayTao)
+          `INSERT INTO nguoiquanly (hoten,email,sodienthoai,matkhau,vaitro,trangthai,ngaytao)
            VALUES ($1,$2,'0900000000',$3,$4,'Hoạt động',NOW())`,
           [s.HoTen, s.Email, hashPw(s.MatKhau), s.VaiTro]
         );
@@ -64,10 +64,10 @@ async function seed() {
   ];
   for (const m of members) {
     try {
-      const ex = await pool.query('SELECT CustomerID FROM KhachHang WHERE Email=$1',[m.Email]);
+      const ex = await pool.query('SELECT customerid FROM khachhang WHERE email=$1',[m.Email]);
       if (ex.rows.length) { console.log(`  ⏭  ${m.Email} — đã tồn tại`); continue; }
       await pool.query(
-        `INSERT INTO KhachHang (HoTen,Email,SoDienThoai,DiaChi,MatKhau,NgayTao)
+        `INSERT INTO khachhang (hoten,email,sodienthoai,diachi,matkhau,ngaytao)
          VALUES ($1,$2,$3,$4,$5,NOW())`,
         [m.HoTen, m.Email, m.SoDienThoai, m.DiaChi, hashPw(m.MatKhau)]
       );
@@ -88,10 +88,10 @@ async function seed() {
   ];
   for (const c of cats) {
     try {
-      const ex = await pool.query('SELECT 1 FROM DanhMuc WHERE Ma=$1',[c.Ma]);
+      const ex = await pool.query('SELECT 1 FROM danhmuc WHERE ma=$1',[c.Ma]);
       if (ex.rows.length) { console.log(`  ⏭  ${c.Ten} — đã tồn tại`); continue; }
       await pool.query(
-        `INSERT INTO DanhMuc (Ten,Ma,Mota,TrangThai) VALUES ($1,$2,$3,'Hoat dong')`,
+        `INSERT INTO danhmuc (ten,ma,mota,trangthai) VALUES ($1,$2,$3,'Hoat dong')`,
         [c.Ten, c.Ma, c.Mota]
       );
       console.log(`  ✅ ${c.Ten}`);
@@ -136,20 +136,20 @@ async function seed() {
   let inserted = 0, updated = 0;
   for (const p of products) {
     try {
-      const ex = await pool.query('SELECT MaSanPham FROM SanPham WHERE MaSanPham=$1',[p.MaSanPham]);
+      const ex = await pool.query('SELECT masanpham FROM sanpham WHERE masanpham=$1',[p.MaSanPham]);
       if (ex.rows.length) {
         await pool.query(
-          `UPDATE SanPham SET TenSanPham=$1,ThuongHieu=$2,DanhMuc=$3,GiaNhap=$4,GiaBan=$5,
-           Size=$6,MauSac=$7,SoLuongTon=$8,SKU=$9,MoTaSanPham=$10,TinhTrang=$11
-           WHERE MaSanPham=$12`,
+          `UPDATE sanpham SET tensanpham=$1,thuonghieu=$2,madanhmuc=$3,gianhap=$4,giaban=$5,
+           size=$6,mausac=$7,soluongton=$8,sku=$9,motasanpham=$10,tinhtrang=$11
+           WHERE masanpham=$12`,
           [p.TenSanPham,p.ThuongHieu,p.DanhMuc,p.GiaNhap,p.GiaBan,
            p.Size,p.MauSac,p.SoLuongTon,p.SKU,p.MoTaSanPham,p.TinhTrang,p.MaSanPham]
         );
         updated++;
       } else {
         await pool.query(
-          `INSERT INTO SanPham (MaSanPham,TenSanPham,ThuongHieu,DanhMuc,GiaNhap,GiaBan,
-           Size,MauSac,SoLuongTon,SKU,MoTaSanPham,TinhTrang)
+          `INSERT INTO sanpham (masanpham,tensanpham,thuonghieu,madanhmuc,gianhap,giaban,
+           size,mausac,soluongton,sku,motasanpham,tinhtrang)
            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
           [p.MaSanPham,p.TenSanPham,p.ThuongHieu,p.DanhMuc,p.GiaNhap,p.GiaBan,
            p.Size,p.MauSac,p.SoLuongTon,p.SKU,p.MoTaSanPham,p.TinhTrang]
@@ -177,17 +177,17 @@ async function seed() {
 
   for (const o of orders) {
     try {
-      const ex = await pool.query('SELECT 1 FROM HoaDonBanHang WHERE MaHoaDon=$1',[o.MaHoaDon]);
+      const ex = await pool.query('SELECT 1 FROM hoadonbanhang WHERE mahoadon=$1',[o.MaHoaDon]);
       if (ex.rows.length) { console.log(`  ⏭  ${o.MaHoaDon} — đã tồn tại`); continue; }
       await pool.query(
-        `INSERT INTO HoaDonBanHang
-         (MaHoaDon,HoTenNguoiNhan,SoDienThoaiNhan,DiaChiGiao,TongTien,PhuongThucTT,TrangThai,NgayBan)
+        `INSERT INTO hoadonbanhang
+         (mahoadon,hotennguoinhan,sodienthoainhan,diachigiao,tongtien,phuongthuctt,trangthai,ngayban)
          VALUES ($1,$2,$3,$4,$5,$6,$7,NOW() - (random()*30)::int * INTERVAL '1 day')`,
         [o.MaHoaDon,o.ten,o.sdt,o.dia,o.tong,o.pttt,o.tt]
       );
       // Chi tiết đơn hàng
       await pool.query(
-        `INSERT INTO CHI_TIET_HOA_DON (MaHoaDon,MaSanPham,SoLuong,DonGia,Size,MauSac)
+        `INSERT INTO chi_tiet_hoa_don (mahoadon,masanpham,soluong,dongia,size,mausac)
          VALUES ($1,$2,$3,$4,'42','Mặc định')`,
         [o.MaHoaDon, o.maSP, o.sl, Math.round(o.tong/o.sl)]
       );
@@ -199,11 +199,11 @@ async function seed() {
   // TỔNG KẾT
   // ══════════════════════════════════════════════════════
   const [spCount, khCount, dhCount, nvCount, dmCount] = await Promise.all([
-    pool.query('SELECT COUNT(*) FROM SanPham'),
-    pool.query('SELECT COUNT(*) FROM KhachHang'),
-    pool.query('SELECT COUNT(*) FROM HoaDonBanHang'),
-    pool.query('SELECT COUNT(*) FROM NguoiQuanLy'),
-    pool.query('SELECT COUNT(*) FROM DanhMuc'),
+    pool.query('SELECT COUNT(*) FROM sanpham'),
+    pool.query('SELECT COUNT(*) FROM khachhang'),
+    pool.query('SELECT COUNT(*) FROM hoadonbanhang'),
+    pool.query('SELECT COUNT(*) FROM nguoiquanly'),
+    pool.query('SELECT COUNT(*) FROM danhmuc'),
   ]);
 
   console.log(`
@@ -231,4 +231,4 @@ async function seed() {
   await pool.end();
 }
 
-seed().catch(e => { console.error('❌ Seed thất bại:', e.message); process.exit(1); });
+seed().catch(e => { console.error('Seed thất bại:', e.message); process.exit(1); });

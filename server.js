@@ -148,28 +148,28 @@ app.get("/api/health", async (req, res) => {
 // POST /api/auth/register — Khách hàng đăng ký
 app.post("/api/auth/register", async (req, res) => {
   try {
-    const { HoTen, Email, SoDienThoai, MatKhau, DiaChi } = req.body;
-    if (!HoTen || !Email || !MatKhau)
+    const { hoten, email, sodienthoai, matkhau, diachi } = req.body;
+    if (!hoten || !email || !matkhau)
       return res
         .status(400)
         .json({ error: "Thiếu họ tên, email hoặc mật khẩu" });
 
     // Kiểm tra email đã tồn tại
     const exists = await pool.query(
-      "SELECT CustomerID FROM KhachHang WHERE Email=$1",
-      [Email],
+      "SELECT customerid FROM khachhang WHERE email=$1",
+      [email],
     );
     if (exists.rows.length)
-      return res.status(409).json({ error: "Email đã được sử dụng" });
+      return res.status(409).json({ error: "email đã được sử dụng" });
 
     const hashedPw = crypto
       .createHash("sha256")
-      .update(MatKhau + JWT_SECRET)
+      .update(matkhau + JWT_SECRET)
       .digest("hex");
     const r = await pool.query(
-      `INSERT INTO KhachHang (HoTen, Email, SoDienThoai, DiaChi, MatKhau, NgayTao)
-       VALUES ($1,$2,$3,$4,$5,NOW()) RETURNING CustomerID, HoTen, Email, SoDienThoai, DiaChi`,
-      [HoTen, Email, SoDienThoai || "", DiaChi || "", hashedPw],
+      `INSERT INTO khachhang (hoten, email, sodienthoai, diachi, matkhau, ngaytao)
+       VALUES ($1,$2,$3,$4,$5,NOW()) RETURNING customerid, hoten, email, sodienthoai, diachi`,
+      [hoten, email, sodienthoai || "", diachi || "", hashedPw],
     );
     const customer = r.rows[0];
     const token = signJWT({
@@ -186,20 +186,20 @@ app.post("/api/auth/register", async (req, res) => {
 // POST /api/auth/login — Khách hàng đăng nhập
 app.post("/api/auth/login", async (req, res) => {
   try {
-    const { Email, MatKhau } = req.body;
-    if (!Email || !MatKhau)
+    const { email, matkhau } = req.body;
+    if (!email || !matkhau)
       return res.status(400).json({ error: "Thiếu email hoặc mật khẩu" });
 
     const hashedPw = crypto
       .createHash("sha256")
-      .update(MatKhau + JWT_SECRET)
+      .update(matkhau + JWT_SECRET)
       .digest("hex");
     const r = await pool.query(
-      "SELECT CustomerID, HoTen, Email, SoDienThoai, DiaChi FROM KhachHang WHERE Email=$1 AND MatKhau=$2",
-      [Email, hashedPw],
+      "SELECT customerid, hoten, email, sodienthoai, diachi FROM khachhang WHERE email=$1 AND matkhau=$2",
+      [email, hashedPw],
     );
     if (!r.rows.length)
-      return res.status(401).json({ error: "Email hoặc mật khẩu không đúng" });
+      return res.status(401).json({ error: "email hoặc mật khẩu không đúng" });
 
     const customer = r.rows[0];
     const token = signJWT({
@@ -219,7 +219,7 @@ app.get("/api/auth/me", requireLogin, async (req, res) => {
     if (req.user.type !== "customer")
       return res.status(403).json({ error: "Chỉ dành cho khách hàng" });
     const r = await pool.query(
-      "SELECT CustomerID, HoTen, Email, SoDienThoai, DiaChi FROM KhachHang WHERE CustomerID=$1",
+      "SELECT customerid, hoten, email, sodienthoai, diachi FROM khachhang WHERE customerid=$1",
       [req.user.id],
     );
     if (!r.rows.length)
@@ -235,10 +235,10 @@ app.put("/api/auth/me", requireLogin, async (req, res) => {
   try {
     if (req.user.type !== "customer")
       return res.status(403).json({ error: "Chỉ dành cho khách hàng" });
-    const { HoTen, SoDienThoai, DiaChi } = req.body;
+    const { hoten, sodienthoai, diachi } = req.body;
     const r = await pool.query(
-      "UPDATE KhachHang SET HoTen=$1, SoDienThoai=$2, DiaChi=$3 WHERE CustomerID=$4 RETURNING CustomerID, HoTen, Email, SoDienThoai, DiaChi",
-      [HoTen, SoDienThoai, DiaChi, req.user.id],
+      "UPDATE khachhang SET hoten=$1, sodienthoai=$2, diachi=$3 WHERE customerid=$4 RETURNING customerid, hoten, email, sodienthoai, diachi",
+      [hoten, sodienthoai, diachi, req.user.id],
     );
     res.json({ success: true, user: r.rows[0] });
   } catch (e) {
@@ -253,18 +253,18 @@ app.put("/api/auth/me", requireLogin, async (req, res) => {
 // POST /api/admin/auth/login — Staff đăng nhập
 app.post("/api/admin/auth/login", async (req, res) => {
   try {
-    const { Email, MatKhau } = req.body;
-    if (!Email || !MatKhau)
+    const { email, matkhau } = req.body;
+    if (!email || !matkhau)
       return res.status(400).json({ error: "Thiếu email hoặc mật khẩu" });
 
     const hashedPw = crypto
       .createHash("sha256")
-      .update(MatKhau + JWT_SECRET)
+      .update(matkhau + JWT_SECRET)
       .digest("hex");
     const r = await pool.query(
-      `SELECT IDNguoiQuanLy, HoTen, Email, VaiTro, TrangThai FROM NguoiQuanLy 
-       WHERE Email=$1 AND MatKhau=$2 AND TrangThai='Hoạt động'`,
-      [Email, hashedPw],
+      `SELECT idnguoiquanly, hoten, email, vaitro, trangthai FROM nguoiquanly 
+       WHERE email=$1 AND matkhau=$2 AND trangthai='Hoạt động'`,
+      [email, hashedPw],
     );
     if (!r.rows.length)
       return res
@@ -306,25 +306,25 @@ app.get("/api/sanpham", async (req, res) => {
 
     if (search) {
       params.push(`%${search}%`);
-      query += ` AND (TenSanPham ILIKE $${params.length} OR MaSanPham ILIKE $${params.length} OR SKU ILIKE $${params.length})`;
+      query += ` AND (tensanpham ILIKE $${params.length} OR masanpham ILIKE $${params.length} OR SKU ILIKE $${params.length})`;
     }
     if (danhmuc) {
       params.push(danhmuc);
-      query += ` AND DanhMuc = $${params.length}`;
+      query += ` AND danhmuc = $${params.length}`;
     }
     if (thuonghieu) {
       params.push(thuonghieu);
-      query += ` AND ThuongHieu = $${params.length}`;
+      query += ` AND thuonghieu = $${params.length}`;
     }
 
-    query += ` ORDER BY TenSanPham LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+    query += ` ORDER BY tensanpham LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
     params.push(parseInt(limit), (parseInt(page) - 1) * parseInt(limit));
 
     const [result, countResult] = await Promise.all([
       pool.query(query, params),
-      pool.query("SELECT COUNT(*) FROM SanPham WHERE TinhTrang != 'Ẩn'"),
+      pool.query("SELECT COUNT(*) FROM sanpham WHERE tinhtrang != 'Ẩn'"),
     ]);
-    // KHÔNG trả GiaNhap cho khách hàng ngoài
+    // KHÔNG trả gianhap cho khách hàng ngoài
     res.json({ data: result.rows, total: parseInt(countResult.rows[0].count) });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -432,14 +432,14 @@ app.post("/api/search/image", async (req, res) => {
 
 app.get("/api/danhmuc", async (req, res) => {
   const result = await pool.query(
-    "SELECT * FROM DanhMuc WHERE TrangThai='Hoat dong' ORDER BY 1",
+    "SELECT * FROM danhmuc WHERE trangthai='Hoat dong' ORDER BY 1",
   );
   res.json(result.rows);
 });
 
 app.get("/api/nhacungcap", async (req, res) => {
   const result = await pool.query(
-    "SELECT SupplierID,TenNhaCungCap FROM NhaCungCap ORDER BY TenNhaCungCap",
+    "SELECT supplierid,tennhacungcap FROM nhacungcap ORDER BY tennhacungcap",
   );
   res.json(result.rows);
 });
@@ -472,10 +472,10 @@ app.get("/api/giohang", requireLogin, async (req, res) => {
     return res.status(403).json({ error: "Chỉ dành cho khách hàng" });
   try {
     const r = await pool.query(
-      `SELECT g.ID, g.MaSanPham, g.SoLuong, g.Size, g.MauSac,
-              s.TenSanPham, s.GiaBan, s.SoLuongTon
-       FROM GioHang_Online g JOIN SanPham s ON g.MaSanPham = s.MaSanPham
-       WHERE g.CustomerID = $1 ORDER BY g.ID`,
+      `SELECT g.ID, g.masanpham, g.soluong, g.Size, g.mausac,
+              s.tensanpham, s.giaban, s.soluongton
+       FROM giohang_online g JOIN sanpham s ON g.masanpham = s.masanpham
+       WHERE g.customerid = $1 ORDER BY g.ID`,
       [req.user.id],
     );
     res.json(r.rows);
@@ -489,32 +489,32 @@ app.post("/api/giohang", requireLogin, async (req, res) => {
   if (req.user.type !== "customer")
     return res.status(403).json({ error: "Chỉ dành cho khách hàng" });
   try {
-    const { MaSanPham, SoLuong = 1, Size, MauSac } = req.body;
-    if (!MaSanPham) return res.status(400).json({ error: "Thiếu MaSanPham" });
+    const { masanpham, soluong = 1, Size, mausac } = req.body;
+    if (!masanpham) return res.status(400).json({ error: "Thiếu masanpham" });
     // Kiểm tra tồn kho
     const sp = await pool.query(
-      "SELECT SoLuongTon FROM SanPham WHERE MaSanPham=$1 AND TinhTrang!='Ẩn'",
-      [MaSanPham],
+      "SELECT soluongton FROM sanpham WHERE masanpham=$1 AND tinhtrang!='Ẩn'",
+      [masanpham],
     );
     if (!sp.rows.length)
       return res.status(404).json({ error: "Sản phẩm không tồn tại" });
-    if (sp.rows[0].soLuongTon < SoLuong)
+    if (sp.rows[0].soLuongTon < soluong)
       return res.status(400).json({ error: "Không đủ hàng" });
 
     // Nếu đã có → cộng số lượng
     const existing = await pool.query(
-      "SELECT ID, SoLuong FROM GioHang_Online WHERE CustomerID=$1 AND MaSanPham=$2 AND Size=$3 AND MauSac=$4",
-      [req.user.id, MaSanPham, Size || "", MauSac || ""],
+      "SELECT ID, soluong FROM giohang_online WHERE customerid=$1 AND masanpham=$2 AND Size=$3 AND mausac=$4",
+      [req.user.id, masanpham, Size || "", mausac || ""],
     );
     if (existing.rows.length) {
       await pool.query(
-        "UPDATE GioHang_Online SET SoLuong=SoLuong+$1 WHERE ID=$2",
-        [SoLuong, existing.rows[0].id],
+        "UPDATE giohang_online SET soluong=soluong+$1 WHERE ID=$2",
+        [soluong, existing.rows[0].id],
       );
     } else {
       await pool.query(
-        "INSERT INTO GioHang_Online (CustomerID, MaSanPham, SoLuong, Size, MauSac) VALUES ($1,$2,$3,$4,$5)",
-        [req.user.id, MaSanPham, SoLuong, Size || "", MauSac || ""],
+        "INSERT INTO giohang_online (customerid, masanpham, soluong, Size, mausac) VALUES ($1,$2,$3,$4,$5)",
+        [req.user.id, masanpham, soluong, Size || "", mausac || ""],
       );
     }
     res.json({ success: true });
@@ -528,13 +528,13 @@ app.put("/api/giohang/:id", requireLogin, async (req, res) => {
   if (req.user.type !== "customer")
     return res.status(403).json({ error: "Chỉ dành cho khách hàng" });
   try {
-    const { SoLuong } = req.body;
-    if (SoLuong < 1)
+    const { soluong } = req.body;
+    if (soluong < 1)
       return res.status(400).json({ error: "Số lượng không hợp lệ" });
     // Chỉ cho phép sửa giỏ của chính mình
     await pool.query(
-      "UPDATE GioHang_Online SET SoLuong=$1 WHERE ID=$2 AND CustomerID=$3",
-      [SoLuong, req.params.id, req.user.id],
+      "UPDATE giohang_online SET soluong=$1 WHERE ID=$2 AND customerid=$3",
+      [soluong, req.params.id, req.user.id],
     );
     res.json({ success: true });
   } catch (e) {
@@ -548,7 +548,7 @@ app.delete("/api/giohang/:id", requireLogin, async (req, res) => {
     return res.status(403).json({ error: "Chỉ dành cho khách hàng" });
   try {
     await pool.query(
-      "DELETE FROM GioHang_Online WHERE ID=$1 AND CustomerID=$2",
+      "DELETE FROM giohang_online WHERE ID=$1 AND customerid=$2",
       [req.params.id, req.user.id],
     );
     res.json({ success: true });
@@ -562,24 +562,24 @@ app.delete("/api/giohang/:id", requireLogin, async (req, res) => {
 // ============================================================
 
 // POST /api/donhang — Đặt hàng
-// Khách đăng nhập: dùng CustomerID từ token
+// Khách đăng nhập: dùng customerid từ token
 // Khách vãn lai: truyền thông tin giao hàng, KHÔNG lưu tài khoản
 app.post("/api/donhang", async (req, res) => {
   try {
     const {
       items,
-      HoTenNguoiNhan,
-      SoDienThoaiNhan,
-      DiaChiGiao,
-      GhiChu,
-      PhuongThucTT,
+      hotennguoinhan,
+      sodienthoainhan,
+      diachigiao,
+      ghichu,
+      phuongthuctt,
     } = req.body;
     if (!items || !items.length)
       return res.status(400).json({ error: "Giỏ hàng trống" });
-    if (!HoTenNguoiNhan || !SoDienThoaiNhan || !DiaChiGiao)
+    if (!hotennguoinhan || !sodienthoainhan || !diachigiao)
       return res.status(400).json({ error: "Thiếu thông tin giao hàng" });
 
-    // Xác định CustomerID: nếu là khách đăng nhập thì dùng ID từ token
+    // Xác định customerid: nếu là khách đăng nhập thì dùng ID từ token
     let customerID = null;
     if (req.user && req.user.type === "customer") {
       customerID = req.user.id;
@@ -593,60 +593,60 @@ app.post("/api/donhang", async (req, res) => {
       let tongTien = 0;
       for (const item of items) {
         const sp = await client.query(
-          "SELECT GiaBan, SoLuongTon FROM SanPham WHERE MaSanPham=$1 AND TinhTrang!='Ẩn'",
-          [item.MaSanPham],
+          "SELECT giaban, soluongton FROM sanpham WHERE masanpham=$1 AND tinhtrang!='Ẩn'",
+          [item.masanpham],
         );
         if (!sp.rows.length)
-          throw new Error(`Sản phẩm ${item.MaSanPham} không tồn tại`);
-        if (sp.rows[0].soLuongTon < item.SoLuong)
-          throw new Error(`${item.MaSanPham} không đủ hàng`);
-        tongTien += parseFloat(sp.rows[0].giaban) * item.SoLuong;
+          throw new Error(`Sản phẩm ${item.masanpham} không tồn tại`);
+        if (sp.rows[0].soLuongTon < item.soluong)
+          throw new Error(`${item.masanpham} không đủ hàng`);
+        tongTien += parseFloat(sp.rows[0].giaban) * item.soluong;
       }
 
       // Tạo mã hóa đơn
       const maHD = "HD" + Date.now();
       const hdResult = await client.query(
-        `INSERT INTO HoaDonBanHang
-           (MaHoaDon, CustomerID, HoTenNguoiNhan, SoDienThoaiNhan, DiaChiGiao, GhiChu, TongTien, TrangThai, PhuongThucTT, NgayBan)
+        `INSERT INTO hoadonbanhang
+           (mahoadon, customerid, hotennguoinhan, sodienthoainhan, diachigiao, ghichu, tongtien, trangthai, phuongthuctt, ngayban)
          VALUES ($1,$2,$3,$4,$5,$6,$7,'Chờ xử lý',$8,NOW()) RETURNING *`,
         [
           maHD,
           customerID,
-          HoTenNguoiNhan,
-          SoDienThoaiNhan,
-          DiaChiGiao,
-          GhiChu || "",
+          hotennguoinhan,
+          sodienthoainhan,
+          diachigiao,
+          ghichu || "",
           tongTien,
-          PhuongThucTT || "Tiền mặt",
+          phuongthuctt || "Tiền mặt",
         ],
       );
 
       // Thêm chi tiết + trừ kho
       for (const item of items) {
         const sp = await client.query(
-          "SELECT GiaBan FROM SanPham WHERE MaSanPham=$1",
-          [item.MaSanPham],
+          "SELECT giaban FROM sanpham WHERE masanpham=$1",
+          [item.masanpham],
         );
         await client.query(
-          "INSERT INTO CHI_TIET_HOA_DON (MaHoaDon, MaSanPham, SoLuong, DonGia, Size, MauSac) VALUES ($1,$2,$3,$4,$5,$6)",
+          "INSERT INTO chi_tiet_hoa_don (mahoadon, masanpham, soluong, dongia, Size, mausac) VALUES ($1,$2,$3,$4,$5,$6)",
           [
             maHD,
-            item.MaSanPham,
-            item.SoLuong,
+            item.masanpham,
+            item.soluong,
             sp.rows[0].giaban,
             item.Size || "",
-            item.MauSac || "",
+            item.mausac || "",
           ],
         );
         await client.query(
-          "UPDATE SanPham SET SoLuongTon=SoLuongTon-$1 WHERE MaSanPham=$2",
-          [item.SoLuong, item.MaSanPham],
+          "UPDATE sanpham SET soluongton=soluongton-$1 WHERE masanpham=$2",
+          [item.soluong, item.masanpham],
         );
       }
 
       // Xóa giỏ hàng nếu là khách đăng nhập
       if (customerID) {
-        await client.query("DELETE FROM GioHang_Online WHERE CustomerID=$1", [
+        await client.query("DELETE FROM giohang_online WHERE customerid=$1", [
           customerID,
         ]);
       }
@@ -675,12 +675,12 @@ app.get("/api/donhang/cua-toi", requireLogin, async (req, res) => {
     return res.status(403).json({ error: "Chỉ dành cho khách hàng" });
   try {
     const r = await pool.query(
-      `SELECT h.*, array_agg(json_build_object('ten', s.TenSanPham, 'sl', ct.SoLuong, 'gia', ct.DonGia)) as items
-       FROM HoaDonBanHang h
-       LEFT JOIN CHI_TIET_HOA_DON ct ON h.MaHoaDon = ct.MaHoaDon
-       LEFT JOIN SanPham s ON ct.MaSanPham = s.MaSanPham
-       WHERE h.CustomerID = $1
-       GROUP BY h.MaHoaDon ORDER BY h.NgayBan DESC LIMIT 50`,
+      `SELECT h.*, array_agg(json_build_object('ten', s.tensanpham, 'sl', ct.soluong, 'gia', ct.dongia)) as items
+       FROM hoadonbanhang h
+       LEFT JOIN chi_tiet_hoa_don ct ON h.mahoadon = ct.mahoadon
+       LEFT JOIN sanpham s ON ct.masanpham = s.masanpham
+       WHERE h.customerid = $1
+       GROUP BY h.mahoadon ORDER BY h.ngayban DESC LIMIT 50`,
       [req.user.id],
     );
     res.json(r.rows);
@@ -826,29 +826,29 @@ app.get(
         page = 1,
         limit = 20,
       } = req.query;
-      let q = "SELECT * FROM SanPham WHERE 1=1";
+      let q = "SELECT * FROM sanpham WHERE 1=1";
       const p = [];
       if (search) {
         p.push(`%${search}%`);
-        q += ` AND (TenSanPham ILIKE $${p.length} OR MaSanPham ILIKE $${p.length} OR SKU ILIKE $${p.length})`;
+        q += ` AND (tensanpham ILIKE $${p.length} OR masanpham ILIKE $${p.length} OR SKU ILIKE $${p.length})`;
       }
       if (danhmuc) {
         p.push(danhmuc);
-        q += ` AND DanhMuc = $${p.length}`;
+        q += ` AND danhmuc = $${p.length}`;
       }
       if (thuonghieu) {
         p.push(thuonghieu);
-        q += ` AND ThuongHieu = $${p.length}`;
+        q += ` AND thuonghieu = $${p.length}`;
       }
       if (tinhtrang) {
         p.push(tinhtrang);
-        q += ` AND TinhTrang = $${p.length}`;
+        q += ` AND tinhtrang = $${p.length}`;
       }
-      q += ` ORDER BY TenSanPham LIMIT $${p.length + 1} OFFSET $${p.length + 2}`;
+      q += ` ORDER BY tensanpham LIMIT $${p.length + 1} OFFSET $${p.length + 2}`;
       p.push(parseInt(limit), (parseInt(page) - 1) * parseInt(limit));
       const [rows, cnt] = await Promise.all([
         pool.query(q, p),
-        pool.query("SELECT COUNT(*) FROM SanPham"),
+        pool.query("SELECT COUNT(*) FROM sanpham"),
       ]);
       res.json({ data: rows.rows, total: parseInt(cnt.rows[0].count) });
     } catch (e) {
@@ -863,23 +863,23 @@ app.post(
   async (req, res) => {
     try {
       const {
-        MaSanPham, TenSanPham, ThuongHieu, DanhMuc,
-        GiaNhap, GiaBan, Size, MauSac, MoTaSanPham,
-        ChinhSachDoiTra, ChinhSachBaoHanh, TinhTrang,
-        SoLuongTon, SKU, HinhAnh,
+        masanpham, tensanpham, thuonghieu, danhmuc,
+        gianhap, giaban, Size, mausac, motasanpham,
+        chinhsachdoitra, chinhsachbaohanh, tinhtrang,
+        soluongton, SKU, hinhanh,
       } = req.body;
-      if (!MaSanPham || !TenSanPham)
-        return res.status(400).json({ error: "Thiếu MaSanPham hoặc TenSanPham" });
+      if (!masanpham || !tensanpham)
+        return res.status(400).json({ error: "Thiếu masanpham hoặc tensanpham" });
       const r = await pool.query(
-        `INSERT INTO SanPham (MaSanPham,TenSanPham,ThuongHieu,DanhMuc,GiaNhap,GiaBan,Size,MauSac,MoTaSanPham,ChinhSachDoiTra,ChinhSachBaoHanh,TinhTrang,SoLuongTon,SKU,HinhAnh)
+        `INSERT INTO sanpham (masanpham,tensanpham,thuonghieu,danhmuc,gianhap,giaban,Size,mausac,motasanpham,chinhsachdoitra,chinhsachbaohanh,tinhtrang,soluongton,SKU,hinhanh)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
         [
-          MaSanPham, TenSanPham, ThuongHieu || "", DanhMuc || "",
-          GiaNhap || null, GiaBan || null,
-          Size || "", MauSac || "", MoTaSanPham || "",
-          ChinhSachDoiTra || "", ChinhSachBaoHanh || "",
-          TinhTrang || "Đang bán", SoLuongTon || 0,
-          SKU || "", HinhAnh || "",
+          masanpham, tensanpham, thuonghieu || "", danhmuc || "",
+          gianhap || null, giaban || null,
+          Size || "", mausac || "", motasanpham || "",
+          chinhsachdoitra || "", chinhsachbaohanh || "",
+          tinhtrang || "Đang bán", soluongton || 0,
+          SKU || "", hinhanh || "",
         ],
       );
       res.json({ success: true, data: r.rows[0] });
@@ -902,7 +902,7 @@ app.put(
       const set = keys.map((k, i) => `${k} = $${i + 1}`).join(", ");
       vals.push(req.params.ma);
       const r = await pool.query(
-        `UPDATE SanPham SET ${set} WHERE MaSanPham = $${vals.length} RETURNING *`,
+        `UPDATE sanpham SET ${set} WHERE masanpham = $${vals.length} RETURNING *`,
         vals,
       );
       if (!r.rows.length)
@@ -920,7 +920,7 @@ app.delete(
   async (req, res) => {
     try {
       const r = await pool.query(
-        "DELETE FROM SanPham WHERE MaSanPham = $1 RETURNING MaSanPham",
+        "DELETE FROM sanpham WHERE masanpham = $1 RETURNING masanpham",
         [req.params.ma],
       );
       if (!r.rows.length)
@@ -938,14 +938,14 @@ app.patch(
   async (req, res) => {
     try {
       const r = await pool.query(
-        "SELECT TinhTrang FROM SanPham WHERE MaSanPham=$1",
+        "SELECT tinhtrang FROM sanpham WHERE masanpham=$1",
         [req.params.ma],
       );
       if (!r.rows.length)
         return res.status(404).json({ error: "Không tìm thấy" });
       const next = r.rows[0].tinhtrang === "Ẩn" ? "Đang bán" : "Ẩn";
       const upd = await pool.query(
-        "UPDATE SanPham SET TinhTrang=$1 WHERE MaSanPham=$2 RETURNING *",
+        "UPDATE sanpham SET tinhtrang=$1 WHERE masanpham=$2 RETURNING *",
         [next, req.params.ma],
       );
       res.json({ success: true, data: upd.rows[0] });
@@ -969,7 +969,7 @@ app.post(
       const filepath = path.join(UPLOADS_DIR, filename);
       fs.writeFileSync(filepath, req.file.buffer);
       const url = `/uploads/products/${filename}`;
-      await pool.query("UPDATE SanPham SET HinhAnh=$1 WHERE MaSanPham=$2", [url, ma]);
+      await pool.query("UPDATE sanpham SET hinhanh=$1 WHERE masanpham=$2", [url, ma]);
       res.json({ success: true, url });
     } catch (e) {
       res.status(500).json({ error: e.message });
@@ -1024,7 +1024,7 @@ app.post(
       } catch (_) { /* worksheet không có ảnh nhúng — bỏ qua */ }
 
       // ── Validate & Insert ────────────────────────────────────
-      const REQUIRED = ["MaSanPham", "TenSanPham"];
+      const REQUIRED = ["masanpham", "tensanpham"];
       const results = { success: [], errors: [], warnings: [] };
       const client = await pool.connect();
       try {
@@ -1037,20 +1037,20 @@ app.post(
             continue;
           }
           const existing = await client.query(
-            "SELECT MaSanPham FROM SanPham WHERE MaSanPham = $1",
-            [row.MaSanPham],
+            "SELECT masanpham FROM sanpham WHERE masanpham = $1",
+            [row.masanpham],
           );
           if (existing.rows.length) {
-            results.warnings.push({ line: lineNum, reason: `${row.MaSanPham} đã tồn tại` });
+            results.warnings.push({ line: lineNum, reason: `${row.masanpham} đã tồn tại` });
             continue;
           }
 
           // Lưu ảnh nhúng nếu có
-          let hinhAnh = row.HinhAnh || "";
+          let hinhAnh = row.hinhanh || "";
           const imgData = rowImageMap[row._rowNumber];
           if (imgData) {
             try {
-              const filename = `${String(row.MaSanPham).replace(/[^a-z0-9_-]/gi, "_")}_${Date.now()}.${imgData.ext}`;
+              const filename = `${String(row.masanpham).replace(/[^a-z0-9_-]/gi, "_")}_${Date.now()}.${imgData.ext}`;
               const filepath = path.join(UPLOADS_DIR, filename);
               fs.writeFileSync(filepath, imgData.buffer);
               hinhAnh = `/uploads/products/${filename}`;
@@ -1058,25 +1058,25 @@ app.post(
           }
 
           await client.query(
-            `INSERT INTO SanPham
-               (MaSanPham,TenSanPham,ThuongHieu,DanhMuc,GiaNhap,GiaBan,
-                Size,MauSac,MoTaSanPham,ChinhSachDoiTra,ChinhSachBaoHanh,
-                TinhTrang,SoLuongTon,SKU,HinhAnh)
+            `INSERT INTO sanpham
+               (masanpham,tensanpham,thuonghieu,danhmuc,gianhap,giaban,
+                Size,mausac,motasanpham,chinhsachdoitra,chinhsachbaohanh,
+                tinhtrang,soluongton,SKU,hinhanh)
              VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
             [
-              row.MaSanPham, row.TenSanPham,
-              row.ThuongHieu || "", row.DanhMuc || "",
-              parseFloat(row.GiaNhap) || null,
-              parseFloat(row.GiaBan)  || null,
-              row.Size || "", row.MauSac || "",
-              row.MoTaSanPham || "", row.ChinhSachDoiTra || "",
-              row.ChinhSachBaoHanh || "",
-              row.TinhTrang || "Đang bán",
-              parseInt(row.SoLuongTon) || 0,
+              row.masanpham, row.tensanpham,
+              row.thuonghieu || "", row.danhmuc || "",
+              parseFloat(row.gianhap) || null,
+              parseFloat(row.giaban)  || null,
+              row.Size || "", row.mausac || "",
+              row.motasanpham || "", row.chinhsachdoitra || "",
+              row.chinhsachbaohanh || "",
+              row.tinhtrang || "Đang bán",
+              parseInt(row.soluongton) || 0,
               row.SKU || "", hinhAnh,
             ],
           );
-          results.success.push({ line: lineNum, MaSanPham: row.MaSanPham, hasImage: !!imgData });
+          results.success.push({ line: lineNum, masanpham: row.masanpham, hasImage: !!imgData });
         }
         await client.query("COMMIT");
       } catch (err) {
@@ -1107,21 +1107,21 @@ app.get(
   async (req, res) => {
     try {
       const { status, page = 1, limit = 20, search } = req.query;
-      let q = `SELECT h.*, k.HoTen as TenKhachHang, k.SoDienThoai FROM HoaDonBanHang h LEFT JOIN KhachHang k ON h.CustomerID = k.CustomerID WHERE 1=1`;
+      let q = `SELECT h.*, k.hoten as TenKhachHang, k.sodienthoai FROM hoadonbanhang h LEFT JOIN khachhang k ON h.customerid = k.customerid WHERE 1=1`;
       const p = [];
       if (status) {
         p.push(status);
-        q += ` AND h.TrangThai = $${p.length}`;
+        q += ` AND h.trangthai = $${p.length}`;
       }
       if (search) {
         p.push(`%${search}%`);
-        q += ` AND (h.MaHoaDon ILIKE $${p.length} OR k.HoTen ILIKE $${p.length})`;
+        q += ` AND (h.mahoadon ILIKE $${p.length} OR k.hoten ILIKE $${p.length})`;
       }
-      q += ` ORDER BY h.NgayBan DESC LIMIT $${p.length + 1} OFFSET $${p.length + 2}`;
+      q += ` ORDER BY h.ngayban DESC LIMIT $${p.length + 1} OFFSET $${p.length + 2}`;
       p.push(parseInt(limit), (parseInt(page) - 1) * parseInt(limit));
       const [rows, cnt] = await Promise.all([
         pool.query(q, p),
-        pool.query("SELECT COUNT(*) FROM HoaDonBanHang"),
+        pool.query("SELECT COUNT(*) FROM hoadonbanhang"),
       ]);
       res.json({ data: rows.rows, total: parseInt(cnt.rows[0].count) });
     } catch (e) {
@@ -1135,7 +1135,7 @@ app.put(
   requireRole("shop", "admin"),
   async (req, res) => {
     try {
-      const { TrangThai } = req.body;
+      const { trangthai } = req.body;
       const valid = [
         "Chờ xử lý",
         "Đã xác nhận",
@@ -1144,11 +1144,11 @@ app.put(
         "Đã hủy",
         "Hoàn trả",
       ];
-      if (!valid.includes(TrangThai))
+      if (!valid.includes(trangthai))
         return res.status(400).json({ error: "Trạng thái không hợp lệ" });
       const r = await pool.query(
-        "UPDATE HoaDonBanHang SET TrangThai=$1 WHERE MaHoaDon=$2 RETURNING *",
-        [TrangThai, req.params.ma],
+        "UPDATE hoadonbanhang SET trangthai=$1 WHERE mahoadon=$2 RETURNING *",
+        [trangthai, req.params.ma],
       );
       if (!r.rows.length)
         return res.status(404).json({ error: "Không tìm thấy" });
@@ -1161,10 +1161,10 @@ app.put(
 
 app.delete("/api/admin/hoadon/:ma", requireRole("admin"), async (req, res) => {
   try {
-    await pool.query("DELETE FROM CHI_TIET_HOA_DON WHERE MaHoaDon=$1", [
+    await pool.query("DELETE FROM chi_tiet_hoa_don WHERE mahoadon=$1", [
       req.params.ma,
     ]);
-    await pool.query("DELETE FROM HoaDonBanHang WHERE MaHoaDon=$1", [
+    await pool.query("DELETE FROM hoadonbanhang WHERE mahoadon=$1", [
       req.params.ma,
     ]);
     res.json({ success: true });
@@ -1181,17 +1181,17 @@ app.get(
     try {
       const { search, page = 1, limit = 20 } = req.query;
       let q =
-        "SELECT CustomerID,HoTen,Email,SoDienThoai,DiaChi,NgayTao FROM KhachHang WHERE 1=1";
+        "SELECT customerid,hoten,email,sodienthoai,diachi,ngaytao FROM khachhang WHERE 1=1";
       const p = [];
       if (search) {
         p.push(`%${search}%`);
-        q += ` AND (HoTen ILIKE $${p.length} OR Email ILIKE $${p.length} OR SoDienThoai ILIKE $${p.length})`;
+        q += ` AND (hoten ILIKE $${p.length} OR email ILIKE $${p.length} OR sodienthoai ILIKE $${p.length})`;
       }
-      q += ` ORDER BY NgayTao DESC LIMIT $${p.length + 1} OFFSET $${p.length + 2}`;
+      q += ` ORDER BY ngaytao DESC LIMIT $${p.length + 1} OFFSET $${p.length + 2}`;
       p.push(parseInt(limit), (parseInt(page) - 1) * parseInt(limit));
       const [rows, cnt] = await Promise.all([
         pool.query(q, p),
-        pool.query("SELECT COUNT(*) FROM KhachHang"),
+        pool.query("SELECT COUNT(*) FROM khachhang"),
       ]);
       res.json({ data: rows.rows, total: parseInt(cnt.rows[0].count) });
     } catch (e) {
@@ -1205,7 +1205,7 @@ app.delete(
   requireRole("admin"),
   async (req, res) => {
     try {
-      await pool.query("DELETE FROM KhachHang WHERE CustomerID=$1", [
+      await pool.query("DELETE FROM khachhang WHERE customerid=$1", [
         req.params.id,
       ]);
       res.json({ success: true });
@@ -1218,11 +1218,11 @@ app.delete(
 // ── DANH MỤC (admin) ─────────────────────────────────────────
 app.post("/api/admin/danhmuc", requireRole("admin"), async (req, res) => {
   try {
-    const { Ten, Ma, Mota, TrangThai } = req.body;
+    const { Ten, Ma, Mota, trangthai } = req.body;
     if (!Ten) return res.status(400).json({ error: "Tên không được trống" });
     const r = await pool.query(
-      "INSERT INTO DanhMuc (Ten,Ma,Mota,TrangThai) VALUES ($1,$2,$3,$4) RETURNING *",
-      [Ten, Ma || "", Mota || "", TrangThai || "Hoat dong"],
+      "INSERT INTO danhmuc (Ten,Ma,Mota,trangthai) VALUES ($1,$2,$3,$4) RETURNING *",
+      [Ten, Ma || "", Mota || "", trangthai || "Hoat dong"],
     );
     res.json({ success: true, data: r.rows[0] });
   } catch (e) {
@@ -1232,10 +1232,10 @@ app.post("/api/admin/danhmuc", requireRole("admin"), async (req, res) => {
 
 app.put("/api/admin/danhmuc/:id", requireRole("admin"), async (req, res) => {
   try {
-    const { Ten, Ma, Mota, TrangThai } = req.body;
+    const { Ten, Ma, Mota, trangthai } = req.body;
     const r = await pool.query(
-      "UPDATE DanhMuc SET Ten=$1,Ma=$2,Mota=$3,TrangThai=$4 WHERE ID=$5 RETURNING *",
-      [Ten, Ma, Mota, TrangThai, req.params.id],
+      "UPDATE danhmuc SET Ten=$1,Ma=$2,Mota=$3,trangthai=$4 WHERE ID=$5 RETURNING *",
+      [Ten, Ma, Mota, trangthai, req.params.id],
     );
     res.json({ success: true, data: r.rows[0] });
   } catch (e) {
@@ -1245,7 +1245,7 @@ app.put("/api/admin/danhmuc/:id", requireRole("admin"), async (req, res) => {
 
 app.delete("/api/admin/danhmuc/:id", requireRole("admin"), async (req, res) => {
   try {
-    await pool.query("DELETE FROM DanhMuc WHERE ID=$1", [req.params.id]);
+    await pool.query("DELETE FROM danhmuc WHERE ID=$1", [req.params.id]);
     res.json({ success: true });
   } catch (e) {
     res.status(400).json({ error: e.message });
@@ -1261,11 +1261,11 @@ app.get(
   async (req, res) => {
     try {
       const r = await pool.query(
-        `SELECT pt.*, k.HoTen, nq.HoTen as TenNguoiThu
-       FROM PhieuThu pt
-       LEFT JOIN KhachHang k ON pt.CustomerID=k.CustomerID
-       LEFT JOIN NguoiQuanLy nq ON pt.IDNguoiQuanLy=nq.IDNguoiQuanLy
-       ORDER BY pt.NgayThu DESC LIMIT 100`,
+        `SELECT pt.*, k.hoten, nq.hoten as TenNguoiThu
+       FROM phieuthu pt
+       LEFT JOIN khachhang k ON pt.customerid=k.customerid
+       LEFT JOIN nguoiquanly nq ON pt.idnguoiquanly=nq.idnguoiquanly
+       ORDER BY pt.ngaythu DESC LIMIT 100`,
       );
       res.json(r.rows);
     } catch (e) {
@@ -1279,21 +1279,21 @@ app.post(
   requireRole("accountant", "admin"),
   async (req, res) => {
     try {
-      const { MaPhieuThu, CustomerID, SoTienThu, GhiChu, PaymentMethodID } =
+      const { maphieuthu, customerid, sotieuthu, ghichu, paymentmethodid } =
         req.body;
-      if (!MaPhieuThu || !SoTienThu)
+      if (!maphieuthu || !sotieuthu)
         return res.status(400).json({ error: "Thiếu mã phiếu hoặc số tiền" });
-      const IDNguoiQuanLy = req.user.id; // Lấy từ JWT, không nhận từ body
+      const idnguoiquanly = req.user.id; // Lấy từ JWT, không nhận từ body
       const r = await pool.query(
-        `INSERT INTO PhieuThu (MaPhieuThu,IDNguoiQuanLy,CustomerID,SoTienThu,GhiChu,TrangThai,PaymentMethodID,NgayThu)
+        `INSERT INTO phieuthu (maphieuthu,idnguoiquanly,customerid,sotieuthu,ghichu,trangthai,paymentmethodid,ngaythu)
        VALUES ($1,$2,$3,$4,$5,'Đã thu',$6,NOW()) RETURNING *`,
         [
-          MaPhieuThu,
-          IDNguoiQuanLy,
-          CustomerID || null,
-          SoTienThu,
-          GhiChu || "",
-          PaymentMethodID || null,
+          maphieuthu,
+          idnguoiquanly,
+          customerid || null,
+          sotieuthu,
+          ghichu || "",
+          paymentmethodid || null,
         ],
       );
       res.json({ success: true, data: r.rows[0] });
@@ -1309,11 +1309,11 @@ app.get(
   async (req, res) => {
     try {
       const r = await pool.query(
-        `SELECT pc.*, n.TenNhaCungCap, nq.HoTen as TenNguoiChi
-       FROM PhieuChi pc
-       LEFT JOIN NhaCungCap n ON pc.SupplierID=n.SupplierID
-       LEFT JOIN NguoiQuanLy nq ON pc.IDNguoiQuanLy=nq.IDNguoiQuanLy
-       ORDER BY pc.NgayChi DESC LIMIT 100`,
+        `SELECT pc.*, n.tennhacungcap, nq.hoten as TenNguoiChi
+       FROM phieuchi pc
+       LEFT JOIN nhacungcap n ON pc.supplierid=n.supplierid
+       LEFT JOIN nguoiquanly nq ON pc.idnguoiquanly=nq.idnguoiquanly
+       ORDER BY pc.ngaychi DESC LIMIT 100`,
       );
       res.json(r.rows);
     } catch (e) {
@@ -1327,21 +1327,21 @@ app.post(
   requireRole("accountant", "admin"),
   async (req, res) => {
     try {
-      const { MaPhieuChi, SupplierID, SoTienChi, GhiChu, PaymentMethodID } =
+      const { maphieuchi, supplierid, sotienchi, ghichu, paymentmethodid } =
         req.body;
-      if (!MaPhieuChi || !SoTienChi)
+      if (!maphieuchi || !sotienchi)
         return res.status(400).json({ error: "Thiếu mã phiếu hoặc số tiền" });
-      const IDNguoiQuanLy = req.user.id; // Lấy từ JWT
+      const idnguoiquanly = req.user.id; // Lấy từ JWT
       const r = await pool.query(
-        `INSERT INTO PhieuChi (MaPhieuChi,IDNguoiQuanLy,SupplierID,SoTienChi,GhiChu,TrangThai,PaymentMethodID,NgayChi)
+        `INSERT INTO phieuchi (maphieuchi,idnguoiquanly,supplierid,sotienchi,ghichu,trangthai,paymentmethodid,ngaychi)
        VALUES ($1,$2,$3,$4,$5,'Chờ duyệt',$6,NOW()) RETURNING *`,
         [
-          MaPhieuChi,
-          IDNguoiQuanLy,
-          SupplierID || null,
-          SoTienChi,
-          GhiChu || "",
-          PaymentMethodID || null,
+          maphieuchi,
+          idnguoiquanly,
+          supplierid || null,
+          sotienchi,
+          ghichu || "",
+          paymentmethodid || null,
         ],
       );
       res.json({ success: true, data: r.rows[0] });
@@ -1357,7 +1357,7 @@ app.put(
   async (req, res) => {
     try {
       const r = await pool.query(
-        "UPDATE PhieuChi SET TrangThai='Đã duyệt' WHERE MaPhieuChi=$1 RETURNING *",
+        "UPDATE phieuchi SET trangthai='Đã duyệt' WHERE maphieuchi=$1 RETURNING *",
         [req.params.ma],
       );
       res.json({ success: true, data: r.rows[0] });
@@ -1374,14 +1374,14 @@ app.get(
   async (req, res) => {
     try {
       const [sp, kh, hd, het, tk] = await Promise.all([
-        pool.query("SELECT COUNT(*) FROM SanPham"),
-        pool.query("SELECT COUNT(*) FROM KhachHang"),
+        pool.query("SELECT COUNT(*) FROM sanpham"),
+        pool.query("SELECT COUNT(*) FROM khachhang"),
         pool.query(
-          "SELECT COUNT(*) as total, COALESCE(SUM(TongTien),0) as doanhthu FROM HoaDonBanHang",
+          "SELECT COUNT(*) as total, COALESCE(SUM(tongtien),0) as doanhthu FROM hoadonbanhang",
         ),
-        pool.query("SELECT COUNT(*) FROM SanPham WHERE SoLuongTon = 0"),
+        pool.query("SELECT COUNT(*) FROM sanpham WHERE soluongton = 0"),
         pool.query(
-          "SELECT TrangThai, COUNT(*) as cnt FROM HoaDonBanHang GROUP BY TrangThai",
+          "SELECT trangthai, COUNT(*) as cnt FROM hoadonbanhang GROUP BY trangthai",
         ),
       ]);
       res.json({
@@ -1407,12 +1407,12 @@ app.get(
 app.get("/api/admin/danhgia", requireRole("shop","admin"), async (req,res) => {
   try {
     const r = await pool.query(
-      `SELECT g.ID, g.MaSanPham, g.SoSao, g.NoiDung, g.TrangThai, g.NgayDang,
-              k.HoTen as TenKhach, s.TenSanPham
-       FROM DANH_GIA g
-       LEFT JOIN KhachHang k ON k.CustomerID = g.CustomerID
-       LEFT JOIN SanPham s ON s.MaSanPham = g.MaSanPham
-       ORDER BY g.NgayDang DESC LIMIT 100`
+      `SELECT g.ID, g.masanpham, g.sosao, g.noidung, g.trangthai, g.ngaydang,
+              k.hoten as TenKhach, s.tensanpham
+       FROM danh_gia g
+       LEFT JOIN khachhang k ON k.customerid = g.customerid
+       LEFT JOIN sanpham s ON s.masanpham = g.masanpham
+       ORDER BY g.ngaydang DESC LIMIT 100`
     );
     res.json(r.rows);
   } catch(e) { res.status(500).json({error:e.message}); }
@@ -1420,14 +1420,14 @@ app.get("/api/admin/danhgia", requireRole("shop","admin"), async (req,res) => {
 
 app.patch("/api/admin/danhgia/:id/duyet", requireRole("shop","admin"), async (req,res) => {
   try {
-    await pool.query("UPDATE DANH_GIA SET TrangThai='Đã duyệt' WHERE ID=$1", [req.params.id]);
+    await pool.query("UPDATE danh_gia SET trangthai='Đã duyệt' WHERE ID=$1", [req.params.id]);
     res.json({success:true});
   } catch(e) { res.status(500).json({error:e.message}); }
 });
 
 app.patch("/api/admin/danhgia/:id/tuchoi", requireRole("shop","admin"), async (req,res) => {
   try {
-    await pool.query("UPDATE DANH_GIA SET TrangThai='Từ chối' WHERE ID=$1", [req.params.id]);
+    await pool.query("UPDATE danh_gia SET trangthai='Từ chối' WHERE ID=$1", [req.params.id]);
     res.json({success:true});
   } catch(e) { res.status(500).json({error:e.message}); }
 });
@@ -1438,11 +1438,11 @@ app.patch("/api/admin/danhgia/:id/tuchoi", requireRole("shop","admin"), async (r
 app.get("/api/admin/phieunhap", requireRole("shop","admin"), async (req,res) => {
   try {
     const r = await pool.query(
-      `SELECT p.MaPhieuNhap, p.NgayNhap, p.TongTien, p.GhiChu,
-              n.TenNhaCungCap
-       FROM PhieuNhap p
-       LEFT JOIN NhaCungCap n ON n.SupplierID = p.SupplierID
-       ORDER BY p.NgayNhap DESC LIMIT 50`
+      `SELECT p.maphieunhap, p.ngaynhap, p.tongtien, p.ghichu,
+              n.tennhacungcap
+       FROM phieunhap p
+       LEFT JOIN nhacungcap n ON n.supplierid = p.supplierid
+       ORDER BY p.ngaynhap DESC LIMIT 50`
     );
     res.json(r.rows);
   } catch(e) { res.status(500).json({error:e.message}); }
@@ -1455,32 +1455,32 @@ app.get("/api/admin/baocao/doanhthu", requireRole("shop","admin","accountant"), 
   try {
     const [monthly, topSP, topKH, trangThai] = await Promise.all([
       pool.query(`
-        SELECT TO_CHAR(NgayBan,'MM/YYYY') as thang,
+        SELECT TO_CHAR(ngayban,'MM/YYYY') as thang,
                COUNT(*) as sodon,
-               COALESCE(SUM(TongTien),0) as doanhthu
-        FROM HoaDonBanHang
-        WHERE NgayBan >= NOW() - INTERVAL '6 months'
-        GROUP BY TO_CHAR(NgayBan,'MM/YYYY')
-        ORDER BY MIN(NgayBan)`),
+               COALESCE(SUM(tongtien),0) as doanhthu
+        FROM hoadonbanhang
+        WHERE ngayban >= NOW() - INTERVAL '6 months'
+        GROUP BY TO_CHAR(ngayban,'MM/YYYY')
+        ORDER BY MIN(ngayban)`),
       pool.query(`
-        SELECT s.TenSanPham, s.ThuongHieu,
-               COUNT(c.MaSanPham) as soban,
-               COALESCE(SUM(c.SoLuong * c.DonGia),0) as doanhthu
-        FROM CHI_TIET_HOA_DON c
-        JOIN SanPham s ON s.MaSanPham = c.MaSanPham
-        GROUP BY s.MaSanPham, s.TenSanPham, s.ThuongHieu
+        SELECT s.tensanpham, s.thuonghieu,
+               COUNT(c.masanpham) as soban,
+               COALESCE(SUM(c.soluong * c.dongia),0) as doanhthu
+        FROM chi_tiet_hoa_don c
+        JOIN sanpham s ON s.masanpham = c.masanpham
+        GROUP BY s.masanpham, s.tensanpham, s.thuonghieu
         ORDER BY doanhthu DESC LIMIT 5`),
       pool.query(`
-        SELECT k.HoTen, k.Email,
-               COUNT(h.MaHoaDon) as sodon,
-               COALESCE(SUM(h.TongTien),0) as tongtien
-        FROM HoaDonBanHang h
-        JOIN KhachHang k ON k.CustomerID = h.CustomerID
-        GROUP BY k.CustomerID, k.HoTen, k.Email
+        SELECT k.hoten, k.email,
+               COUNT(h.mahoadon) as sodon,
+               COALESCE(SUM(h.tongtien),0) as tongtien
+        FROM hoadonbanhang h
+        JOIN khachhang k ON k.customerid = h.customerid
+        GROUP BY k.customerid, k.hoten, k.email
         ORDER BY tongtien DESC LIMIT 5`),
       pool.query(`
-        SELECT TrangThai, COUNT(*) as cnt, COALESCE(SUM(TongTien),0) as tong
-        FROM HoaDonBanHang GROUP BY TrangThai`)
+        SELECT trangthai, COUNT(*) as cnt, COALESCE(SUM(tongtien),0) as tong
+        FROM hoadonbanhang GROUP BY trangthai`)
     ]);
     res.json({
       monthly: monthly.rows,
@@ -1497,13 +1497,13 @@ app.get("/api/admin/baocao/doanhthu", requireRole("shop","admin","accountant"), 
 app.get("/api/admin/ketoan", requireRole("shop","admin","accountant"), async (req,res) => {
   try {
     const [thu, chi, hd] = await Promise.all([
-      pool.query(`SELECT COALESCE(SUM(SoTienThu),0) as tong, COUNT(*) as cnt FROM PhieuThu
-                  WHERE NgayThu >= DATE_TRUNC('month', NOW())`),
-      pool.query(`SELECT COALESCE(SUM(SoTienChi),0) as tong, COUNT(*) as cnt FROM PhieuChi
-                  WHERE NgayChi >= DATE_TRUNC('month', NOW())`),
-      pool.query(`SELECT COALESCE(SUM(TongTien),0) as doanhthu, COUNT(*) as sodon
-                  FROM HoaDonBanHang
-                  WHERE NgayBan >= DATE_TRUNC('month', NOW())`)
+      pool.query(`SELECT COALESCE(SUM(sotieuthu),0) as tong, COUNT(*) as cnt FROM phieuthu
+                  WHERE ngaythu >= DATE_TRUNC('month', NOW())`),
+      pool.query(`SELECT COALESCE(SUM(sotienchi),0) as tong, COUNT(*) as cnt FROM phieuchi
+                  WHERE ngaychi >= DATE_TRUNC('month', NOW())`),
+      pool.query(`SELECT COALESCE(SUM(tongtien),0) as doanhthu, COUNT(*) as sodon
+                  FROM hoadonbanhang
+                  WHERE ngayban >= DATE_TRUNC('month', NOW())`)
     ]);
     res.json({
       tongThu:    parseFloat(thu.rows[0].tong),   soPhieuThu: parseInt(thu.rows[0].cnt),
@@ -1518,7 +1518,7 @@ app.get("/api/admin/ketoan", requireRole("shop","admin","accountant"), async (re
 app.get("/api/admin/users", requireRole("admin"), async (req, res) => {
   try {
     const r = await pool.query(
-      "SELECT IDNguoiQuanLy,HoTen,Email,SoDienThoai,VaiTro,TrangThai,NgayTao FROM NguoiQuanLy ORDER BY NgayTao DESC",
+      "SELECT idnguoiquanly,hoten,email,sodienthoai,vaitro,trangthai,ngaytao FROM nguoiquanly ORDER BY ngaytao DESC",
     );
     res.json(r.rows);
   } catch (e) {
@@ -1528,19 +1528,19 @@ app.get("/api/admin/users", requireRole("admin"), async (req, res) => {
 
 app.post("/api/admin/users", requireRole("admin"), async (req, res) => {
   try {
-    const { HoTen, Email, SoDienThoai, MatKhau, VaiTro } = req.body;
-    if (!HoTen || !Email || !MatKhau)
+    const { hoten, email, sodienthoai, matkhau, vaitro } = req.body;
+    if (!hoten || !email || !matkhau)
       return res
         .status(400)
         .json({ error: "Thiếu họ tên, email hoặc mật khẩu" });
     const hashedPw = crypto
       .createHash("sha256")
-      .update(MatKhau + JWT_SECRET)
+      .update(matkhau + JWT_SECRET)
       .digest("hex");
     const r = await pool.query(
-      `INSERT INTO NguoiQuanLy (HoTen,Email,SoDienThoai,MatKhau,VaiTro,TrangThai,NgayTao)
-       VALUES ($1,$2,$3,$4,$5,'Hoạt động',NOW()) RETURNING IDNguoiQuanLy,HoTen,Email,VaiTro,TrangThai`,
-      [HoTen, Email, SoDienThoai || "", hashedPw, VaiTro || "shop"],
+      `INSERT INTO nguoiquanly (hoten,email,sodienthoai,matkhau,vaitro,trangthai,ngaytao)
+       VALUES ($1,$2,$3,$4,$5,'Hoạt động',NOW()) RETURNING idnguoiquanly,hoten,email,vaitro,trangthai`,
+      [hoten, email, sodienthoai || "", hashedPw, vaitro || "shop"],
     );
     res.json({ success: true, data: r.rows[0] });
   } catch (e) {
@@ -1550,10 +1550,10 @@ app.post("/api/admin/users", requireRole("admin"), async (req, res) => {
 
 app.put("/api/admin/users/:id", requireRole("admin"), async (req, res) => {
   try {
-    const { HoTen, Email, SoDienThoai, VaiTro, TrangThai } = req.body;
+    const { hoten, email, sodienthoai, vaitro, trangthai } = req.body;
     const r = await pool.query(
-      "UPDATE NguoiQuanLy SET HoTen=$1,Email=$2,SoDienThoai=$3,VaiTro=$4,TrangThai=$5 WHERE IDNguoiQuanLy=$6 RETURNING IDNguoiQuanLy,HoTen,Email,VaiTro,TrangThai",
-      [HoTen, Email, SoDienThoai, VaiTro, TrangThai, req.params.id],
+      "UPDATE nguoiquanly SET hoten=$1,email=$2,sodienthoai=$3,vaitro=$4,trangthai=$5 WHERE idnguoiquanly=$6 RETURNING idnguoiquanly,hoten,email,vaitro,trangthai",
+      [hoten, email, sodienthoai, vaitro, trangthai, req.params.id],
     );
     res.json({ success: true, data: r.rows[0] });
   } catch (e) {
@@ -1565,7 +1565,7 @@ app.delete("/api/admin/users/:id", requireRole("admin"), async (req, res) => {
   try {
     if (req.user.id == req.params.id)
       return res.status(400).json({ error: "Không thể xóa chính mình" });
-    await pool.query("DELETE FROM NguoiQuanLy WHERE IDNguoiQuanLy=$1", [
+    await pool.query("DELETE FROM nguoiquanly WHERE idnguoiquanly=$1", [
       req.params.id,
     ]);
     res.json({ success: true });
@@ -1580,14 +1580,14 @@ app.post(
   requireRole("admin", "shop"),
   async (req, res) => {
     try {
-      const { TenNhaCungCap, SoDienThoai, Email, DiaChi } = req.body;
-      if (!TenNhaCungCap)
+      const { tennhacungcap, sodienthoai, email, diachi } = req.body;
+      if (!tennhacungcap)
         return res
           .status(400)
           .json({ error: "Tên nhà cung cấp không được trống" });
       const r = await pool.query(
-        "INSERT INTO NhaCungCap (TenNhaCungCap,SoDienThoai,Email,DiaChi) VALUES ($1,$2,$3,$4) RETURNING *",
-        [TenNhaCungCap, SoDienThoai || "", Email || "", DiaChi || ""],
+        "INSERT INTO nhacungcap (tennhacungcap,sodienthoai,email,diachi) VALUES ($1,$2,$3,$4) RETURNING *",
+        [tennhacungcap, sodienthoai || "", email || "", diachi || ""],
       );
       res.json({ success: true, data: r.rows[0] });
     } catch (e) {

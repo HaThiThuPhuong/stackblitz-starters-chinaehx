@@ -47,7 +47,7 @@ async function addCol(table, col, definition) {
   }
   // Dùng lower(table) để khớp với PostgreSQL case-insensitive table names
   const realTable = table.toLowerCase();
-  await pool.query(`ALTER TABLE ${realTable} ADD COLUMN "${col}" ${definition};`);
+  await pool.query(`ALTER TABLE ${realTable} ADD COLUMN ${col} ${definition};`);
   console.log(`  ✅ ${table}.${col} — đã thêm`);
 }
 

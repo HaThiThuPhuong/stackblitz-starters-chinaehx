@@ -338,10 +338,10 @@ app.post("/api/search/image", async (req, res) => {
     const { image } = req.body;
     if (!image) return res.status(400).json({ error: "Thiếu ảnh" });
 
-    const GEMINI_KEY = process.env.GEMINI_API_KEY;
+    const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
 
-    // ── Fallback: không có Gemini → tìm tất cả sản phẩm đang bán ──
-    if (!GEMINI_KEY) {
+    // ── Fallback: không có Anthropic → tìm tất cả sản phẩm đang bán ──
+    if (!ANTHROPIC_KEY) {
       const spRes = await pool.query(
         "SELECT masanpham, tensanpham, thuonghieu, giaban, hinhanh FROM sanpham WHERE tinhtrang != 'Ẩn' ORDER BY tensanpham LIMIT 20"
       );
@@ -350,7 +350,7 @@ app.post("/api/search/image", async (req, res) => {
         brand: '',
         model: '',
         color: '',
-        description: 'Hiển thị tất cả sản phẩm (chưa cấu hình Gemini API)',
+        description: 'Hiển thị tất cả sản phẩm (chưa cấu hình AI API)',
         fallback: true,
         products: spRes.rows
       });
@@ -367,30 +367,31 @@ app.post("/api/search/image", async (req, res) => {
     );
     const brands = brandsRes.rows.map(r => r.hang).join(', ');
 
-    // Gọi Gemini Vision (với xử lý lỗi 503/429)
+    // Gọi Claude Vision (Anthropic)
     let rawText = '{}';
     try {
-      const geminiRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{
-              role: 'user',
-              parts: [
-                { inline_data: { mime_type: mimeType, data: base64 } },
-                { text: `Phân tích hình ảnh giày và trả về JSON (chỉ JSON):\n{"brand":"thương hiệu từ: ${brands}","model":"model","color":"màu","type":"loại","query":"từ khóa tiếng Việt","description":"mô tả ngắn"}` }
-              ]
-            }],
-            generationConfig: { maxOutputTokens: 300, temperature: 0.3 }
-          })
-        }
-      );
-      const geminiText = await geminiRes.text();
-      if (!geminiRes.ok) {
-        // Gemini lỗi (503/429) → fallback hiển thị tất cả SP
-        console.error('Gemini HTTP ' + geminiRes.status);
+      const visionRes = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': ANTHROPIC_KEY,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 300,
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64 } },
+              { type: 'text', text: 'Phân tích hình ảnh giày và trả về JSON (chỉ JSON, không giải thích):\n{"brand":"thương hiệu (chỉ chọn từ: ' + brands + ')","model":"tên model","color":"màu sắc chính","type":"loại giày","query":"từ khóa tìm kiếm tiếng Việt","description":"mô tả ngắn tiếng Việt"}' }
+            ]
+          }]
+        })
+      });
+      const visionText = await visionRes.text();
+      if (!visionRes.ok) {
+        console.error('Claude Vision HTTP ' + visionRes.status, visionText.slice(0,200));
         const spFb = await pool.query(
           "SELECT masanpham,tensanpham,thuonghieu,giaban,hinhanh FROM sanpham WHERE tinhtrang!='Ẩn' ORDER BY tensanpham LIMIT 20"
         );
@@ -398,11 +399,10 @@ app.post("/api/search/image", async (req, res) => {
           description:'Không thể phân tích ảnh, hiển thị tất cả sản phẩm',
           fallback:true, products:spFb.rows });
       }
-      const geminiData = JSON.parse(geminiText);
-      if (geminiData.error) throw new Error(geminiData.error.message);
-      rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-    } catch(geminiErr) {
-      console.error('Gemini error:', geminiErr.message);
+      const visionData = JSON.parse(visionText);
+      rawText = visionData?.content?.[0]?.text || '{}';
+    } catch(visionErr) {
+      console.error('Claude Vision error:', visionErr.message);
     }
     // Parse JSON từ response
     let parsed = {};
@@ -1706,7 +1706,7 @@ Nếu khách hỏi sản phẩm không có trong danh sách, hãy gợi ý sản
 
     let reply = '';
 
-    if (GEMINI_KEY) {
+    if (false) { // Gemini disabled, dùng Anthropic
       // ── Gemini API (miễn phí) ──────────────────────────────
       // Chuyển history sang format Gemini
       const geminiContents = history.map(m => ({
@@ -1818,7 +1818,7 @@ app.get("*", (req, res) => {
 // ── Khởi động server ─────────────────────────────────────────
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`✅ Server SneakerVN tại http://0.0.0.0:${PORT}`);
-  console.log(`   ⚠️  Nhớ set JWT_SECRET trong biến môi trường Replit!`);
+  console.log(`Server SneakerVN tại http://0.0.0.0:${PORT}`);
+  console.log(`   Nhớ set JWT_SECRET trong biến môi trường Replit!`);
 });
 process.env.NODE_ENV = 'production';

@@ -338,10 +338,10 @@ app.post("/api/search/image", async (req, res) => {
     const { image } = req.body;
     if (!image) return res.status(400).json({ error: "Thiếu ảnh" });
 
-    const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+    const GROQ_API_KEY_CHECK = process.env.GROQ_API_KEY;
 
-    // ── Fallback: không có Anthropic → tìm tất cả sản phẩm đang bán ──
-    if (!ANTHROPIC_KEY) {
+    // ── Fallback: không có Groq → tìm tất cả sản phẩm đang bán ──
+    if (!GROQ_API_KEY_CHECK) {
       const spRes = await pool.query(
         "SELECT masanpham, tensanpham, thuonghieu, giaban, hinhanh FROM sanpham WHERE tinhtrang != 'Ẩn' ORDER BY tensanpham LIMIT 20"
       );
@@ -367,42 +367,40 @@ app.post("/api/search/image", async (req, res) => {
     );
     const brands = brandsRes.rows.map(r => r.hang).join(', ');
 
-    // Gọi Claude Vision (Anthropic)
+    // Gọi Groq Vision (llama vision)
     let rawText = '{}';
-    try {
-      const visionRes = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': ANTHROPIC_KEY,
-          'anthropic-version': '2023-06-01'
-        },
-        body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 300,
-          messages: [{
-            role: 'user',
-            content: [
-              { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64 } },
-              { type: 'text', text: 'Phân tích hình ảnh giày và trả về JSON (chỉ JSON, không giải thích):\n{"brand":"thương hiệu (chỉ chọn từ: ' + brands + ')","model":"tên model","color":"màu sắc chính","type":"loại giày","query":"từ khóa tìm kiếm tiếng Việt","description":"mô tả ngắn tiếng Việt"}' }
-            ]
-          }]
-        })
-      });
-      const visionText = await visionRes.text();
-      if (!visionRes.ok) {
-        console.error('Claude Vision HTTP ' + visionRes.status, visionText.slice(0,200));
-        const spFb = await pool.query(
-          "SELECT masanpham,tensanpham,thuonghieu,giaban,hinhanh FROM sanpham WHERE tinhtrang!='Ẩn' ORDER BY tensanpham LIMIT 20"
-        );
-        return res.json({ query:'', brand:'', model:'', color:'',
-          description:'Không thể phân tích ảnh, hiển thị tất cả sản phẩm',
-          fallback:true, products:spFb.rows });
+    const GROQ_KEY = process.env.GROQ_API_KEY;
+    if (GROQ_KEY) {
+      try {
+        const visionRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + GROQ_KEY
+          },
+          body: JSON.stringify({
+            model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+            max_tokens: 300,
+            temperature: 0.3,
+            messages: [{
+              role: 'user',
+              content: [
+                { type: 'image_url', image_url: { url: 'data:' + mimeType + ';base64,' + base64 } },
+                { type: 'text', text: 'Phân tích hình ảnh giày và trả về JSON (chỉ JSON, không giải thích):\n{"brand":"thương hiệu (chỉ chọn từ: ' + brands + ')","model":"tên model","color":"màu sắc chính","type":"loại giày","query":"từ khóa tìm kiếm tiếng Việt","description":"mô tả ngắn tiếng Việt"}' }
+              ]
+            }]
+          })
+        });
+        const visionText = await visionRes.text();
+        if (!visionRes.ok) {
+          console.error('Groq Vision HTTP ' + visionRes.status, visionText.slice(0,200));
+        } else {
+          const visionData = JSON.parse(visionText);
+          rawText = visionData?.choices?.[0]?.message?.content || '{}';
+        }
+      } catch(visionErr) {
+        console.error('Groq Vision error:', visionErr.message);
       }
-      const visionData = JSON.parse(visionText);
-      rawText = visionData?.content?.[0]?.text || '{}';
-    } catch(visionErr) {
-      console.error('Claude Vision error:', visionErr.message);
     }
     // Parse JSON từ response
     let parsed = {};
@@ -1744,30 +1742,39 @@ Nếu khách hỏi sản phẩm không có trong danh sách, hãy gợi ý sản
       }
 
     } else {
-      // ── Anthropic API (fallback) ───────────────────────────
-      const messages = history.map(m => ({
-        role: m.sender === 'guest' ? 'user' : 'assistant',
-        content: m.message
-      }));
-      if (messages.length === 0 || messages[0].role !== 'user') {
-        messages.unshift({ role: 'user', content: message.trim() });
+      // ── Groq API (free) ────────────────────────────────────
+      const GROQ_KEY = process.env.GROQ_API_KEY;
+      if (!GROQ_KEY) {
+        reply = 'Xin chào! Hệ thống AI chưa được cấu hình. Vui lòng liên hệ shop qua hotline!';
+      } else {
+        const messages = history.map(m => ({
+          role: m.sender === 'guest' ? 'user' : 'assistant',
+          content: m.message
+        }));
+        if (messages.length === 0 || messages[0].role !== 'user') {
+          messages.unshift({ role: 'user', content: message.trim() });
+        }
+        const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + GROQ_KEY
+          },
+          body: JSON.stringify({
+            model: 'llama-3.1-8b-instant',
+            max_tokens: 500,
+            temperature: 0.7,
+            messages: [{ role: 'system', content: systemPrompt }, ...messages]
+          })
+        });
+        const groqData = await groqRes.json();
+        if (groqData.error) {
+          console.error('Groq error:', groqData.error);
+          reply = 'Xin lỗi, tôi không thể trả lời lúc này. Vui lòng thử lại.';
+        } else {
+          reply = groqData?.choices?.[0]?.message?.content || 'Xin lỗi, tôi không thể trả lời lúc này.';
+        }
       }
-      const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': ANTHROPIC_KEY,
-          'anthropic-version': '2023-06-01'
-        },
-        body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 500,
-          system: systemPrompt,
-          messages
-        })
-      });
-      const aiData = await aiRes.json();
-      reply = aiData?.content?.[0]?.text || 'Xin lỗi, tôi không thể trả lời lúc này. Vui lòng thử lại.';
     }
 
     // Lưu tin nhắn AI

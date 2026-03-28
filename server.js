@@ -1679,11 +1679,12 @@ app.post('/api/chat/message', async (req, res) => {
       `- ${p.ten} (${p.hang}) | Giá: ${Number(p.gia).toLocaleString('vi-VN')}đ | Tồn: ${p.ton} | Danh mục: ${p.dm}`
     ).join('\n');
 
-    // Gọi Gemini API (miễn phí) hoặc fallback Anthropic nếu có
-    const GEMINI_KEY    = process.env.GEMINI_API_KEY;
-    const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+    // Gọi Groq API
+    const GEMINI_KEY    = null;
+    const ANTHROPIC_KEY = null;
+    const GROQ_KEY_CHAT = process.env.GROQ_API_KEY;
 
-    if (!GEMINI_KEY && !ANTHROPIC_KEY) {
+    if (!GROQ_KEY_CHAT) {
       const fallback = 'Xin chào! Hiện tại hệ thống AI chưa được cấu hình. Vui lòng liên hệ shop qua hotline để được hỗ trợ nhé!';
       await pool.query(
         `INSERT INTO Chat_Messages (session_id, sender, message) VALUES ($1,'ai',$2)`,
@@ -1743,7 +1744,7 @@ Nếu khách hỏi sản phẩm không có trong danh sách, hãy gợi ý sản
 
     } else {
       // ── Groq API (free) ────────────────────────────────────
-      const GROQ_KEY = process.env.GROQ_API_KEY;
+      const GROQ_KEY = GROQ_KEY_CHAT;
       if (!GROQ_KEY) {
         reply = 'Xin chào! Hệ thống AI chưa được cấu hình. Vui lòng liên hệ shop qua hotline!';
       } else {

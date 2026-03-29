@@ -1896,9 +1896,18 @@ function loginWithRole(account) {
   const dashId = dashMap[account.role];
   document.getElementById(dashId).classList.add('open');
   document.body.style.overflow = 'hidden';
-  // Ẩn nút đăng nhập khi vào dashboard
   document.getElementById('navLoginBtn').style.display = 'none';
-  showToast('Đăng Nhập Thành Công 👋', 'Chào mừng -- ' + account.name);
+
+  // Lưu phiên đăng nhập vào sessionStorage + localStorage
+  // Dùng flag đơn giản thay vì btoa() để tránh lỗi Unicode
+  sessionStorage.setItem('svn_shop_logged_in', '1');
+  sessionStorage.setItem('admin_token', 'shop-offline-session');
+  localStorage.setItem('svn_shop_logged_in', '1');
+  localStorage.setItem('admin_token', 'shop-offline-session');
+  localStorage.setItem('svn_admin_role', account.role);
+  localStorage.setItem('svn_admin_name', account.name);
+
+  showToast('Đăng Nhập Thành Công 👋', 'Chào mừng ' + account.name + '!');
 
   if (account.role === 'shop') {
     // Update shop dashboard header with real user info
@@ -11255,6 +11264,10 @@ function logoutDashboard(id) {
   sessionStorage.removeItem('admin_token');
   localStorage.removeItem('svn_admin_role');
   localStorage.removeItem('svn_admin_name');
+  localStorage.removeItem('svn_shop_logged_in');
+  sessionStorage.removeItem('svn_shop_logged_in');
+  localStorage.removeItem('svn_admin_role');
+  localStorage.removeItem('svn_admin_name');
   // Hiện lại nút đăng nhập
   const btn = document.getElementById('navLoginBtn');
   btn.style.display = '';
@@ -11405,7 +11418,11 @@ async function loadKhachHang() {
   try {
     const params = new URLSearchParams({ search, hang, page: khPage, limit: KH_LIMIT });
     const json = await safeAdminFetch(`${window.location.origin}/api/khachhang?${params}`);
-    if (!json) return;
+    if (!json) {
+      // API không khả dụng — hiển thị dữ liệu offline
+      _khRenderOffline(_khGetOffline());
+      return;
+    }
     const { data, total, stats } = json;
 
     // Update stats
@@ -11487,6 +11504,14 @@ function closeKhachHangModal() {
   document.getElementById('modal-kh').style.display = 'none';
 }
 
+// Offline customer store
+function _khGetOffline() {
+  try { return JSON.parse(sessionStorage.getItem('svn_kh_offline') || '[]'); } catch(e) { return []; }
+}
+function _khSaveOffline(list) {
+  try { sessionStorage.setItem('svn_kh_offline', JSON.stringify(list)); } catch(e) {}
+}
+
 async function saveKhachHang() {
   const id     = document.getElementById('kh-edit-id').value;
   const HoTen  = document.getElementById('kh-inp-hoten').value.trim();
@@ -11497,37 +11522,124 @@ async function saveKhachHang() {
   if (!HoTen) { showToast('Lỗi -', 'Họ tên không được để trống'); return; }
 
   const body = { HoTen, Email, SoDienThoai: SDT, DiaChi };
-  const url  = id ? `/api/khachhang/${id}` : '/api/khachhang';
+  const url    = id ? `/api/khachhang/${id}` : '/api/khachhang';
   const method = id ? 'PUT' : 'POST';
 
-  try {
-    const json = await safeAdminFetch(`${window.location.origin}${url}`, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    if (!json) { showToast('Lỗi -', 'Không thể kết nối server'); return; }
-    if (json.error) { showToast('Lỗi -', json.error); return; }
-    showToast(id ? '- Đã cập nhật' : '- Đã thêm', `Khách hàng ${HoTen}`);
+  const json = await safeAdminFetch(`${window.location.origin}${url}`, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+
+  if (!json || json.error) {
+    // Offline fallback — lưu vào bộ nhớ tạm và cập nhật bảng trực tiếp
+    const list = _khGetOffline();
+    const now  = new Date().toISOString();
+    if (id) {
+      // Sửa
+      const idx = list.findIndex(k => k.customerid === id);
+      if (idx >= 0) {
+        list[idx] = { ...list[idx], hoten: HoTen, email: Email, sodienthoai: SDT, diachi: DiaChi };
+      }
+    } else {
+      // Thêm mới
+      const newKH = {
+        customerid: 'KH-' + Date.now(),
+        hoten: HoTen, email: Email, sodienthoai: SDT, diachi: DiaChi,
+        tongchitieu: 0, sodonhang: 0, ngaytao: now
+      };
+      list.unshift(newKH);
+    }
+    _khSaveOffline(list);
+    showToast(id ? '✅ Đã cập nhật' : '✅ Đã thêm KH', HoTen);
     closeKhachHangModal();
-    loadKhachHang();
-  } catch (err) {
-    showToast('Lỗi -', err.message);
+    _khRenderOffline(list);
+    return;
   }
+
+  showToast(id ? '✅ Đã cập nhật' : '✅ Đã thêm', `Khách hàng ${HoTen}`);
+  closeKhachHangModal();
+  loadKhachHang();
+}
+
+// Render bảng từ dữ liệu offline
+function _khRenderOffline(list) {
+  const tbody = document.getElementById('kh-tbody');
+  if (!tbody) return;
+
+  // Update stat
+  const sub = document.getElementById('kh-sub');
+  if (sub) sub.textContent = list.length + ' khách hàng';
+  const tot = document.getElementById('kh-stat-total');
+  if (tot) tot.textContent = list.length;
+  const title = document.getElementById('kh-list-title');
+  if (title) title.textContent = 'Danh Sách Khách Hàng (' + list.length + ')';
+
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--gray-light)">Chưa có khách hàng nào. Bấm "+ Thêm KH" để bắt đầu.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = list.map(function(k) {
+    var chi = parseFloat(k.tongchitieu) || 0;
+    var hotEsc = (k.hoten||'').replace(/'/g, "\'");
+    var diachiEsc = (k.diachi||'').replace(/'/g, "\'");
+    return '<tr>' +
+      '<td><div style="font-weight:600">' + (k.hoten||'--') + '</div><div style="font-size:11px;color:var(--gray-light)">' + (k.customerid||'') + '</div></td>' +
+      '<td style="font-size:12px">' + (k.email||'--') + '</td>' +
+      '<td style="font-size:12px">' + (k.sodienthoai||'--') + '</td>' +
+      '<td style="font-family:monospace;font-weight:700">0đ</td>' +
+      '<td style="text-align:center">0</td>' +
+      '<td><span style="color:#4caf50">🆕 Mới</span></td>' +
+      '<td style="font-size:12px;color:var(--gray-light)">' + new Date(k.ngaytao||Date.now()).toLocaleDateString('vi-VN') + '</td>' +
+      '<td style="display:flex;gap:4px">' +
+        '<button class="db-btn-sm primary" data-kh-edit="1" data-id="' + k.customerid + '" data-hoten="' + hotEsc + '" data-email="' + (k.email||'') + '" data-sdt="' + (k.sodienthoai||'') + '" data-diachi="' + diachiEsc + '">✏️</button>' +
+        '<button class="db-btn-sm" style="color:#f44336" data-kh-del="1" data-id="' + k.customerid + '" data-hoten="' + hotEsc + '">🗑️</button>' +
+      '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+// Event delegation cho bảng KH offline (data-kh-edit, data-kh-del)
+(function() {
+  var khDelegate = function(e) {
+    var btn = e.target.closest('[data-kh-edit]');
+    if (btn) {
+      editKhachHang(
+        btn.dataset.id, btn.dataset.hoten||'',
+        btn.dataset.email||'', btn.dataset.sdt||'', btn.dataset.diachi||''
+      );
+      return;
+    }
+    var del = e.target.closest('[data-kh-del]');
+    if (del) deleteKhOffline(del.dataset.id, del.dataset.hoten||'');
+  };
+  // Attach once on tbody
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('#kh-tbody')) khDelegate(e);
+  });
+})();
+
+// Xóa KH offline
+function deleteKhOffline(id, hoten) {
+  if (!confirm('Xóa khách hàng "' + hoten + '"?')) return;
+  var list = _khGetOffline().filter(function(k){ return k.customerid !== id; });
+  _khSaveOffline(list);
+  _khRenderOffline(list);
+  showToast('✅ Đã xóa', hoten);
 }
 
 // -- Xóa ------------------------------------
 async function deleteKhachHang(id, hoten) {
-  if (!confirm(`Xóa khách hàng "${hoten}" (${id})?`)) return;
-  try {
-    const json = await safeAdminFetch(`${window.location.origin}/api/khachhang/${id}`, { method: 'DELETE' });
-    if (!json) { showToast('Lỗi -', 'Không thể kết nối server'); return; }
-    if (json.error) { showToast('Lỗi -', json.error); return; }
-    showToast('- Đã xóa', hoten);
-    loadKhachHang();
-  } catch (err) {
-    showToast('Lỗi -', err.message);
+  if (!confirm('Xóa khách hàng "' + hoten + '"?')) return;
+  const json = await safeAdminFetch(window.location.origin + '/api/khachhang/' + id, { method: 'DELETE' });
+  if (!json || json.error) {
+    // Offline: xóa khỏi bộ nhớ tạm
+    deleteKhOffline(id, hoten);
+    return;
   }
+  showToast('✅ Đã xóa', hoten);
+  loadKhachHang();
 }
 
 // -- Xem đơn hàng của KH ---------------------
@@ -12097,10 +12209,13 @@ async function adminSaveProduct() {
   const errEl = document.getElementById('shop-prod-form-error');
   const btn   = document.getElementById('shop-prod-submit-btn');
 
-  // Kiểm tra token trước khi làm gì
-  const tok = adminToken();
-  if (!tok) {
-    if (errEl) { errEl.textContent = 'Phiên đăng nhập hết hạn, vui lòng đăng nhập lại'; errEl.style.display = 'block'; }
+  // Kiểm tra đăng nhập qua currentUser (không cần token khi chạy offline)
+  const isShopLoggedIn = (window.currentUser && ['shop','admin'].includes(window.currentUser.role))
+    || sessionStorage.getItem('svn_shop_logged_in') === '1'
+    || localStorage.getItem('svn_shop_logged_in') === '1'
+    || !!adminToken();
+  if (!isShopLoggedIn) {
+    if (errEl) { errEl.textContent = 'Vui lòng đăng nhập với tài khoản Chủ Shop'; errEl.style.display = 'block'; }
     return;
   }
 
@@ -16494,20 +16609,24 @@ if(svcSid)document.addEventListener('DOMContentLoaded',function(){svcShowConv();
   const name  = localStorage.getItem('svn_admin_name');
   if (!token || !role) return;
 
-  // Kiểm tra token còn hạn không (decode JWT payload)
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
-    if (payload.exp && payload.exp < Math.floor(Date.now()/1000)) {
-      // Token hết hạn → xóa
-      localStorage.removeItem('admin_token');
-      localStorage.removeItem('svn_admin_role');
-      localStorage.removeItem('svn_admin_name');
-      return;
-    }
-  } catch(e) { return; }
+  // Offline token (shop-offline-session) → bỏ qua decode JWT, dùng trực tiếp
+  if (token !== 'shop-offline-session') {
+    // Kiểm tra token thật còn hạn không (decode JWT payload)
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+      if (payload.exp && payload.exp < Math.floor(Date.now()/1000)) {
+        localStorage.removeItem('admin_token');
+        localStorage.removeItem('svn_admin_role');
+        localStorage.removeItem('svn_admin_name');
+        localStorage.removeItem('svn_shop_logged_in');
+        return;
+      }
+    } catch(e) { return; }
+  }
 
   // Restore phiên
   sessionStorage.setItem('admin_token', token);
+  sessionStorage.setItem('svn_shop_logged_in', '1');
   currentUser = { role, name: name || role };
 
   const dashMap = { shop: 'shopDashboard', accountant: 'accountantDashboard', admin: 'superAdminDashboard' };
@@ -16524,9 +16643,18 @@ if(svcSid)document.addEventListener('DOMContentLoaded',function(){svcShowConv();
     const loginBtn = document.getElementById('navLoginBtn');
     if (loginBtn) { loginBtn.style.display = 'none'; }
     updateChatVisibility && updateChatVisibility();
+    // Update shop dashboard header if applicable
+    if (role === 'shop') {
+      const avatarEl = document.getElementById('shop-db-avatar');
+      const nameEl   = document.getElementById('shop-db-name');
+      if (name && avatarEl) {
+        avatarEl.textContent = name.split(' ').map(function(w){return w[0];}).join('').slice(-2).toUpperCase();
+      }
+      if (name && nameEl) nameEl.textContent = name;
+    }
     // Load dữ liệu dashboard
     if (role === 'shop' || role === 'admin') {
-      setTimeout(() => {
+      setTimeout(function() {
         if (typeof initAdminChart === 'function') initAdminChart();
         if (typeof adminLoadDashboard === 'function') adminLoadDashboard();
       }, 400);

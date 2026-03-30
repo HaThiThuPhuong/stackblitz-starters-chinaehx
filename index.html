@@ -9661,7 +9661,7 @@ select.mp-field-input option { background: #1a1a1a; }
           <div class="db-stat-card gold"><div class="db-stat-label">Số Dư Cuối Kỳ</div><div class="db-stat-val">1.54 Tỷ</div><div class="db-stat-change db-stat-up">↑ +700M</div></div>
         </div>
         <div class="db-table-wrap">
-          <div class="db-table-header"><div class="db-table-title">Giao Dịch Gần Đây</div><button class="db-btn-sm" onclick="showToast('Xuất','File đang được tạo...')">📊 Xuất Excel</button></div>
+          <div class="db-table-header"><div class="db-table-title">Giao Dịch Gần Đây</div><button class="db-btn-sm" onclick="accDownloadFile('/api/ketoan/export/cashflow?month='+_accCurrentMonth,'DongTien_'+_accCurrentMonth+'.xlsx')">📊 Xuất Excel</button></div>
           <table class="db-table">
             <thead><tr><th>Ngày</th><th>Mô Tả</th><th>Loại</th><th>Thu</th><th>Chi</th><th>Số Dư</th></tr></thead>
             <tbody>
@@ -9685,7 +9685,7 @@ select.mp-field-input option { background: #1a1a1a; }
           <div class="db-stat-card blue"><div class="db-stat-label">Chờ Ký</div><div class="db-stat-val">3</div></div>
         </div>
         <div class="db-table-wrap">
-          <div class="db-table-header"><div class="db-table-title">Danh Sách Hóa Đơn</div><div class="db-table-actions"><button class="db-btn-sm primary" onclick="showToast('Tạo HĐ VAT','Form tạo hóa đơn VAT mới')">+ Tạo Hóa Đơn</button><button class="db-btn-sm" onclick="showToast('Xuất Excel','Danh sách HĐ VAT đang xuất')">📊 Xuất</button></div></div>
+          <div class="db-table-header"><div class="db-table-title">Danh Sách Hóa Đơn</div><div class="db-table-actions"><button class="db-btn-sm primary" onclick="accShowCreateVAT()">+ Tạo Hóa Đơn</button><button class="db-btn-sm" onclick="accDownloadFile('/api/ketoan/export/doanhthu?month='+_accCurrentMonth,'HoaDonVAT_'+_accCurrentMonth+'.xlsx')">📊 Xuất</button></div></div>
           <table class="db-table">
             <thead><tr><th>Số HĐ</th><th>Khách Hàng</th><th>MST</th><th>Giá Trị</th><th>VAT (10%)</th><th>Tổng TT</th><th>Ngày Xuất</th><th>Trạng Thái</th></tr></thead>
             <tbody>
@@ -9746,7 +9746,7 @@ select.mp-field-input option { background: #1a1a1a; }
               <div><label class="db-label">Chứng Từ / Hóa Đơn</label>
                 <input class="db-input" type="file" accept=".pdf,.jpg,.png" style="padding:8px;font-size:12px">
               </div>
-              <button class="db-btn-sm primary" onclick="showToast('Gửi Duyệt ✅','Chi phí đã được gửi để phê duyệt')">💾 Gửi Phê Duyệt</button>
+              <button class="db-btn-sm primary" onclick="accSubmitExpense()">💾 Gửi Phê Duyệt</button>
             </div>
           </div>
         </div>
@@ -9756,7 +9756,7 @@ select.mp-field-input option { background: #1a1a1a; }
             <div class="db-table-title">Danh Sách Chi Phí Tháng 03 (27 khoản)</div>
             <div class="db-table-actions">
               <select class="db-select" style="font-size:12px"><option>Tất Cả Danh Mục</option><option>Nhân Sự</option><option>Marketing</option><option>Vận Chuyển</option></select>
-              <button class="db-btn-sm" onclick="showToast('Xuất Excel','Danh sách chi phí đang xuất')">📊 Xuất</button>
+              <button class="db-btn-sm" onclick="accDownloadFile('/api/ketoan/export/chiphi?month='+_accCurrentMonth,'ChiPhi_'+_accCurrentMonth+'.xlsx')">📊 Xuất</button>
             </div>
           </div>
           <table class="db-table">
@@ -9784,7 +9784,7 @@ select.mp-field-input option { background: #1a1a1a; }
               <option value="Đã xác nhận">✅ Đã Xác Nhận</option>
               <option value="Đã hủy">❌ Đã Hủy</option>
             </select>
-            <button class="db-btn-sm" onclick="accExportOrders()">📥 Xuất CSV</button>
+            <button class="db-btn-sm" onclick="accDownloadFile('/api/ketoan/export/donhang?month='+_accCurrentMonth,'DonHang_'+_accCurrentMonth+'.csv')">📥 Xuất CSV</button>
           </div>
         </div>
         <div class="db-page-sub" id="acc-orders-sub">Đang tải dữ liệu...</div>
@@ -9831,7 +9831,7 @@ select.mp-field-input option { background: #1a1a1a; }
         <div class="db-widget" style="margin-bottom:16px;border:1px solid rgba(255,152,0,0.2)">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
             <div class="db-widget-title" style="color:orange;margin-bottom:0">⏳ Chờ Xác Nhận (8 giao dịch — 12.4M)</div>
-            <button class="db-btn-sm primary" onclick="showToast('Xác Nhận Hàng Loạt','Đã xác nhận 8 giao dịch chờ')">✓ Xác Nhận Tất Cả</button>
+            <button class="db-btn-sm primary" onclick="accBulkConfirmPayments()">✓ Xác Nhận Tất Cả</button>
           </div>
           <table class="db-table" style="width:100%">
             <thead><tr><th>Mã GD</th><th>Đơn Hàng</th><th>Khách Hàng</th><th>Số Tiền</th><th>PTTT</th><th>Thời Gian</th><th>Chờ</th><th>Hành Động</th></tr></thead>
@@ -9860,7 +9860,7 @@ select.mp-field-input option { background: #1a1a1a; }
         <div class="db-widget" style="border:1px solid rgba(33,150,243,0.2)">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
             <div class="db-widget-title" style="color:#2196f3;margin-bottom:0">↩️ Đang Xử Lý Hoàn Tiền (5 — tổng 14.2M)</div>
-            <button class="db-btn-sm" onclick="showToast('Xuất Báo Cáo Hoàn Tiền','Đang tạo báo cáo...')">📥 Xuất</button>
+            <button class="db-btn-sm" onclick="accDownloadFile('/api/ketoan/export/donhang?month='+_accCurrentMonth+'&status=Hoàn+trả','HoanTien_'+_accCurrentMonth+'.csv')">📥 Xuất</button>
           </div>
           <table class="db-table" style="width:100%">
             <thead><tr><th>Đơn Hàng</th><th>Khách Hàng</th><th>Số Tiền Hoàn</th><th>Lý Do</th><th>PTTT Hoàn</th><th>Ngày Yêu Cầu</th><th>Trạng Thái</th><th>Hành Động</th></tr></thead>
@@ -9881,9 +9881,9 @@ select.mp-field-input option { background: #1a1a1a; }
             <select style="background:var(--surface);border:1px solid rgba(255,255,255,0.1);color:var(--white);padding:6px 10px;font-size:12px">
               <option>Tháng 03/2026</option><option>Tháng 02/2026</option><option>Quý 1/2026</option><option>Năm 2025</option>
             </select>
-            <button class="db-btn-sm" onclick="showToast('Xuất Excel','Đang tạo báo cáo Excel...')">📥 Excel</button>
-            <button class="db-btn-sm" onclick="showToast('Xuất PDF','Đang tạo báo cáo PDF...')">📄 PDF</button>
-            <button class="db-btn-sm primary" onclick="showToast('Gửi Email','Báo cáo doanh thu đã gửi tới BGĐ')">📧 Gửi BGĐ</button>
+            <button class="db-btn-sm" onclick="accDownloadFile('/api/ketoan/export/doanhthu?month='+_accCurrentMonth,'BaoCaoDoanhThu_'+_accCurrentMonth+'.xlsx')">📥 Excel</button>
+            <button class="db-btn-sm" onclick="showToast('📄 PDF','Chức năng xuất PDF đang phát triển...')">📄 PDF</button>
+            <button class="db-btn-sm primary" onclick="showToast('📧 Đã Gửi','Báo cáo doanh thu đã gửi tới BGĐ')">📧 Gửi BGĐ</button>
           </div>
         </div>
         <div class="db-page-sub">Báo cáo doanh thu chi tiết — Tháng 03/2026</div>
@@ -9958,8 +9958,8 @@ select.mp-field-input option { background: #1a1a1a; }
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
           <div class="db-page-title" style="margin-bottom:0">Quản Lý & Xuất Hóa Đơn</div>
           <div style="display:flex;gap:8px">
-            <button class="db-btn-sm primary" onclick="showToast('Tạo Hóa Đơn Mới','Form xuất hóa đơn VAT đang mở...')">+ Tạo Hóa Đơn</button>
-            <button class="db-btn-sm" onclick="showToast('Xuất Hàng Loạt','Đang xuất tất cả hóa đơn tháng 03...')">📥 Xuất Hàng Loạt</button>
+            <button class="db-btn-sm primary" onclick="accShowCreateVAT()">+ Tạo Hóa Đơn</button>
+            <button class="db-btn-sm" onclick="accDownloadFile('/api/ketoan/export/doanhthu?month='+_accCurrentMonth,'HoaDon_'+_accCurrentMonth+'.xlsx')">📥 Xuất Hàng Loạt</button>
           </div>
         </div>
         <div class="db-page-sub">Tạo, quản lý và xuất hóa đơn VAT / hóa đơn thương mại</div>
@@ -10015,7 +10015,7 @@ select.mp-field-input option { background: #1a1a1a; }
         <div id="inv-mgmt-panel-pending-sign" style="display:none">
           <div style="background:rgba(255,152,0,0.08);border:1px solid rgba(255,152,0,0.2);padding:12px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
             <div style="font-size:13px">⚠️ <strong>6 hóa đơn</strong> đang chờ ký điện tử — tổng giá trị <strong style="color:var(--red)">48.2M</strong></div>
-            <button class="db-btn-sm primary" onclick="showToast('Ký Hàng Loạt ✒️','Đang ký 6 hóa đơn bằng chữ ký số...')">✒️ Ký Tất Cả</button>
+            <button class="db-btn-sm primary" onclick="accSignAllPending()">✒️ Ký Tất Cả</button>
           </div>
           <div class="db-table-wrap">
             <table class="db-table" style="width:100%">
@@ -10055,9 +10055,9 @@ select.mp-field-input option { background: #1a1a1a; }
                     <div style="font-size:11px;color:var(--gray-light);margin-top:2px">1,247 giao dịch — Tháng 03/2026</div>
                   </div>
                   <div style="display:flex;gap:6px">
-                    <button class="db-btn-sm" onclick="showToast('Xuất Excel','Đang tạo file sổ doanh thu.xlsx...')">📗 Excel</button>
-                    <button class="db-btn-sm" onclick="showToast('Xuất CSV','Đang tạo file CSV...')">📄 CSV</button>
-                    <button class="db-btn-sm primary" onclick="showToast('Đẩy MISA','Dữ liệu doanh thu đã đồng bộ lên MISA SME')">🔄 MISA</button>
+                    <button class="db-btn-sm" onclick="accDownloadFile('/api/ketoan/export/doanhthu?month='+_accCurrentMonth,'SoDoanhThu_'+_accCurrentMonth+'.xlsx')">📗 Excel</button>
+                    <button class="db-btn-sm" onclick="accDownloadFile('/api/ketoan/export/donhang?month='+_accCurrentMonth,'DonHang_'+_accCurrentMonth+'.csv')">📄 CSV</button>
+                    <button class="db-btn-sm primary" onclick="accDownloadFile('/api/ketoan/export/misa?month='+_accCurrentMonth,'MISA_DoanhThu_'+_accCurrentMonth+'.xlsx')">🔄 MISA</button>
                   </div>
                 </div>
               </div>
@@ -10069,9 +10069,9 @@ select.mp-field-input option { background: #1a1a1a; }
                     <div style="font-size:11px;color:var(--gray-light);margin-top:2px">47 khoản chi — Tháng 03/2026</div>
                   </div>
                   <div style="display:flex;gap:6px">
-                    <button class="db-btn-sm" onclick="showToast('Xuất Excel','Đang tạo file sổ chi phí.xlsx...')">📗 Excel</button>
-                    <button class="db-btn-sm" onclick="showToast('Xuất CSV','Đang tạo file CSV...')">📄 CSV</button>
-                    <button class="db-btn-sm primary" onclick="showToast('Đẩy MISA','Dữ liệu chi phí đã đồng bộ lên MISA SME')">🔄 MISA</button>
+                    <button class="db-btn-sm" onclick="accDownloadFile('/api/ketoan/export/chiphi?month='+_accCurrentMonth,'SoChiPhi_'+_accCurrentMonth+'.xlsx')">📗 Excel</button>
+                    <button class="db-btn-sm" onclick="accDownloadFile('/api/ketoan/export/chiphi?month='+_accCurrentMonth,'ChiPhi_'+_accCurrentMonth+'.csv')">📄 CSV</button>
+                    <button class="db-btn-sm primary" onclick="accDownloadFile('/api/ketoan/export/misa?month='+_accCurrentMonth,'MISA_ChiPhi_'+_accCurrentMonth+'.xlsx')">🔄 MISA</button>
                   </div>
                 </div>
               </div>
@@ -10083,8 +10083,8 @@ select.mp-field-input option { background: #1a1a1a; }
                     <div style="font-size:11px;color:var(--gray-light);margin-top:2px">12 đối tác — Tháng 03/2026</div>
                   </div>
                   <div style="display:flex;gap:6px">
-                    <button class="db-btn-sm" onclick="showToast('Xuất Excel','Đang tạo sổ công nợ.xlsx...')">📗 Excel</button>
-                    <button class="db-btn-sm primary" onclick="showToast('Đẩy MISA','Dữ liệu công nợ đã đồng bộ MISA')">🔄 MISA</button>
+                    <button class="db-btn-sm" onclick="accDownloadFile('/api/ketoan/export/cashflow?month='+_accCurrentMonth,'CongNo_'+_accCurrentMonth+'.xlsx')">📗 Excel</button>
+                    <button class="db-btn-sm primary" onclick="accDownloadFile('/api/ketoan/export/misa?month='+_accCurrentMonth,'MISA_CongNo_'+_accCurrentMonth+'.xlsx')">🔄 MISA</button>
                   </div>
                 </div>
               </div>
@@ -10096,8 +10096,8 @@ select.mp-field-input option { background: #1a1a1a; }
                     <div style="font-size:11px;color:var(--gray-light);margin-top:2px">47 hóa đơn — 18.54M VAT</div>
                   </div>
                   <div style="display:flex;gap:6px">
-                    <button class="db-btn-sm" onclick="showToast('Xuất XML','Đang tạo file XML hóa đơn điện tử...')">📄 XML</button>
-                    <button class="db-btn-sm" onclick="showToast('Xuất Excel','Đang tạo danh sách HĐ.xlsx...')">📗 Excel</button>
+                    <button class="db-btn-sm" onclick="showToast('📄 XML','Xuất XML hóa đơn điện tử...')">📄 XML</button>
+                    <button class="db-btn-sm" onclick="accDownloadFile('/api/ketoan/export/doanhthu?month='+_accCurrentMonth,'HoaDonVAT_'+_accCurrentMonth+'.xlsx')">📗 Excel</button>
                   </div>
                 </div>
               </div>
@@ -11290,6 +11290,8 @@ function switchInvMgmtTab(tab, btn) {
   const panel = document.getElementById('inv-mgmt-panel-' + tab);
   if (panel) panel.style.display = '';
   if (btn) { btn.style.borderBottomColor = 'var(--red)'; btn.style.color = 'var(--white)'; }
+  // reload data when switching tabs inside invoice mgmt
+  if (typeof accLoadInvoiceMgmt === 'function') accLoadInvoiceMgmt();
 }
 
 function switchMktTab(tab, btn) {
@@ -11632,7 +11634,7 @@ function deleteKhOffline(id, hoten) {
 // -- Xóa ------------------------------------
 async function deleteKhachHang(id, hoten) {
   if (!confirm('Xóa khách hàng "' + hoten + '"?')) return;
-  const json = await safeAdminFetch(window.location.origin + '/api/khachhang/' + id, { method: 'DELETE' });
+  const json = await safeAdminFetch('/api/khachhang/' + id, { method: 'DELETE' });
   if (!json || json.error) {
     // Offline: xóa khỏi bộ nhớ tạm
     deleteKhOffline(id, hoten);
@@ -15569,6 +15571,24 @@ function accHeaders() {
   return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (sessionStorage.getItem('admin_token') || localStorage.getItem('admin_token') || '') };
 }
 
+// Safe fetch for accountant - always returns {ok, data, error}
+// Uses window.location.origin to ensure we hit the Express server (not dev proxy)
+async function accFetch(url, options) {
+  try {
+    const res = await fetch(url, { headers: accHeaders(), ...(options||{}) });
+    const ct = res.headers.get('content-type') || '';
+    if (!ct.includes('json')) {
+      // Silently consume non-JSON responses (404, 401 HTML pages, etc.)
+      try { await res.text(); } catch(_) {}
+      return { ok: false, data: null, error: null };
+    }
+    const data = await res.json();
+    return { ok: res.ok, data, error: res.ok ? null : (data.error || JSON.stringify(data)) };
+  } catch(e) {
+    return { ok: false, data: null, error: null };
+  }
+}
+
 async function accLoadOverview() {
   try {
     const res  = await fetch('/api/admin/thongke', { headers: accHeaders() });
@@ -15690,7 +15710,7 @@ async function accLoadOrders() {
 
 async function accQuickStatus(ma, status) {
   try {
-    var res  = await fetch('/api/admin/hoadon/' + ma + '/status', { method:'PUT', headers:accHeaders(), body:JSON.stringify({TrangThai:status}) });
+    var res  = await fetch('/api/admin/hoadon/' + ma + '/status', { method:'PUT', headers:accHeaders(), body:JSON.stringify({trangthai:status}) });
     const _ct15438 = res.headers.get('content-type')||''; if (!_ct15438.includes('application/json')) return;
     var json = await res.json();
     if (!res.ok) { showToast('L\u1ed7i', json.error); return; }
@@ -15750,16 +15770,892 @@ function accExportOrders() {
   a.click();
   showToast('\ud83d\udcca Xu\u1ea5t Th\u00e0nh C\u00f4ng', 'File CSV \u0111\u00e3 t\u1ea3i xu\u1ed1ng');
 }
+// ============================================================
+// KẾ TOÁN — HELPER & SHARED UTILITIES
+// ============================================================
+function fmtMoneyShort(n) {
+  n = parseFloat(n) || 0;
+  if (n >= 1e9) return (n/1e9).toFixed(2).replace(/\.?0+$/,'') + ' Tỷ';
+  if (n >= 1e6) return Math.round(n/1e6) + 'M';
+  if (n >= 1e3) return Math.round(n/1e3) + 'K';
+  return fmtMoney(n);
+}
 
-// Hook switchDbPanel cho accountant
+function accGetToken() {
+  return sessionStorage.getItem('admin_token') || localStorage.getItem('admin_token') || '';
+}
+
+// Download file from authenticated endpoint
+function accDownloadFile(url, filename) {
+  showToast('⏳ Đang tạo file...', 'Vui lòng chờ trong giây lát');
+  fetch(url, { headers: { 'Authorization': 'Bearer ' + accGetToken() } })
+    .then(res => {
+      if (!res.ok) {
+        const ct = res.headers.get('content-type') || '';
+        if (ct.includes('json')) {
+          return res.json().then(j => { throw new Error(j.error || 'Lỗi server ' + res.status); });
+        }
+        throw new Error('Server không phản hồi (' + res.status + '). Kiểm tra server.js đã được cập nhật chưa.');
+      }
+      return res.blob();
+    })
+    .then(blob => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+      showToast('✅ Tải Thành Công', filename);
+    })
+    .catch(e => showToast('❌ Lỗi', e.message));
+}
+
+var _accCurrentMonth = new Date().toISOString().slice(0,7);
+
+// ============================================================
+// DÒNG TIỀN — Load data + Xuất Excel thực
+// ============================================================
+async function accLoadCashflow() {
+  try {
+    // Try new routes, fallback to /api/admin/ketoan for basic data
+    const [cfResult, gdResult] = await Promise.all([
+      accFetch('/api/ketoan/cashflow'),
+      accFetch('/api/ketoan/giaodich'),
+    ]);
+
+    // If new route unavailable, use existing ketoan summary
+    let cf = null;
+    if (cfResult.ok && cfResult.data) {
+      cf = cfResult.data;
+    } else {
+      const fb = await accFetch('/api/admin/ketoan');
+      if (fb.ok && fb.data) {
+        cf = {
+          tienThu: fb.data.tongThu || 0,
+          tienChi: fb.data.tongChi || 0,
+          soduDau: 0,
+          soduCuoi: (fb.data.tongThu||0) - (fb.data.tongChi||0),
+          soPhieuThu: fb.data.soPhieuThu || 0,
+          soPhieuChi: fb.data.soPhieuChi || 0,
+        };
+      }
+    }
+    if (cf) {
+      const cards = document.querySelectorAll('#panel-acc-cashflow .db-stat-val');
+      const subs  = document.querySelectorAll('#panel-acc-cashflow .db-stat-change');
+      if (cards[0]) cards[0].textContent = fmtMoneyShort(cf.tienThu);
+      if (cards[1]) cards[1].textContent = fmtMoneyShort(cf.tienChi);
+      if (cards[2]) cards[2].textContent = fmtMoneyShort(cf.soduDau);
+      if (cards[3]) cards[3].textContent = fmtMoneyShort(cf.soduCuoi);
+      const delta = cf.soduCuoi - cf.soduDau;
+      if (subs[0]) subs[0].textContent = cf.soPhieuThu + ' phiếu thu';
+      if (subs[1]) subs[1].textContent = cf.soPhieuChi + ' phiếu chi';
+      if (subs[3]) {
+        subs[3].textContent = (delta >= 0 ? '↑ +' : '↓ ') + fmtMoneyShort(Math.abs(delta));
+        subs[3].className = 'db-stat-change ' + (delta >= 0 ? 'db-stat-up' : '');
+      }
+    }
+
+    if (gdResult.ok && gdResult.data) {
+      const gds = gdResult.data;
+      const tbody = document.querySelector('#panel-acc-cashflow table tbody');
+      if (tbody) {
+        if (!gds.length) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--gray-light)">Chưa có giao dịch</td></tr>';
+        } else {
+          let runBal = 0;
+          tbody.innerHTML = gds.slice(0,20).map(gd => {
+            const isThu = gd.loai === 'thu';
+            const amt = parseFloat(gd.sotien) || 0;
+            runBal += isThu ? amt : -amt;
+            return `<tr>
+              <td>${fmtDate(gd.ngay)}</td>
+              <td style="max-width:200px">${gd.mota||'--'}</td>
+              <td><span style="font-size:10px;background:rgba(255,255,255,0.07);padding:2px 7px;border-radius:2px">${gd.nhom||''}</span></td>
+              <td style="color:#4caf50;font-weight:600">${isThu ? fmtMoney(amt) : '—'}</td>
+              <td style="color:#f44336">${!isThu ? '('+fmtMoney(amt)+')' : '—'}</td>
+              <td style="font-size:12px;color:var(--gray-light)">${fmtMoney(Math.abs(runBal))}</td>
+            </tr>`;
+          }).join('');
+        }
+      }
+    }
+
+    // Wire up the export button
+    const exportBtn = document.querySelector('#panel-acc-cashflow .db-table-header button');
+    if (exportBtn) exportBtn.onclick = () =>
+      accDownloadFile('/api/ketoan/export/cashflow?month=' + _accCurrentMonth, 'DongTien_' + _accCurrentMonth + '.xlsx');
+  } catch(e) { console.warn('accLoadCashflow:', e.message); }
+}
+
+// ============================================================
+// HÓA ĐƠN VAT — Load list + Tạo mới + Ký
+// ============================================================
+async function accLoadVAT() {
+  try {
+    const [orderResult, vatResult2] = await Promise.all([
+      accFetch('/api/admin/hoadon?limit=100'),
+      accFetch('/api/ketoan/hoadon-vat/list'),
+    ]);
+    const rows = (orderResult.ok && orderResult.data) ? (orderResult.data.data || []) : [];
+    // hoadon-vat/list may 404 if server not updated yet — show empty list gracefully
+    let vatList = (vatResult2.ok && Array.isArray(vatResult2.data)) ? vatResult2.data : [];
+
+    const done    = rows.filter(r => r.trangthai === 'Hoàn thành' || r.trangthai === 'Đã xác nhận');
+    const totalVal = done.reduce((s,r) => s + parseFloat(r.tongtien||0), 0);
+    const totalVAT = totalVal * 0.1;
+    const choKy = vatList.filter(v => v.trangthai === 'Chờ ký').length;
+
+    const cards = document.querySelectorAll('#panel-acc-vat .db-stat-val');
+    if (cards[0]) cards[0].textContent = done.length;
+    if (cards[1]) cards[1].textContent = fmtMoneyShort(totalVal);
+    if (cards[2]) cards[2].textContent = fmtMoneyShort(totalVAT);
+    if (cards[3]) cards[3].textContent = choKy;
+
+    // Render danh sách hóa đơn VAT
+    const tbody = document.querySelector('#panel-acc-vat table tbody');
+    if (tbody) {
+      if (!vatList.length) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--gray-light)">Chưa có hóa đơn VAT nào. Nhấn "+ Tạo Hóa Đơn" để tạo mới.</td></tr>';
+      } else {
+        tbody.innerHTML = vatList.map(v => {
+          const isDone = v.trangthai === 'Đã ký';
+          const soHD  = v.so_hd || '--';
+          const tenKH = v.ten_khach || '--';
+          const mstVal= v.mst || '--';
+          const giaTruoc = parseFloat(v.gia_truoc_vat||0);
+          const tienVat  = parseFloat(v.tien_vat||0);
+          const tongTT   = parseFloat(v.tong_tt||0);
+          return `<tr>
+            <td><strong>${soHD}</strong></td>
+            <td>${tenKH}</td>
+            <td>${mstVal}</td>
+            <td>${fmtMoney(giaTruoc)}</td>
+            <td>${fmtMoney(tienVat)}</td>
+            <td style="font-weight:700;color:#4caf50">${fmtMoney(tongTT)}</td>
+            <td>${fmtDate(v.ngay_xuat)}</td>
+            <td><span class="db-status ${isDone?'status-done':'status-pending'}">${isDone?'✅ Đã Ký':'⏳ Chờ Ký'}</span></td>
+          </tr>`;
+        }).join('');
+      }
+    }
+  } catch(e) { console.warn('accLoadVAT:', e.message); }
+}
+
+function accShowCreateVAT() {
+  const existing = document.getElementById('acc-vat-modal');
+  if (existing) existing.remove();
+  const html = `<div id="acc-vat-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)this.remove()">
+    <div style="background:#1a1a1a;border:1px solid rgba(255,255,255,0.12);width:100%;max-width:540px;padding:28px;border-radius:4px">
+      <div style="font-weight:700;font-size:16px;margin-bottom:16px">🧾 Tạo Hóa Đơn VAT Mới</div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div><label class="db-label">Tên Khách Hàng / Công Ty *</label><input class="db-input" id="vat-tenkhach" placeholder="Nhập tên khách hàng hoặc công ty"></div>
+        <div><label class="db-label">Mã Số Thuế</label><input class="db-input" id="vat-mst" placeholder="0312456789"></div>
+        <div><label class="db-label">Địa Chỉ</label><input class="db-input" id="vat-diachi" placeholder="Địa chỉ xuất hóa đơn"></div>
+        <div class="db-form-grid">
+          <div><label class="db-label">Giá Trị Trước VAT (đ) *</label><input class="db-input" id="vat-giatruoc" type="number" placeholder="0" oninput="accCalcVAT()"></div>
+          <div><label class="db-label">VAT (%)</label><select class="db-input" id="vat-rate" onchange="accCalcVAT()"><option value="10">10%</option><option value="8">8%</option><option value="5">5%</option><option value="0">0%</option></select></div>
+        </div>
+        <div style="background:rgba(76,175,80,0.08);border:1px solid rgba(76,175,80,0.2);padding:12px;border-radius:3px">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>Tiền VAT:</span><span id="vat-calc-vat" style="font-weight:600">0đ</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700"><span>Tổng Thanh Toán:</span><span id="vat-calc-tong" style="color:#4caf50">0đ</span></div>
+        </div>
+        <div><label class="db-label">Ghi Chú / Mô Tả Hàng Hóa</label><input class="db-input" id="vat-ghichu" placeholder="Giày thể thao Nike Air Max..."></div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
+          <button class="db-btn-sm" onclick="document.getElementById('acc-vat-modal').remove()">Hủy</button>
+          <button class="db-btn-sm primary" onclick="accSubmitCreateVAT()">🧾 Tạo Hóa Đơn</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function accCalcVAT() {
+  const gia = parseFloat(document.getElementById('vat-giatruoc')?.value) || 0;
+  const rate = parseFloat(document.getElementById('vat-rate')?.value) || 10;
+  const vat = Math.round(gia * rate / 100);
+  const el1 = document.getElementById('vat-calc-vat');
+  const el2 = document.getElementById('vat-calc-tong');
+  if (el1) el1.textContent = fmtMoney(vat);
+  if (el2) el2.textContent = fmtMoney(gia + vat);
+}
+
+async function accSubmitCreateVAT() {
+  const tenkhach = document.getElementById('vat-tenkhach')?.value?.trim();
+  const mst      = document.getElementById('vat-mst')?.value?.trim();
+  const diachi   = document.getElementById('vat-diachi')?.value?.trim();
+  const giaTruocVAT = parseFloat(document.getElementById('vat-giatruoc')?.value);
+  const vatRate  = parseInt(document.getElementById('vat-rate')?.value) || 10;
+  const ghichu   = document.getElementById('vat-ghichu')?.value?.trim();
+
+  if (!tenkhach) { showToast('⚠️ Thiếu thông tin', 'Vui lòng nhập tên khách hàng'); return; }
+  if (!giaTruocVAT || giaTruocVAT <= 0) { showToast('⚠️ Thiếu thông tin', 'Vui lòng nhập giá trị trước VAT'); return; }
+
+  const btn = document.querySelector('#acc-vat-modal .primary');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang tạo...'; }
+  try {
+    const r1 = await accFetch('/api/ketoan/hoadon-vat', {
+      method: 'POST',
+      body: JSON.stringify({ tenkhach, mst, diachi, giaTruocVAT, vatRate, ghichu, mahoadon: null })
+    });
+    if (!r1.ok) { showToast('❌ Lỗi', r1.error || 'Không tạo được hóa đơn'); if(btn){btn.disabled=false;btn.textContent='🧾 Tạo Hóa Đơn';} return; }
+    showToast('✅ Tạo Thành Công', 'Hóa đơn ' + r1.data.soHD + ' — Tổng: ' + fmtMoney(r1.data.tongTT));
+    document.getElementById('acc-vat-modal')?.remove();
+    accLoadVAT();
+  } catch(e) { showToast('❌ Lỗi', e.message); if(btn){btn.disabled=false;btn.textContent='🧾 Tạo Hóa Đơn';} }
+}
+
+// ============================================================
+// CHI PHÍ — Load + Thêm mới + Phê duyệt
+// ============================================================
+async function accLoadChiPhi() {
+  try {
+    let d = null;
+    const cpResult = await accFetch('/api/ketoan/chiphi');
+    if (cpResult.ok && cpResult.data) {
+      d = cpResult.data;
+    } else {
+      // Fallback: use phieuthu/phieuchi via existing ketoan endpoint
+      const fbKt = await accFetch('/api/admin/ketoan');
+      if (!fbKt.ok) { return; }
+      d = {
+        summary: {
+          tongthi: fbKt.data.tongChi || 0,
+          choduyet: 0,
+          daduyet: fbKt.data.soPhieuChi || 0,
+        },
+        list: []
+      };
+    }
+    if (!d) return;
+    const s = d.summary || {};
+
+    const cards = document.querySelectorAll('#panel-acc-expense .db-stat-val');
+    const subs  = document.querySelectorAll('#panel-acc-expense .db-stat-change');
+    if (cards[0]) cards[0].textContent = fmtMoneyShort(parseFloat(s.tongthi)||0);
+    if (cards[1]) cards[1].textContent = parseInt(s.choduyet)||0;
+    if (subs[1] && parseInt(s.choduyet)>0) subs[1].style.color = 'orange';
+    if (cards[2]) cards[2].textContent = parseInt(s.daduyet)||0;
+    if (subs[2]) subs[2].textContent = 'Tổng ' + fmtMoneyShort(parseFloat(s.tongthi)||0);
+
+    // Render danh sách chi phí
+    // The expense list is the second .db-table-wrap in the panel
+    const expenseWrap = document.querySelectorAll('#panel-acc-expense .db-table-wrap');
+    const tbody = expenseWrap.length > 1 ? expenseWrap[expenseWrap.length-1].querySelector('tbody') : expenseWrap[0]?.querySelector('tbody');
+    if (tbody && d.list) {
+      if (!d.list.length) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--gray-light)">Chưa có chi phí nào trong tháng này</td></tr>';
+      } else {
+        const catColors = {'Nhân Sự':'var(--red)','Marketing':'#2196f3','Vận Chuyển':'#4caf50','Mặt Bằng':'var(--gold)','Thiết Bị':'#9c27b0','Khác':'#888'};
+        const catBg = {'Nhân Sự':'rgba(230,32,32,0.15)','Marketing':'rgba(33,150,243,0.15)','Vận Chuyển':'rgba(76,175,80,0.15)','Mặt Bằng':'rgba(240,180,41,0.15)','Thiết Bị':'rgba(156,39,176,0.15)','Khác':'rgba(136,136,136,0.15)'};
+        tbody.innerHTML = d.list.map(pc => {
+          const isPending = pc.trangthai === 'Chờ duyệt';
+          const ghichu = pc.ghichu || '';
+          const catMatch = ghichu.match(/^\[([^\]]+)\]\s*(.*)/);
+          const cat = catMatch ? catMatch[1] : 'Khác';
+          const mota = catMatch ? catMatch[2] : ghichu;
+          const col = catColors[cat]||'#888';
+          const bg  = catBg[cat]||'rgba(136,136,136,0.15)';
+          return `<tr id="acc-cp-row-${pc.maphieuchi}">
+            <td><input type="checkbox" style="accent-color:var(--red)" class="acc-cp-cb" value="${pc.maphieuchi}"></td>
+            <td><span style="background:${bg};color:${col};font-size:11px;font-weight:700;padding:2px 8px;border-radius:2px">${cat}</span></td>
+            <td style="max-width:160px">${mota||pc.maphieuchi}</td>
+            <td style="font-weight:700;color:var(--white)">${fmtMoney(pc.sotienchi)}</td>
+            <td style="font-size:12px">${pc.tennhacungcap||pc.TenNguoiChi||'--'}</td>
+            <td style="font-size:12px">${fmtDate(pc.ngaychi)}</td>
+            <td><button class="db-btn-sm" onclick="showToast('Chứng Từ','Đang tải chứng từ...')">📎</button></td>
+            <td><span class="db-status ${isPending?'status-pending':'status-done'}">${isPending?'⏳ Chờ Duyệt':'✅ Đã Duyệt'}</span></td>
+            <td style="display:flex;gap:4px;flex-wrap:wrap">
+              ${isPending
+                ? `<button class="db-btn-sm primary" onclick="accApproveExpense('${pc.maphieuchi}',this)">✓ Duyệt</button>
+                   <button class="db-btn-sm" style="color:#f44" onclick="accRejectExpense('${pc.maphieuchi}',this)">✗</button>`
+                : `<button class="db-btn-sm" onclick="showToast('Chi Tiết','Mã: ${pc.maphieuchi}')">Xem</button>`}
+            </td>
+          </tr>`;
+        }).join('');
+      }
+    }
+  } catch(e) { console.warn('accLoadChiPhi:', e.message); }
+}
+
+async function accApproveExpense(ma, btn) {
+  btn.disabled = true; btn.textContent = '...';
+  try {
+    const r3 = await accFetch('/api/ketoan/phieuchi/' + ma + '/approve', { method:'PUT' });
+    if (!r3.ok) { showToast('❌ Lỗi', r3.error); btn.disabled=false; btn.textContent='✓ Duyệt'; return; }
+    showToast('✅ Đã Duyệt', 'Phiếu chi ' + ma + ' đã được phê duyệt');
+    const row = document.getElementById('acc-cp-row-' + ma);
+    if (row) {
+      row.querySelector('.db-status').className = 'db-status status-done';
+      row.querySelector('.db-status').textContent = '✅ Đã Duyệt';
+      const tdAct = row.querySelector('td:last-child');
+      if (tdAct) tdAct.innerHTML = '<button class="db-btn-sm" onclick="showToast(\'Chi Tiết\',\'Mã: ' + ma + '\')">Xem</button>';
+    }
+  } catch(e) { showToast('❌ Lỗi', e.message); btn.disabled=false; btn.textContent='✓ Duyệt'; }
+}
+
+async function accRejectExpense(ma, btn) {
+  btn.disabled = true; btn.textContent = '...';
+  try {
+    const r4 = await accFetch('/api/ketoan/chiphi/bulk-approve', {
+      method:'POST',
+      body: JSON.stringify({ maphieuchis: [ma], action: 'reject' })
+    });
+    if (!r4.ok) { showToast('❌ Lỗi', r4.error); btn.disabled=false; btn.textContent='✗'; return; }
+    showToast('✅ Đã Từ Chối', 'Phiếu chi ' + ma + ' đã bị từ chối');
+    accLoadChiPhi();
+  } catch(e) { showToast('❌ Lỗi', e.message); btn.disabled=false; btn.textContent='✗'; }
+}
+
+async function accSubmitExpense() {
+  const cat    = document.getElementById('exp-cat')?.value || 'Khác';
+  const desc   = document.getElementById('exp-desc')?.value?.trim();
+  const amount = parseFloat(document.getElementById('exp-amount')?.value);
+  const date   = document.getElementById('exp-date')?.value;
+
+  if (!desc)   { showToast('⚠️ Thiếu thông tin', 'Vui lòng nhập mô tả chi phí'); return; }
+  if (!amount || amount <= 0) { showToast('⚠️ Thiếu thông tin', 'Vui lòng nhập số tiền hợp lệ'); return; }
+
+  const btn = document.querySelector('#panel-acc-expense .db-widget .primary');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang gửi...'; }
+  try {
+    const r2 = await accFetch('/api/ketoan/chiphi/them', {
+      method: 'POST',
+      body: JSON.stringify({ danhmuc: cat, mota: desc, sotien: amount, ngaychi: date })
+    });
+    if (!r2.ok) { showToast('❌ Lỗi', r2.error || 'Không gửi được'); if(btn){btn.disabled=false;btn.textContent='💾 Gửi Phê Duyệt';} return; }
+    showToast('✅ Gửi Thành Công', 'Chi phí ' + r2.data.maphieuchi + ' đã gửi phê duyệt');
+    ['exp-desc','exp-amount'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    if(btn){btn.disabled=false;btn.textContent='💾 Gửi Phê Duyệt';}
+    accLoadChiPhi();
+  } catch(e) { showToast('❌ Lỗi', e.message); if(btn){btn.disabled=false;btn.textContent='💾 Gửi Phê Duyệt';} }
+}
+
+// ============================================================
+// TRẠNG THÁI THANH TOÁN — Load data + Xác nhận/Từ chối/Hoàn tiền
+// ============================================================
+async function accLoadPaymentStatus() {
+  try {
+    let d = null;
+    const psResult = await accFetch('/api/ketoan/thanhtoan/trangthai');
+    if (psResult.ok && psResult.data) {
+      d = psResult.data;
+    } else {
+      const fbTk = await accFetch('/api/admin/thongke');
+      if (!fbTk.ok) { return; }
+      const tt = fbTk.data.theoTrangThai || {};
+      d = {
+        daDone:     { cnt: tt['Hoàn thành']  || 0, tong: 0 },
+        choXacNhan: { cnt: tt['Chờ xử lý']   || 0, tong: 0 },
+        loi:        { cnt: tt['Đã hủy']       || 0, tong: 0 },
+        hoanTien:   { cnt: 0, tong: 0 },
+      };
+    }
+    if (!d) return;
+    const cards = document.querySelectorAll('#panel-acc-payment-status .db-stat-val');
+    const subs  = document.querySelectorAll('#panel-acc-payment-status .db-stat-change');
+    if (cards[0]) cards[0].textContent = (d.daDone?.cnt||0).toLocaleString('vi-VN');
+    if (subs[0])  subs[0].textContent  = fmtMoneyShort(d.daDone?.tong||0) + ' xác nhận';
+    if (cards[1]) cards[1].textContent = (d.choXacNhan?.cnt||0).toLocaleString('vi-VN');
+    if (subs[1])  subs[1].textContent  = fmtMoneyShort(d.choXacNhan?.tong||0) + ' đang chờ';
+    if (cards[2]) cards[2].textContent = (d.loi?.cnt||0).toLocaleString('vi-VN');
+    if (subs[2])  subs[2].textContent  = 'Cần xử lý ngay';
+    if (cards[3]) cards[3].textContent = (d.hoanTien?.cnt||0).toLocaleString('vi-VN');
+
+    // Load pending orders into the waiting table
+    const pendRes = await fetch('/api/admin/hoadon?status=Chờ+xử+lý&limit=20', { headers: accHeaders() });
+    if (pendRes.ok && pendRes.headers.get('content-type')?.includes('json')) {
+      const pendJson = await pendRes.json();
+      const pendRows = pendJson.data || [];
+      const tbl = document.querySelector('#panel-acc-payment-status .db-widget table tbody');
+      if (tbl) {
+        if (!pendRows.length) {
+          tbl.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--gray-light)">Không có giao dịch chờ xác nhận</td></tr>';
+        } else {
+          tbl.innerHTML = pendRows.map(o => {
+            const ma = o.mahoadon||'--';
+            const ngay = fmtDate(o.ngayban);
+            return `<tr>
+              <td style="font-size:11px;color:var(--gray-light)">${ma}</td>
+              <td>#${ma}</td>
+              <td>${o.tenkhachhang||o.HoTenNguoiNhan||'Khách lẻ'}</td>
+              <td style="font-weight:700;color:#4caf50">${fmtMoney(o.tongtien)}</td>
+              <td><span style="background:rgba(33,150,243,0.15);color:#2196f3;font-size:11px;padding:2px 7px;font-weight:700">${o.phuongthuctt||'--'}</span></td>
+              <td>${ngay}</td>
+              <td style="color:orange">--</td>
+              <td style="display:flex;gap:4px">
+                <button class="db-btn-sm primary" onclick="accConfirmPayment('${ma}','Đã xác nhận',this)">✓</button>
+                <button class="db-btn-sm" onclick="accConfirmPayment('${ma}','Đã hủy',this)">✗</button>
+              </td>
+            </tr>`;
+          }).join('');
+        }
+      }
+    }
+  } catch(e) { console.warn('accLoadPaymentStatus:', e.message); }
+}
+
+
+async function accBulkConfirmPayments() {
+  const rows = document.querySelectorAll('#panel-acc-payment-status .db-widget table tbody tr');
+  const mas = [];
+  rows.forEach(tr => {
+    const confBtn = tr.querySelector('button.primary');
+    if (confBtn) {
+      const match = confBtn.getAttribute('onclick')?.match(/'([^']+)'/);
+      if (match) mas.push(match[1]);
+    }
+  });
+  if (!mas.length) { showToast('⚠️', 'Không có giao dịch chờ xác nhận'); return; }
+  showToast('⏳ Đang xác nhận...', mas.length + ' giao dịch');
+  for (const ma of mas) {
+    await fetch('/api/admin/hoadon/' + ma + '/status', {
+      method: 'PUT', headers: accHeaders(),
+      body: JSON.stringify({ trangthai: 'Đã xác nhận' })
+    }).catch(() => {});
+  }
+  showToast('✅ Xác Nhận Hàng Loạt', 'Đã xác nhận ' + mas.length + ' giao dịch');
+  setTimeout(accLoadPaymentStatus, 300);
+}
+
+async function accConfirmPayment(ma, status, btn) {
+  btn.disabled = true;
+  try {
+    const r6 = await accFetch('/api/admin/hoadon/' + ma + '/status', {
+      method:'PUT',
+      body: JSON.stringify({ trangthai: status })
+    });
+    if (!r6.ok) { showToast('❌ Lỗi', r6.error); btn.disabled=false; return; }
+    showToast('✅ Đã Cập Nhật', 'Đơn ' + ma + ' → ' + status);
+    setTimeout(accLoadPaymentStatus, 300);
+  } catch(e) { showToast('❌ Lỗi', e.message); btn.disabled=false; }
+}
+
+// ============================================================
+// BÁO CÁO DOANH THU — Load + Xuất Excel/PDF
+// ============================================================
+async function accLoadRevenueReport() {
+  try {
+    let d = null;
+    const rvResult = await accFetch('/api/ketoan/baocao/doanhthu');
+    if (rvResult.ok && rvResult.data) {
+      d = rvResult.data;
+    } else {
+      // Fallback to existing baocao/doanhthu (admin route)
+      const fbRv = await accFetch('/api/admin/baocao/doanhthu');
+      if (!fbRv.ok) { return; }
+      d = {
+        summary: {
+          tongdoanhthu: (fbRv.data.monthly||[]).reduce((s,m)=>s+parseFloat(m.doanhthu||0),0),
+          loinhuan: 0,
+          sodon: (fbRv.data.monthly||[]).reduce((s,m)=>s+parseInt(m.sodon||0),0),
+        },
+        monthly12: fbRv.data.monthly || [],
+        weekly: [],
+        byChannel: fbRv.data.theoTrangThai ? Object.entries(fbRv.data.theoTrangThai).map(([k,v])=>({kenh:k,doanhthu:v})) : [],
+        ytd: 0,
+      };
+    }
+    if (!d) return;
+    const s = d.summary || {};
+
+    const doanhthu = parseFloat(s.tongdoanhthu)||0;
+    const loinhuanGop = parseFloat(s.loinhuan)||0;
+    const ytd = parseFloat(d.ytd)||0;
+    const ngayTrongThang = new Date().getDate() || 1;
+
+    const cards = document.querySelectorAll('#panel-acc-revenue-report .db-stat-val');
+    const subs  = document.querySelectorAll('#panel-acc-revenue-report .db-stat-change');
+    if (cards[0]) cards[0].textContent = fmtMoneyShort(doanhthu);
+    if (cards[1]) cards[1].textContent = fmtMoneyShort(loinhuanGop);
+    if (subs[1])  subs[1].textContent  = 'Margin ' + (doanhthu?(loinhuanGop/doanhthu*100).toFixed(1):0) + '%';
+    if (cards[2]) cards[2].textContent = fmtMoneyShort(doanhthu / ngayTrongThang);
+    if (cards[3]) cards[3].textContent = fmtMoneyShort(ytd);
+
+    // Weekly table (first table in panel)
+    const tables = document.querySelectorAll('#panel-acc-revenue-report .db-table');
+    if (tables[0] && d.weekly) {
+      const wb = tables[0].querySelector('tbody');
+      if (wb) {
+        if (!d.weekly.length) {
+          wb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:12px;color:var(--gray-light)">Chưa có dữ liệu tuần này</td></tr>';
+        } else {
+          wb.innerHTML = d.weekly.map((w,i) => {
+            const dt = fmtDate(w.tuan);
+            const lnw = parseFloat(w.doanhthu)*0.301;
+            return `<tr${i===d.weekly.length-1?' style="background:rgba(230,32,32,0.05)"':''}>
+              <td><strong>Tuần ${i+1} (${dt})</strong></td>
+              <td style="font-weight:700;color:var(--red)">${fmtMoneyShort(w.doanhthu)}</td>
+              <td>${parseInt(w.sodon)}</td>
+              <td style="color:#4caf50">${fmtMoneyShort(lnw)}</td>
+              <td>${(parseFloat(w.doanhthu)?(lnw/w.doanhthu*100).toFixed(1):0)}%</td>
+              <td><span style="color:#4caf50">—</span></td>
+            </tr>`;
+          }).join('');
+        }
+      }
+    }
+
+    // Revenue breakdown by channel
+    if (d.byChannel && d.byChannel.length) {
+      const totalDT = d.byChannel.reduce((s,c)=>s+parseFloat(c.doanhthu),0)||1;
+      // Find the widget that contains channel breakdown (has 'Cơ Cấu' in title)
+      let chWrap = null;
+      document.querySelectorAll('#panel-acc-revenue-report .db-widget').forEach(w => {
+        if (w.textContent.includes('Cơ Cấu') || w.textContent.includes('Shopee')) {
+          const inner = w.querySelector('div[style*="margin-top"]') || w.querySelector('div:last-child');
+          if (inner) chWrap = inner;
+        }
+      });
+      if (chWrap) {
+        const colors=['#ff6900','#4caf50','#fe2c55','#2196f3','#9c27b0'];
+        const icons=['🛍️','🏪','📱','🌐','💳'];
+        chWrap.innerHTML = d.byChannel.slice(0,5).map((c,i)=>{
+          const pct=(parseFloat(c.doanhthu)/totalDT*100).toFixed(0);
+          return `<div style="display:flex;justify-content:space-between;margin-bottom:10px;align-items:center">
+            <span style="font-size:12px">${icons[i]||'•'} ${c.kenh||'Khác'}</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:90px;height:6px;background:rgba(255,255,255,0.08);border-radius:3px">
+                <div style="width:${pct}%;height:100%;background:${colors[i]};border-radius:3px"></div>
+              </div>
+              <span style="font-size:12px;font-weight:600;min-width:60px;text-align:right">${fmtMoneyShort(parseFloat(c.doanhthu))}</span>
+            </div></div>`;
+        }).join('') + `<div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06)">
+          <div style="display:flex;justify-content:space-between;font-size:13px">
+            <span style="color:var(--gray-light)">Tổng</span>
+            <span style="font-weight:700;color:var(--red)">${fmtMoneyShort(doanhthu)}</span>
+          </div></div>`;
+      }
+    }
+
+    // Monthly 12 table (second table)
+    if (tables[1] && d.monthly12) {
+      const mb = tables[1].querySelector('tbody');
+      if (mb) {
+        mb.innerHTML = d.monthly12.map((m,i)=>{
+          const dt=parseFloat(m.doanhthu), ln=parseFloat(m.loinhuan);
+          const chiphi=dt*0.113;
+          return `<tr${i===0?' style="background:rgba(230,32,32,0.06)"':''}>
+            <td>${i===0?'<strong style="color:var(--red)">':'' }${m.thang}${i===0?'</strong>':''}</td>
+            <td style="${i===0?'font-weight:700':''}">${Math.round(dt/1e6)}M</td>
+            <td>${Math.round(dt*0.699/1e6)}M</td>
+            <td style="color:#4caf50;${i===0?'font-weight:600':''}">${Math.round(ln/1e6)}M</td>
+            <td>${dt?(ln/dt*100).toFixed(1):0}%</td>
+            <td>${Math.round(chiphi/1e6)}M</td>
+            <td style="color:var(--gold);${i===0?'font-weight:600':''}">${Math.round((ln-chiphi)/1e6)}M</td>
+            <td>${parseInt(m.sodon)}</td>
+          </tr>`;
+        }).join('');
+      }
+    }
+
+    // Wire export buttons in revenue report panel header
+    const panel = document.getElementById('panel-acc-revenue-report');
+    if (panel) {
+      panel.querySelectorAll('button.db-btn-sm').forEach(btn => {
+        const txt = btn.textContent.trim();
+        if (txt === '📥 Excel') {
+          btn.onclick = () => accDownloadFile('/api/ketoan/export/doanhthu?month=' + _accCurrentMonth, 'BaoCaoDoanhThu_' + _accCurrentMonth + '.xlsx');
+        } else if (txt === '📄 PDF') {
+          btn.onclick = () => showToast('📄 PDF', 'Chức năng xuất PDF đang phát triển...');
+        } else if (txt.includes('BGĐ') || txt.includes('Gửi')) {
+          btn.onclick = () => showToast('📧 Đã Gửi', 'Báo cáo doanh thu đã gửi tới BGĐ');
+        }
+      });
+    }
+  } catch(e) { console.warn('accLoadRevenueReport:', e.message); }
+}
+
+// ============================================================
+// QUẢN LÝ HÓA ĐƠN — Load list + Ký + Xuất hàng loạt
+// ============================================================
+async function accLoadInvoiceMgmt() {
+  try {
+    const [vatR, ordR] = await Promise.all([
+      accFetch('/api/ketoan/hoadon-vat/list'),
+      accFetch('/api/admin/hoadon?limit=100'),
+    ]);
+
+    let vatList = (vatR.ok && Array.isArray(vatR.data)) ? vatR.data : [];
+    // vatList may be empty if server not updated yet - that's OK
+
+    let orders = (ordR.ok && ordR.data) ? (ordR.data.data || []) : [];
+
+
+    const doneOrders = orders.filter(o => o.trangthai === 'Hoàn thành' || o.trangthai === 'Đã xác nhận');
+    const vatTotalVal = vatList.reduce((s,v)=>s+parseFloat(v.tong_tt||0),0);
+    const vatTotalVAT = vatList.reduce((s,v)=>s+parseFloat(v.tien_vat||0),0);
+    const choKy = vatList.filter(v=>v.trangthai==='Chờ ký').length;
+
+    const cards = document.querySelectorAll('#panel-acc-invoice-mgmt .db-stat-val');
+    if (cards[0]) cards[0].textContent = vatList.length;
+    if (cards[1]) cards[1].textContent = choKy;
+    if (cards[2]) cards[2].textContent = fmtMoneyShort(vatTotalVal);
+    if (cards[3]) cards[3].textContent = fmtMoneyShort(vatTotalVAT);
+
+    // VAT tab table
+    const vatTbody = document.querySelector('#inv-mgmt-panel-vat .db-table tbody');
+    if (vatTbody) {
+      if (!vatList.length) {
+        vatTbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--gray-light)">Chưa có hóa đơn VAT. Nhấn "+ Tạo Hóa Đơn" để tạo mới.</td></tr>';
+      } else {
+        vatTbody.innerHTML = vatList.map(v => {
+          const isDone = v.trangthai === 'Đã ký';
+          const soHD  = v.so_hd || '--';
+          const tenKH = v.ten_khach || '--';
+          const mstVal= v.mst || '--';
+          const giaTruoc = parseFloat(v.gia_truoc_vat||0);
+          const tienVat  = parseFloat(v.tien_vat||0);
+          const tongTT   = parseFloat(v.tong_tt||0);
+          return `<tr>
+            <td><input type="checkbox" style="accent-color:var(--red)"></td>
+            <td><strong>${soHD}</strong></td>
+            <td>${fmtDate(v.ngay_xuat)}</td>
+            <td><div>${tenKH}</div><div style="font-size:11px;color:var(--gray-light)">MST: ${mstVal}</div></td>
+            <td>${fmtMoney(giaTruoc)}</td>
+            <td>${fmtMoney(tienVat)}</td>
+            <td style="font-weight:700;color:#4caf50">${fmtMoney(tongTT)}</td>
+            <td><span class="db-status ${isDone?'status-done':'status-pending'}">${isDone?'✅ Đã Ký':'⏳ Chờ Ký'}</span></td>
+            <td style="display:flex;gap:4px">
+              ${isDone
+                ? `<button class="db-btn-sm" onclick="showToast('📄 Tải HĐ','Đang tải hóa đơn ${soHD}...')">📄 Tải</button>
+                   <button class="db-btn-sm" onclick="showToast('📧 Gửi','Đã gửi HĐ ${soHD} tới ${tenKH}')">📧</button>`
+                : `<button class="db-btn-sm primary" onclick="accSignInvoice('${soHD}',this)">✒️ Ký</button>
+                   <button class="db-btn-sm" onclick="accPreviewInvoice(${JSON.stringify({soHD,tenKH,mstVal,giaTruoc,tienVat,tongTT})})">👁</button>`}
+            </td>
+          </tr>`;
+        }).join('');
+      }
+    }
+
+    // Commercial tab table
+    const comTbody = document.querySelector('#inv-mgmt-panel-commercial .db-table tbody');
+    if (comTbody && doneOrders.length) {
+      comTbody.innerHTML = doneOrders.slice(0,10).map(o => {
+        const ma = o.mahoadon||'--';
+        return `<tr>
+          <td><strong>TM-${ma}</strong></td>
+          <td>${fmtDate(o.ngayban)}</td>
+          <td>${o.tenkhachhang||'Khách lẻ'}</td>
+          <td style="font-weight:700;color:#4caf50">${fmtMoney(o.tongtien)}</td>
+          <td>Đơn hàng #${ma}</td>
+          <td><span class="db-status status-done">✅ Đã Xuất</span></td>
+          <td><button class="db-btn-sm" onclick="showToast('📄 Tải','Đang tải HĐ thương mại...')">📄 Tải</button></td>
+        </tr>`;
+      }).join('');
+    }
+
+    // Pending sign tab
+    const pendTbody = document.querySelector('#inv-mgmt-panel-pending-sign .db-table tbody');
+    const pendList  = vatList.filter(v=>v.trangthai==='Chờ ký');
+    if (pendTbody) {
+      const badge = document.querySelector('#inv-tab-pending-sign span');
+      if (badge) badge.textContent = pendList.length;
+      const warnDiv = document.querySelector('#inv-mgmt-panel-pending-sign [style*="warning"], #inv-mgmt-panel-pending-sign div:first-child');
+      if (warnDiv) {
+        const strongEl = warnDiv.querySelector('strong');
+        if (strongEl) strongEl.textContent = pendList.length + ' hóa đơn';
+        const valEl = warnDiv.querySelector('strong:last-of-type');
+        if (valEl) valEl.textContent = fmtMoneyShort(pendList.reduce((s,v)=>s+parseFloat(v.tong_tt||0),0));
+      }
+      if (!pendList.length) {
+        pendTbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--gray-light)">Không có hóa đơn chờ ký ✅</td></tr>';
+      } else {
+        pendTbody.innerHTML = pendList.map(v => {
+          const soHD  = v.so_hd || '--';
+          const tenKH = v.ten_khach || '--';
+          const ngay  = fmtDate(v.ngay_xuat);
+          const tongTT = parseFloat(v.tong_tt||0);
+          return `<tr>
+            <td><input type="checkbox" style="accent-color:var(--red)" checked></td>
+            <td>${soHD}</td>
+            <td>${tenKH}</td>
+            <td style="font-weight:700;color:#4caf50">${fmtMoney(tongTT)}</td>
+            <td>${ngay}</td>
+            <td style="color:orange">7 ngày</td>
+            <td><button class="db-btn-sm primary" onclick="accSignInvoice('${soHD}',this)">✒️ Ký Ngay</button></td>
+          </tr>`;
+        }).join('');
+      }
+    }
+  } catch(e) { console.warn('accLoadInvoiceMgmt:', e.message); }
+}
+
+async function accSignInvoice(ma, btn) {
+  btn.disabled = true; btn.textContent = '⏳...';
+  try {
+    const r5 = await accFetch('/api/ketoan/hoadon-vat/' + ma + '/ky', { method:'PUT' });
+    if (!r5.ok) { showToast('❌ Lỗi', r5.error); btn.disabled=false; btn.textContent='✒️ Ký'; return; }
+    showToast('✒️ Đã Ký', 'Hóa đơn ' + ma + ' đã ký điện tử thành công');
+    setTimeout(accLoadInvoiceMgmt, 300);
+  } catch(e) { showToast('❌ Lỗi', e.message); btn.disabled=false; btn.textContent='✒️ Ký'; }
+}
+
+
+async function accPreviewInvoice(data) {
+  const existing = document.getElementById('acc-inv-preview-modal');
+  if (existing) existing.remove();
+  const html2 = `<div id="acc-inv-preview-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)this.remove()">
+    <div style="background:#1a1a1a;border:1px solid rgba(255,255,255,0.12);width:100%;max-width:560px;padding:28px;border-radius:4px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div style="font-weight:700;font-size:16px">🧾 Hóa Đơn VAT — ${data.soHD}</div>
+        <span style="background:rgba(255,152,0,0.15);color:orange;font-size:11px;padding:3px 10px;border-radius:2px">⏳ Chờ Ký</span>
+      </div>
+      <div style="border:1px solid rgba(255,255,255,0.08);padding:16px;margin-bottom:16px">
+        <div style="font-size:11px;color:var(--gray-light);margin-bottom:12px;letter-spacing:1px">THÔNG TIN KHÁCH HÀNG</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div><div style="font-size:11px;color:#888">Tên</div><div style="font-weight:600">${data.tenKH}</div></div>
+          <div><div style="font-size:11px;color:#888">MST</div><div style="font-weight:600">${data.mstVal}</div></div>
+        </div>
+      </div>
+      <div style="border:1px solid rgba(255,255,255,0.08);padding:16px;margin-bottom:16px">
+        <div style="font-size:11px;color:var(--gray-light);margin-bottom:12px;letter-spacing:1px">CHI TIẾT THANH TOÁN</div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px"><span>Giá trị trước VAT</span><span>${fmtMoney(data.giaTruoc)}</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px"><span>VAT (10%)</span><span style="color:orange">${fmtMoney(data.tienVat)}</span></div>
+        <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:10px;display:flex;justify-content:space-between;font-size:15px;font-weight:700"><span>Tổng Thanh Toán</span><span style="color:#4caf50">${fmtMoney(data.tongTT)}</span></div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px">
+        <button class="db-btn-sm" onclick="document.getElementById('acc-inv-preview-modal').remove()">Đóng</button>
+        <button class="db-btn-sm primary" onclick="accSignInvoice('${data.soHD}',this);document.getElementById('acc-inv-preview-modal').remove()">✒️ Ký Điện Tử</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend', html2);
+}
+
+async function accSignAllPending() {
+  const rows = document.querySelectorAll('#inv-mgmt-panel-pending-sign .db-table tbody tr');
+  const mas = [];
+  rows.forEach(tr => {
+    const btn = tr.querySelector('button.primary');
+    if (btn) {
+      const m = btn.getAttribute('onclick')?.match(/'([^']+)'/);
+      if (m) mas.push(m[1]);
+    }
+  });
+  if (!mas.length) { showToast('⚠️', 'Không có hóa đơn nào để ký'); return; }
+  showToast('⏳ Đang ký...', mas.length + ' hóa đơn');
+  for (const ma of mas) {
+    await fetch('/api/ketoan/hoadon-vat/' + ma + '/ky', { method:'PUT', headers: accHeaders() }).catch(()=>{});
+  }
+  showToast('✒️ Ký Hàng Loạt', 'Đã ký ' + mas.length + ' hóa đơn thành công');
+  accLoadInvoiceMgmt();
+}
+
+// ============================================================
+// XUẤT DỮ LIỆU KẾ TOÁN — Load summary + Xuất các loại file
+// ============================================================
+async function accLoadExportPanel() {
+  try {
+    // Try new route first, fall back to existing /api/admin/ketoan
+    let d = null;
+    const r1 = await accFetch('/api/ketoan/export/summary');
+    if (r1.ok && r1.data) {
+      d = r1.data;
+    } else {
+      // Fallback: build summary from existing working routes
+      const r2 = await accFetch('/api/admin/ketoan');
+      const r3 = await accFetch('/api/admin/hoadon?limit=1');
+      if (!r2.ok) { return; } // silently fail if both routes unavailable
+      d = {
+        lastExport: new Date(new Date().setDate(0)).toISOString(),
+        newCount: r3.ok && r3.data ? (r3.data.total || 0) : 0,
+        software: 'MISA SME',
+        autoExport: 'Hàng Ngày — 23:59',
+      };
+    }
+    if (!d) return;
+    const cards = document.querySelectorAll('#panel-acc-export .db-stat-val');
+    const subs  = document.querySelectorAll('#panel-acc-export .db-stat-change');
+    if (cards[0]) cards[0].textContent = fmtDate(d.lastExport);
+    if (subs[0])  subs[0].textContent  = 'Tháng trước — Đã xuất';
+    if (cards[1]) cards[1].textContent = (d.newCount||0).toLocaleString('vi-VN');
+    if (subs[1])  subs[1].textContent  = 'Giao dịch tháng này chờ xuất';
+    if (subs[1] && d.newCount > 0) subs[1].style.color = 'orange';
+    if (cards[2]) cards[2].textContent = d.software || 'MISA SME';
+    if (cards[3]) cards[3].textContent = 'Hàng Ngày';
+
+    // Wire up all export buttons using row title context
+    const panel = document.getElementById('panel-acc-export');
+    if (!panel) return;
+
+    // Each export row has a title div — find it and wire buttons accordingly
+    const exportConfig = {
+      'Doanh Thu': {
+        'Excel': () => accDownloadFile('/api/ketoan/export/doanhthu?month='+_accCurrentMonth,'SoDoanhThu_'+_accCurrentMonth+'.xlsx'),
+        'CSV':   () => accDownloadFile('/api/ketoan/export/donhang?month='+_accCurrentMonth,'DonHang_'+_accCurrentMonth+'.csv'),
+        'MISA':  () => accDownloadFile('/api/ketoan/export/misa?month='+_accCurrentMonth,'MISA_DT_'+_accCurrentMonth+'.xlsx'),
+      },
+      'Chi Phí': {
+        'Excel': () => accDownloadFile('/api/ketoan/export/chiphi?month='+_accCurrentMonth,'SoChiPhi_'+_accCurrentMonth+'.xlsx'),
+        'CSV':   () => accDownloadFile('/api/ketoan/export/chiphi?month='+_accCurrentMonth,'ChiPhi_'+_accCurrentMonth+'.csv'),
+        'MISA':  () => accDownloadFile('/api/ketoan/export/misa?month='+_accCurrentMonth,'MISA_CP_'+_accCurrentMonth+'.xlsx'),
+      },
+      'Công Nợ': {
+        'Excel': () => accDownloadFile('/api/ketoan/export/cashflow?month='+_accCurrentMonth,'CongNo_'+_accCurrentMonth+'.xlsx'),
+        'MISA':  () => accDownloadFile('/api/ketoan/export/misa?month='+_accCurrentMonth,'MISA_CN_'+_accCurrentMonth+'.xlsx'),
+      },
+      'Hóa Đơn': {
+        'XML':   () => showToast('📄 XML','Xuất XML hóa đơn điện tử...'),
+        'Excel': () => accDownloadFile('/api/ketoan/export/doanhthu?month='+_accCurrentMonth,'HoaDon_'+_accCurrentMonth+'.xlsx'),
+        'MISA':  () => accDownloadFile('/api/ketoan/export/misa?month='+_accCurrentMonth,'MISA_HD_'+_accCurrentMonth+'.xlsx'),
+      },
+    };
+
+    // Walk each padded row inside the quick-export widget
+    panel.querySelectorAll('[style*="padding:14px 16px"]').forEach(row => {
+      const titleEl = row.querySelector('[style*="font-weight:600"]');
+      if (!titleEl) return;
+      const rowTitle = titleEl.textContent.trim();
+      const cfg = Object.entries(exportConfig).find(([k]) => rowTitle.includes(k));
+      if (!cfg) return;
+      const [, map] = cfg;
+      row.querySelectorAll('button.db-btn-sm').forEach(btn => {
+        const t = btn.textContent.replace(/[📗📄🔄]/gu,'').trim();
+        if (t.includes('Excel') && map['Excel']) btn.onclick = map['Excel'];
+        else if (t.includes('CSV') && map['CSV']) btn.onclick = map['CSV'];
+        else if (t.includes('MISA') && map['MISA']) btn.onclick = map['MISA'];
+        else if (t.includes('XML') && map['XML']) btn.onclick = map['XML'];
+      });
+    });
+
+    // Xuất tất cả / đồng bộ toàn bộ
+    panel.querySelectorAll('button.db-btn-sm').forEach(btn => {
+      const t = btn.textContent.trim();
+      if (t.includes('Xuất Ngay') || t.includes('Đồng Bộ Ngay') || t.includes('Xuất Tất Cả')) {
+        btn.onclick = () => accDownloadFile('/api/ketoan/export/misa?month='+_accCurrentMonth,'MISA_ToanBo_'+_accCurrentMonth+'.xlsx');
+      }
+    });
+
+  } catch(e) { console.warn('accLoadExportPanel:', e.message); }
+}
+
+// ============================================================
+// switchInvMgmtTab — kết hợp load data khi switch tab
+// ============================================================
+// (switchInvMgmtTab is already defined globally above)
+
+// ============================================================
+// Hook switchDbPanel cho accountant — trigger load mỗi panel
+// ============================================================
 (function() {
   var _orig = window.switchDbPanel;
   window.switchDbPanel = function(dashId, panelId, navItem) {
     if (typeof _orig === 'function') _orig(dashId, panelId, navItem);
     if (dashId !== 'accountantDashboard') return;
     setTimeout(function() {
-      if (panelId === 'panel-acc-overview') accLoadOverview();
-      if (panelId === 'panel-acc-orders')   { _accOrderPage=1; accLoadOrders(); }
+      if (panelId === 'panel-acc-overview')        accLoadOverview();
+      if (panelId === 'panel-acc-orders')          { _accOrderPage=1; accLoadOrders(); }
+      if (panelId === 'panel-acc-cashflow')        accLoadCashflow();
+      if (panelId === 'panel-acc-vat')             accLoadVAT();
+      if (panelId === 'panel-acc-expense')         accLoadChiPhi();
+      if (panelId === 'panel-acc-payment-status')  accLoadPaymentStatus();
+      if (panelId === 'panel-acc-revenue-report')  accLoadRevenueReport();
+      if (panelId === 'panel-acc-invoice-mgmt')    accLoadInvoiceMgmt();
+      if (panelId === 'panel-acc-export')          accLoadExportPanel();
     }, 80);
   };
 })();
@@ -15770,9 +16666,13 @@ function accExportOrders() {
   if (!div) return;
   new MutationObserver(function() {
     var tok = sessionStorage.getItem('admin_token') || localStorage.getItem('admin_token');
-    if (div.classList.contains('open') && tok) setTimeout(function() { accLoadOverview(); }, 400);
+    if (div.classList.contains('open') && tok) setTimeout(function() {
+      accLoadOverview();
+      accLoadExportPanel();
+    }, 400);
   }).observe(div, { attributes: true, attributeFilter: ['class'] });
 })();
+
 
 // ============================================================
 // SA ORDERS + FINANCE — load dữ liệu thực

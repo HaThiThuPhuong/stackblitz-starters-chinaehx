@@ -1961,7 +1961,7 @@ function handleLogin() {
   setTimeout(() => loginWithRole(account), 200);
 }
 
-function loginWithRole(account) {
+async function loginWithRole(account) {
   selectedRole = account.role;
   currentUser  = { role: account.role, name: account.name };
 
@@ -1970,15 +1970,8 @@ function loginWithRole(account) {
     accountant: 'accountantDashboard',
     admin:      'superAdminDashboard',
   };
-  const roleLabels = {
-    member:     '👤 Thành Viên',
-    shop:       '👑 Chủ Shop',
-    accountant: '📒 Kế Toán',
-    admin:      '🛡️ Super Admin',
-  };
 
   if (account.role === 'member') {
-    // Member ở lại trang chủ -- chỉ đổi nav
     const initials = account.name.split(' ').map(w=>w[0]).join('').slice(-2).toUpperCase();
     document.getElementById('navLoginBtn').style.display = 'none';
     const wrap = document.getElementById('userNavWrap');
@@ -1992,38 +1985,38 @@ function loginWithRole(account) {
     return;
   }
 
-  // Gọi API thật để lấy JWT token hợp lệ
-  fetch('/api/admin/auth/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ Email: account.email, MatKhau: account.password })
-  })
-  .then(r => r.json())
-  .then(data => {
+  // Lấy JWT thật từ server TRƯỚC khi mở dashboard
+  try {
+    const res  = await fetch('/api/admin/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ Email: account.email, MatKhau: account.password })
+    });
+    const data = await res.json();
     if (data.token) {
-      // Lưu token thật từ server
       sessionStorage.setItem('admin_token', data.token);
       localStorage.setItem('admin_token', data.token);
+      const actualRole = data.user?.vaitro || data.user?.VaiTro || account.role;
+      currentUser = { role: actualRole, name: data.user?.HoTen || account.name };
+      localStorage.setItem('svn_admin_role', actualRole);
+      localStorage.setItem('svn_admin_name', currentUser.name);
+    } else {
+      // Server báo lỗi credentials
+      showToast('Lỗi Đăng Nhập ✗', data.error || 'Sai email hoặc mật khẩu');
+      return;
     }
-    // Dù có token hay không vẫn mở dashboard
-    const actualRole = data.user?.vaitro || data.user?.VaiTro || account.role;
-    currentUser = { role: actualRole, name: data.user?.HoTen || account.name };
-    localStorage.setItem('svn_admin_role', actualRole);
-    localStorage.setItem('svn_admin_name', currentUser.name);
-  })
-  .catch(() => {
-    // Nếu API lỗi vẫn cho vào dashboard nhưng token sẽ rỗng
-    console.warn('loginWithRole: không lấy được token từ API');
-  });
+  } catch(e) {
+    showToast('Lỗi Kết Nối ✗', 'Không thể kết nối server — kiểm tra DATABASE_URL');
+    return;
+  }
 
+  // Mở dashboard sau khi đã có token
   const dashId = dashMap[account.role];
   document.getElementById(dashId).classList.add('open');
   document.body.style.overflow = 'hidden';
   document.getElementById('navLoginBtn').style.display = 'none';
-  localStorage.setItem('svn_admin_role', account.role);
-  localStorage.setItem('svn_admin_name', account.name);
 
-  showToast('Đăng Nhập Thành Công 👋', 'Chào mừng ' + account.name + '!');
+  showToast('Đăng Nhập Thành Công 👋', 'Chào mừng ' + currentUser.name + '!');
 
   if (account.role === 'shop') {
     // Update shop dashboard header with real user info

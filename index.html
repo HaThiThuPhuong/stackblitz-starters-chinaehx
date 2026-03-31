@@ -1628,6 +1628,8 @@ function dbProdToHomeProd(p) {
                : brand.toLowerCase() === 'adidas' ? 'adidas'
                : 'other';
   const sizes = (p.size || p.Size || '').split(',').map(s => s.trim()).filter(Boolean);
+  const colors = (p.mausac || p.MauSac || '').split(',').map(s => s.trim()).filter(Boolean);
+  const stock = p.soluongton || p.SoLuongTon || 0;
   return {
     id:     p.masanpham || p.MaSanPham,
     brand:  brand,
@@ -1636,12 +1638,13 @@ function dbProdToHomeProd(p) {
     price:  p.giaban || p.GiaBan || 0,
     old:    null,
     emoji:  '👟',
-    imgUrl: p.hinhanh || p.HinhAnh || null,
-    badge:  (p.soluongton || p.SoLuongTon || 0) === 0 ? null : null,
+    imgUrl: p.hinhanh || p.HinhAnh || null,   // sẽ được override bởi sanpham_images
+    badge:  stock === 0 ? 'het' : null,
     cat:    cat,
     sizes:  sizes,
+    colors: colors,
     sku:    p.sku || p.SKU || '',
-    stock:  p.soluongton || p.SoLuongTon || 0,
+    stock:  stock,
   };
 }
 
@@ -1672,9 +1675,10 @@ function renderProducts(filter) {
   }
 
   grid.innerHTML = filtered.map(p => `
-    <div class="product-card" id="product-${p.id}" data-product-id="${p.id}" style="cursor:pointer;">
+    <div class="product-card" id="product-${p.id}" data-product-id="${p.id}" style="cursor:pointer;${p.stock===0?'opacity:0.75':''}">
       <div class="product-img" style="position:relative;overflow:hidden;">
-        ${p.badge ? `<div class="product-badge badge-${p.badge}">${p.badge==='new'?'MỚI':p.badge==='hot'?'HOT':'SALE'}</div>` : ''}
+        ${p.stock === 0 ? `<div class="product-badge" style="background:#555;position:absolute;top:12px;left:12px;z-index:2;font-size:10px;padding:4px 8px;font-weight:700;letter-spacing:1px">HẾT HÀNG</div>` :
+          p.badge && p.badge !== 'het' ? `<div class="product-badge badge-${p.badge}">${p.badge==='new'?'MỚI':p.badge==='hot'?'HOT':'SALE'}</div>` : ''}
         <div class="product-actions">
           <button class="product-action-btn" onclick="wishlist('${p.id}')" title="Yêu thích">♡</button>
           <button class="product-action-btn" onclick="openPdp('${p.id}')" title="Xem chi tiết">👁</button>
@@ -1695,10 +1699,20 @@ function renderProducts(filter) {
           </div>
           ${p.old ? `<div style="background:rgba(230,32,32,0.15);padding:4px 8px;font-size:12px;font-weight:900;color:var(--red)">-${Math.round((1-p.price/p.old)*100)}%</div>` : ''}
         </div>
+        ${p.colors && p.colors.length > 0 ? `
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+          ${p.colors.map(c => {
+            const colorMap = {'Trắng':'#f5f5f5','Đen':'#111','Đỏ':'#e62020','Xanh':'#1976d2','Vàng':'#fdd835','Xám':'#888','Xanh lá':'#388e3c','Cam':'#f57c00','Hồng':'#e91e63','Tím':'#7b1fa2','Nâu':'#795548','Kem':'#fdf5e6'};
+            return `<span title="${c}" style="width:14px;height:14px;border-radius:50%;background:${colorMap[c]||'#666'};border:1px solid rgba(255,255,255,0.25);display:inline-block;cursor:pointer" onclick="openPdp('${p.id}')"></span>`;
+          }).join('')}
+        </div>` : ''}
         <div class="product-sizes">
           ${(p.sizes||[]).slice(0,5).map(s => `<button class="size-btn" onclick="selectSize(this,'${s}','${p.id}')">${s}</button>`).join('')}
         </div>
-        <button class="add-cart-btn" onclick="addToCart('${p.id}')">+ Thêm Vào Giỏ</button>
+        ${p.stock > 0
+          ? `<button class="add-cart-btn" onclick="addToCart('${p.id}')">+ Thêm Vào Giỏ</button>`
+          : `<button class="add-cart-btn" style="background:rgba(255,255,255,0.08);cursor:not-allowed;color:var(--gray-light)" disabled>Hết Hàng</button>`
+        }
       </div>
     </div>
   `).join('');
@@ -1748,6 +1762,21 @@ async function loadHomepageProducts(filter) {
       if (grid) grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--gray-light)"><div style="font-size:48px;margin-bottom:12px">📦</div><div>Chưa có sản phẩm nào. Shop hãy thêm sản phẩm mới!</div></div>';
       return;
     }
+
+    // Batch load ảnh chính từ sanpham_images (ưu tiên hơn hinhanh)
+    try {
+      const ids = dbProds.map(p => p.id);
+      const imgRes = await fetch('/api/sanpham-images/batch', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ ids })
+      });
+      const imgData = await imgRes.json();
+      const imgMap = imgData.images || {};
+      products.forEach(p => {
+        if (imgMap[p.id]) p.imgUrl = imgMap[p.id];
+      });
+    } catch(e) { /* dùng hinhanh fallback */ }
 
     renderProducts(filter || currentFilter || 'all');
   } catch(e) {
@@ -5615,21 +5644,26 @@ function openPdp(productId) {
     const dbProd = products.find(x => String(x.id) === String(productId));
     if (dbProd) {
       // Chuyển đổi format DB sang format pdp
+      // Sizes: nếu hết hàng tổng thể thì tất cả unavail; nếu còn hàng thì avail hết
+      const totalStock = dbProd.stock || 0;
+      const colorMap = {'Trắng':'#f5f5f5','Đen':'#111','Đỏ':'#e62020','Xanh':'#1976d2','Vàng':'#fdd835','Xám':'#888','Xanh lá':'#388e3c','Cam':'#f57c00','Hồng':'#e91e63','Tím':'#7b1fa2','Nâu':'#795548','Kem':'#fdf5e6'};
+      const dbColors = (dbProd.colors||[]).map((c,i) => ({name: c, hex: colorMap[c]||'#555'}));
       p = {
         name:      dbProd.name,
         brand:     (dbProd.brand||'').toUpperCase(),
         sku:       dbProd.sku || dbProd.id,
         emoji:     '👟',
         imgUrl:    dbProd.imgUrl || null,
-        badge:     null,
+        badge:     totalStock === 0 ? 'HẾT HÀNG' : null,
         price:     dbProd.price,
         origPrice: dbProd.old || dbProd.price,
-        colors:    [],
-        sizes:     (dbProd.sizes||[]).map(s => ({s, avail: true})),
+        colors:    dbColors,
+        sizes:     (dbProd.sizes||[]).map(s => ({s, avail: totalStock > 0})),
         desc:      dbProd.desc || '',
         features:  [],
         specs:     [],
-        stock:     dbProd.stock || 0,
+        stock:     totalStock,
+        _dbColors: dbProd.colors || [],
       };
     } else {
       p = pdpProductData[1]; // ultimate fallback
@@ -5652,48 +5686,128 @@ function openPdp(productId) {
   const badgeHtml = p.badge ? `<span class="${p.badge==='NEW'?'new':p.badge==='HOT'?'hot':''}">${p.badge}</span>` : '';
   document.getElementById('pdpBadgeOverlay').innerHTML = badgeHtml;
   const thumbs = document.getElementById('pdpThumbs');
+  // ── Biến toàn cục lưu ảnh sản phẩm cho pdpFilterByColor ──
+  window._pdpAllImages = [];
+
+  // ── Helper tạo color swatch HTML ─────────────────────────────
+  function _makeColorSwatch(c, i, colorMapRef) {
+    var bg = colorMapRef[c] || '#666';
+    var border = i === 0 ? 'var(--white)' : 'rgba(255,255,255,0.2)';
+    var div = document.createElement('div');
+    div.className = 'pdp-color-btn' + (i === 0 ? ' active' : '');
+    div.dataset.name = c;
+    div.title = c;
+    div.style.cssText = 'background:' + bg + ';border:2px solid ' + border;
+    div.addEventListener('click', function() { pdpFilterByColor(this, c, window._pdpAllImages); });
+    return div;
+  }
+
+  // ── Helper render thumbnails ──────────────────────────────────
+  function _renderThumbs(thumbsEl, imgArr) {
+    thumbsEl.innerHTML = '';
+    imgArr.forEach(function(img, i) {
+      var wrap = document.createElement('div');
+      wrap.className = 'pdp-thumb' + (i === 0 ? ' active' : '');
+      wrap.style.cssText = 'position:relative;cursor:pointer';
+      wrap.addEventListener('click', function() { pdpSelectGalleryImg(wrap, img.url); });
+      var im = document.createElement('img');
+      im.src = img.url;
+      im.style.cssText = 'width:100%;height:100%;object-fit:cover';
+      im.onerror = function() { wrap.innerHTML = '<span style="font-size:24px">👟</span>'; };
+      wrap.appendChild(im);
+      if (img.mausac) {
+        var lbl = document.createElement('div');
+        lbl.style.cssText = 'position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.65);color:#fff;font-size:9px;text-align:center;padding:2px';
+        lbl.textContent = img.mausac;
+        wrap.appendChild(lbl);
+      }
+      thumbsEl.appendChild(wrap);
+    });
+  }
+
+  // ── Helper render color grid ──────────────────────────────────
+  function _renderColorGrid(gridEl, labelEl, colors, colorMapRef) {
+    gridEl.innerHTML = '';
+    colors.forEach(function(c, i) {
+      gridEl.appendChild(_makeColorSwatch(c, i, colorMapRef));
+    });
+    if (labelEl && colors.length > 0) labelEl.textContent = colors[0];
+  }
+
   // Load ảnh gallery từ API
   (async () => {
+    const COLOR_MAP = {'Trắng':'#f5f5f5','Đen':'#111','Đỏ':'#e62020','Xanh':'#1976d2','Vàng':'#fdd835','Xám':'#888','Xanh lá':'#388e3c','Cam':'#f57c00','Hồng':'#e91e63','Tím':'#7b1fa2','Nâu':'#795548','Kem':'#fdf5e6'};
     try {
-      const res = await fetch(`/api/sanpham/${productId}/images`);
+      const res  = await fetch('/api/sanpham/' + productId + '/images');
       const data = await res.json();
       const imgs = data.images || [];
+      window._pdpAllImages = imgs;
+
+      const colorGrid  = document.getElementById('pdpColorGrid');
+      const colorLabel = document.getElementById('pdpColorName');
+
       if (imgs.length > 0) {
-        // Cập nhật ảnh chính bằng ảnh la_anh_chinh
-        const mainImg = imgs.find(i => i.la_anh_chinh) || imgs[0];
-        const mainImgEl2 = document.getElementById('pdpMainEmoji');
-        if (mainImgEl2) mainImgEl2.innerHTML = `<img src="${mainImg.url}" style="width:100%;height:100%;object-fit:cover;border-radius:8px" onerror="this.outerHTML='<span style=\'font-size:120px\'>👟</span>'">`;
+        // Cập nhật ảnh chính
+        const mainImg   = imgs.find(function(i){ return i.la_anh_chinh; }) || imgs[0];
+        const mainImgEl = document.getElementById('pdpMainEmoji');
+        if (mainImgEl) {
+          var im = document.createElement('img');
+          im.src = mainImg.url;
+          im.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:8px';
+          im.onerror = function() { mainImgEl.innerHTML = '<span style="font-size:120px">👟</span>'; };
+          mainImgEl.innerHTML = '';
+          mainImgEl.appendChild(im);
+        }
 
         // Render thumbnails
-        thumbs.innerHTML = imgs.map((img, i) => `
-          <div class="pdp-thumb${i===0?' active':''}" onclick="pdpSelectGalleryImg(this,'${img.url}')" style="position:relative">
-            <img src="${img.url}" style="width:100%;height:100%;object-fit:cover" onerror="this.outerHTML='👟'">
-            ${img.mausac ? `<div style="position:absolute;bottom:2px;left:2px;right:2px;background:rgba(0,0,0,0.6);color:#fff;font-size:9px;text-align:center;border-radius:2px;padding:1px 2px">${img.mausac}</div>` : ''}
-          </div>
-        `).join('');
+        _renderThumbs(thumbs, imgs);
+        if (thumbs.firstElementChild) pdpSelectGalleryImg(thumbs.firstElementChild, imgs[0].url);
 
-        // Render bộ lọc màu nếu có
-        const colors = [...new Set(imgs.filter(i=>i.mausac).map(i=>i.mausac))];
-        const colorGrid = document.getElementById('pdpColorGrid');
-        if (colorGrid && colors.length > 0) {
-          const colorMap = {'Trắng':'#fff','Đen':'#111','Đỏ':'#e62020','Xanh':'#1976d2','Vàng':'#fdd835','Xám':'#888','Xanh lá':'#388e3c','Cam':'#f57c00','Hồng':'#e91e63','Tím':'#7b1fa2'};
-          colorGrid.innerHTML = colors.map((c,i) => `
-            <div class="pdp-color-btn${i===0?' active':''}" data-name="${c}" title="${c}"
-              style="background:${colorMap[c]||'#555'};border:2px solid ${i===0?'#fff':'rgba(255,255,255,0.2)'}"
-              onclick="pdpFilterByColor(this,'${c}',${JSON.stringify(imgs)})"></div>
-          `).join('');
+        // Render màu — kết hợp ảnh + DB
+        const colorsFromImgs = [...new Set(imgs.filter(function(i){ return i.mausac; }).map(function(i){ return i.mausac; }))];
+        const dbColors = p._dbColors || [];
+        const allColors = [...new Set([...colorsFromImgs, ...dbColors])];
+        if (colorGrid && allColors.length > 0) {
+          _renderColorGrid(colorGrid, colorLabel, allColors, COLOR_MAP);
+        } else if (colorGrid) {
+          colorGrid.innerHTML = '';
+          if (colorLabel) colorLabel.textContent = '';
         }
+
       } else {
-        // Fallback: chỉ 1 ảnh chính
+        // Fallback: hinhanh
         if (p.imgUrl) {
-          thumbs.innerHTML = `<div class="pdp-thumb active"><img src="${p.imgUrl}" style="width:100%;height:100%;object-fit:cover" onerror="this.outerHTML='👟'"></div>`;
+          var im2 = document.createElement('img');
+          im2.src = p.imgUrl;
+          im2.style.cssText = 'width:100%;height:100%;object-fit:cover';
+          im2.onerror = function() { thumbs.innerHTML = '<span style="font-size:36px">👟</span>'; };
+          var wrap2 = document.createElement('div');
+          wrap2.className = 'pdp-thumb active';
+          wrap2.style.cursor = 'pointer';
+          wrap2.addEventListener('click', function() { pdpSelectGalleryImg(wrap2, p.imgUrl); });
+          wrap2.appendChild(im2);
+          thumbs.innerHTML = '';
+          thumbs.appendChild(wrap2);
         } else {
-          thumbs.innerHTML = `<div class="pdp-thumb active" style="display:flex;align-items:center;justify-content:center;font-size:36px">👟</div>`;
+          thumbs.innerHTML = '<div class="pdp-thumb active" style="display:flex;align-items:center;justify-content:center;font-size:36px">👟</div>';
+        }
+
+        // Màu từ DB
+        const dbColors2 = p._dbColors || [];
+        if (colorGrid && dbColors2.length > 0) {
+          _renderColorGrid(colorGrid, colorLabel, dbColors2, COLOR_MAP);
         }
       }
     } catch(e) {
       if (p.imgUrl) {
-        thumbs.innerHTML = `<div class="pdp-thumb active"><img src="${p.imgUrl}" style="width:100%;height:100%;object-fit:cover" onerror="this.outerHTML='👟'"></div>`;
+        thumbs.innerHTML = '';
+        var im3 = document.createElement('img');
+        im3.src = p.imgUrl;
+        im3.style.cssText = 'width:100%;height:100%;object-fit:cover';
+        var wrap3 = document.createElement('div');
+        wrap3.className = 'pdp-thumb active';
+        wrap3.appendChild(im3);
+        thumbs.appendChild(wrap3);
       }
     }
   })();
@@ -5709,14 +5823,14 @@ function openPdp(productId) {
   document.getElementById('pdpSaveNote').textContent = `💰 Tiết kiệm ${formatPrice(p.origPrice - p.price)} so với giá gốc`;
   document.getElementById('pdpQtyVal').textContent = 1;
 
-  // Sizes
+  // Sizes — gạch chéo nếu hết hàng
   document.getElementById('pdpSizeGrid').innerHTML = (p.sizes||[]).map(s=>
-    `<button class="pdp-size-btn${s.avail?'':' unavailable'}" onclick="${s.avail?`selectPdpSize(this,'${s.s}')`:''}">${s.s}</button>`
+    '<button class="pdp-size-btn' + (s.avail?'':' unavailable') + '" ' + (s.avail ? 'onclick="selectPdpSize(this,\'' + s.s + '\')"' : 'title="Hết hàng"') + '>' + s.s + '</button>'
   ).join('');
 
-  // Colors
+  // Colors — render ban đầu, async block sẽ override với ảnh thật
   document.getElementById('pdpColorGrid').innerHTML = (p.colors||[]).map((c,i)=>
-    `<div class="pdp-color-btn${i===0?' active':''}" data-name="${c.name}" style="background:${c.hex};border:2px solid ${i===0?'#fff':'rgba(255,255,255,0.2)'}" onclick="selectPdpColor(this,'${c.name}')"></div>`
+    '<div class="pdp-color-btn' + (i===0?' active':'') + '" data-name="' + c.name + '" style="background:' + c.hex + ';border:2px solid ' + (i===0?'var(--white)':'rgba(255,255,255,0.2)') + '" onclick="selectPdpColor(this,\'' + c.name + '\')"></div>'
   ).join('');
 
   // Description
@@ -12260,9 +12374,10 @@ function renderProductList(list) {
     return;
   }
   grid.innerHTML = list.map(p => `
-    <div class="product-card" id="product-${p.id}" data-product-id="${p.id}" style="cursor:pointer;">
+    <div class="product-card" id="product-${p.id}" data-product-id="${p.id}" style="cursor:pointer;${p.stock===0?'opacity:0.75':''}">
       <div class="product-img" style="position:relative;overflow:hidden;">
-        ${p.badge ? `<div class="product-badge badge-${p.badge}">${p.badge==='new'?'MỚI':p.badge==='hot'?'HOT':'SALE'}</div>` : ''}
+        ${p.stock === 0 ? `<div class="product-badge" style="background:#555;position:absolute;top:12px;left:12px;z-index:2;font-size:10px;padding:4px 8px;font-weight:700;letter-spacing:1px">HẾT HÀNG</div>` :
+          (p.badge && p.badge !== 'het') ? `<div class="product-badge badge-${p.badge}">${p.badge==='new'?'MỚI':p.badge==='hot'?'HOT':'SALE'}</div>` : ''}
         <div class="product-actions">
           <button class="product-action-btn" onclick="wishlist('${p.id}')" title="Yêu thích">♡</button>
           <button class="product-action-btn" onclick="openPdp('${p.id}')" title="Xem chi tiết">👁</button>
@@ -12283,10 +12398,20 @@ function renderProductList(list) {
           </div>
           ${p.old ? `<div style="background:rgba(230,32,32,0.15);padding:4px 8px;font-size:12px;font-weight:900;color:var(--red)">-${Math.round((1-p.price/p.old)*100)}%</div>` : ''}
         </div>
+        ${p.colors && p.colors.length > 0 ? `
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+          ${p.colors.map(c => {
+            const colorMap = {'Trắng':'#f5f5f5','Đen':'#111','Đỏ':'#e62020','Xanh':'#1976d2','Vàng':'#fdd835','Xám':'#888','Xanh lá':'#388e3c','Cam':'#f57c00','Hồng':'#e91e63','Tím':'#7b1fa2','Nâu':'#795548','Kem':'#fdf5e6'};
+            return `<span title="${c}" style="width:14px;height:14px;border-radius:50%;background:${colorMap[c]||'#666'};border:1px solid rgba(255,255,255,0.25);display:inline-block;cursor:pointer" onclick="openPdp('${p.id}')"></span>`;
+          }).join('')}
+        </div>` : ''}
         <div class="product-sizes">
           ${(p.sizes||[]).slice(0,5).map(s => `<button class="size-btn" onclick="selectSize(this,'${s}','${p.id}')">${s}</button>`).join('')}
         </div>
-        <button class="add-cart-btn" onclick="addToCart('${p.id}')">+ Thêm Vào Giỏ</button>
+        ${p.stock > 0
+          ? `<button class="add-cart-btn" onclick="addToCart('${p.id}')">+ Thêm Vào Giỏ</button>`
+          : `<button class="add-cart-btn" style="background:rgba(255,255,255,0.08);cursor:not-allowed;color:var(--gray-light)" disabled>Hết Hàng</button>`
+        }
       </div>
     </div>
   `).join('');
@@ -12612,17 +12737,33 @@ function pdpFilterByColor(el, color, allImgs) {
     b.style.border = '2px solid rgba(255,255,255,0.2)';
     b.classList.remove('active');
   });
-  el.style.border = '2px solid #fff';
+  el.style.border = '2px solid var(--white)';
   el.classList.add('active');
-  const filtered = allImgs.filter(i => i.mausac === color);
+
+  // Cập nhật label màu
+  const colorLabel = document.getElementById('pdpColorName');
+  if (colorLabel) colorLabel.textContent = color;
+
+  // Nếu allImgs rỗng, dùng window._pdpAllImages
+  const imgs = (allImgs && allImgs.length > 0) ? allImgs : (window._pdpAllImages || []);
+  const filtered = imgs.filter(i => i.mausac === color);
   const thumbs = document.getElementById('pdpThumbs');
   if (thumbs && filtered.length > 0) {
-    thumbs.innerHTML = filtered.map((img, i) => `
-      <div class="pdp-thumb${i===0?' active':''}" onclick="pdpSelectGalleryImg(this,'${img.url}')">
-        <img src="${img.url}" style="width:100%;height:100%;object-fit:cover" onerror="this.outerHTML='👟'">
-      </div>
-    `).join('');
+    thumbs.innerHTML = filtered.map((img, i) =>
+      '<div class="pdp-thumb' + (i===0?' active':'') + '" onclick="pdpSelectGalleryImg(this,\'' + img.url + '\')" style="cursor:pointer">' +
+      '<img src="' + img.url + '" style="width:100%;height:100%;object-fit:cover" onerror="this.outerHTML=\'👟\'">' +
+      '</div>'
+    ).join('');
     pdpSelectGalleryImg(thumbs.firstElementChild, filtered[0].url);
+  } else if (thumbs && imgs.length > 0) {
+    // Hiện tất cả ảnh nếu không có ảnh riêng cho màu đó
+    thumbs.innerHTML = imgs.map((img, i) =>
+      '<div class="pdp-thumb' + (i===0?' active':'') + '" onclick="pdpSelectGalleryImg(this,\'' + img.url + '\')" style="cursor:pointer;position:relative">' +
+      '<img src="' + img.url + '" style="width:100%;height:100%;object-fit:cover" onerror="this.outerHTML=\'👟\'">' +
+      (img.mausac ? '<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.65);color:#fff;font-size:9px;text-align:center;padding:2px">' + img.mausac + '</div>' : '') +
+      '</div>'
+    ).join('');
+    pdpSelectGalleryImg(thumbs.firstElementChild, imgs[0].url);
   }
 }
 

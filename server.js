@@ -1054,6 +1054,39 @@ app.get("/api/sanpham/:ma/images", async (req, res) => {
   }
 });
 
+// ── LẤY ẢNH CHÍNH NHIỀU SẢN PHẨM (cho danh sách) ─────────────
+// POST /api/sanpham-images/batch  body: { ids: ["SP001","SP002",...] }
+app.post("/api/sanpham-images/batch", async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!ids || !ids.length) return res.json({ images: {} });
+    const r = await pool.query(
+      `SELECT DISTINCT ON (masanpham) masanpham, url, mausac
+       FROM sanpham_images
+       WHERE masanpham = ANY($1) AND la_anh_chinh = true
+       ORDER BY masanpham, thu_tu, id`,
+      [ids]
+    );
+    // fallback: nếu chưa đánh la_anh_chinh thì lấy ảnh đầu tiên
+    const mainMap = {};
+    r.rows.forEach(row => { mainMap[row.masanpham] = row.url; });
+
+    // Với SP chưa có ảnh la_anh_chinh, lấy ảnh đầu tiên
+    const missing = ids.filter(id => !mainMap[id]);
+    if (missing.length) {
+      const r2 = await pool.query(
+        `SELECT DISTINCT ON (masanpham) masanpham, url
+         FROM sanpham_images WHERE masanpham = ANY($1) ORDER BY masanpham, thu_tu, id`,
+        [missing]
+      );
+      r2.rows.forEach(row => { mainMap[row.masanpham] = row.url; });
+    }
+    res.json({ images: mainMap });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── XÓA ẢNH SẢN PHẨM ─────────────────────────────────────────
 app.delete("/api/admin/sanpham/:ma/images/:id", requireRole("shop","admin"), async (req, res) => {
   try {

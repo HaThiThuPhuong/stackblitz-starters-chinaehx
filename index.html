@@ -1937,10 +1937,10 @@ function switchTab(tab, btn) {
 }
 // -- ACCOUNTS DATABASE --
 const ACCOUNTS = [
-  { email: 'hoang@sneakervn.com',     password: 'member123',  role: 'member',    name: 'Nguyễn Hoàng' },
-  { email: 'shopowner@sneakervn.com', password: 'shop@123',   role: 'shop',      name: 'Trần Shop Owner' },
-  { email: 'ketoan@sneakervn.com',    password: 'ketoan@123', role: 'accountant', name: 'Lê Kế Toán' },
-  { email: 'admin@sneakervn.com',     password: 'admin@super',role: 'admin',     name: 'Nguyễn Admin' },
+  { email: 'hoang@sneakervn.com',   password: 'member123',   role: 'member',     name: 'Nguyễn Hoàng' },
+  { email: 'shop@sneakervn.com',    password: 'shop@123',    role: 'shop',       name: 'Trần Văn Shop' },
+  { email: 'ketoan@sneakervn.com',  password: 'ketoan@123',  role: 'accountant', name: 'Lê Thị Kế Toán' },
+  { email: 'admin@sneakervn.com',   password: 'admin@super', role: 'admin',      name: 'Nguyễn Thị Admin' },
 ];
 
 function handleLogin() {
@@ -1986,24 +1986,40 @@ function loginWithRole(account) {
     document.getElementById('userNavAvatar').textContent = initials;
     document.getElementById('userNavName').textContent = account.name.split(' ').slice(-2).join(' ');
     document.getElementById('ddName').textContent = account.name;
-    // Sync profile name với DB
     const p = SVN.getProfile(); p.name = account.name; SVN.saveProfile(p);
     renderMpWishlist();
     showToast('Đăng Nhập Thành Công 👋', 'Chào mừng trở lại, ' + account.name + '!');
     return;
   }
 
+  // Gọi API thật để lấy JWT token hợp lệ
+  fetch('/api/admin/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ Email: account.email, MatKhau: account.password })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.token) {
+      // Lưu token thật từ server
+      sessionStorage.setItem('admin_token', data.token);
+      localStorage.setItem('admin_token', data.token);
+    }
+    // Dù có token hay không vẫn mở dashboard
+    const actualRole = data.user?.vaitro || data.user?.VaiTro || account.role;
+    currentUser = { role: actualRole, name: data.user?.HoTen || account.name };
+    localStorage.setItem('svn_admin_role', actualRole);
+    localStorage.setItem('svn_admin_name', currentUser.name);
+  })
+  .catch(() => {
+    // Nếu API lỗi vẫn cho vào dashboard nhưng token sẽ rỗng
+    console.warn('loginWithRole: không lấy được token từ API');
+  });
+
   const dashId = dashMap[account.role];
   document.getElementById(dashId).classList.add('open');
   document.body.style.overflow = 'hidden';
   document.getElementById('navLoginBtn').style.display = 'none';
-
-  // Lưu phiên đăng nhập vào sessionStorage + localStorage
-  // Dùng flag đơn giản thay vì btoa() để tránh lỗi Unicode
-  sessionStorage.setItem('svn_shop_logged_in', '1');
-  sessionStorage.setItem('admin_token', 'shop-offline-session');
-  localStorage.setItem('svn_shop_logged_in', '1');
-  localStorage.setItem('admin_token', 'shop-offline-session');
   localStorage.setItem('svn_admin_role', account.role);
   localStorage.setItem('svn_admin_name', account.name);
 

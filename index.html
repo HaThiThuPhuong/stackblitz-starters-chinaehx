@@ -1240,27 +1240,27 @@ footer {
   <h2 class="section-title">Chọn Theo Hãng Yêu Thích</h2>
   <p class="section-sub">Hơn 20 thương hiệu sneaker hàng đầu thế giới</p>
   <div class="brands-grid">
-    <div class="brand-card" onclick="filterBrand('Nike')">
+    <div class="brand-card" onclick="openBrandPage('Nike')">
       <div class="brand-logo">NIKE</div>
       <div class="brand-count" id="count-Nike">-- sản phẩm</div>
     </div>
-    <div class="brand-card" onclick="filterBrand('Adidas')">
+    <div class="brand-card" onclick="openBrandPage('Adidas')">
       <div class="brand-logo">ADIDAS</div>
       <div class="brand-count" id="count-Adidas">-- sản phẩm</div>
     </div>
-    <div class="brand-card" onclick="filterBrand('MLB')">
+    <div class="brand-card" onclick="openBrandPage('MLB')">
       <div class="brand-logo">MLB</div>
       <div class="brand-count" id="count-MLB">-- sản phẩm</div>
     </div>
-    <div class="brand-card" onclick="filterBrand('Puma')">
+    <div class="brand-card" onclick="openBrandPage('Puma')">
       <div class="brand-logo">PUMA</div>
       <div class="brand-count" id="count-Puma">-- sản phẩm</div>
     </div>
-    <div class="brand-card" onclick="filterBrand('New Balance')">
+    <div class="brand-card" onclick="openBrandPage('New Balance')">
       <div class="brand-logo">NEW BALANCE</div>
       <div class="brand-count" id="count-New Balance">-- sản phẩm</div>
     </div>
-    <div class="brand-card" onclick="filterBrand('Fila')">
+    <div class="brand-card" onclick="openBrandPage('Fila')">
       <div class="brand-logo">FILA</div>
       <div class="brand-count" id="count-Fila">-- sản phẩm</div>
     </div>
@@ -1896,22 +1896,95 @@ function filterProducts(type, btn) {
 }
 
 
+
+// ── BRAND PAGE ────────────────────────────────────────────────
+let _brandPageSort = 'new';
+let _brandPageProducts = [];
+
+const brandConfig = {
+  'Nike':        { emoji:'👟', gradient:'linear-gradient(135deg,#0a0a1a,#1a1a3a)', sub:'Just Do It' },
+  'Adidas':      { emoji:'👟', gradient:'linear-gradient(135deg,#0a1a0a,#1a3a1a)', sub:'Impossible Is Nothing' },
+  'MLB':         { emoji:'👞', gradient:'linear-gradient(135deg,#1a0a0a,#3a1a1a)', sub:'American Sports Style' },
+  'Puma':        { emoji:'🐆', gradient:'linear-gradient(135deg,#1a1a0a,#3a3a15)', sub:'Forever Faster' },
+  'New Balance': { emoji:'🥾', gradient:'linear-gradient(135deg,#0a0a1a,#15153a)', sub:'Fearlessly Independent' },
+  'Fila':        { emoji:'👟', gradient:'linear-gradient(135deg,#1a0a1a,#3a1a3a)', sub:'Feel the Sport' },
+};
+
+async function openBrandPage(brand) {
+  const cfg = brandConfig[brand] || { emoji:'👟', gradient:'linear-gradient(135deg,#111,#222)', sub:'Bộ sưu tập' };
+
+  // Set header
+  document.getElementById('brandPageTitle').textContent = brand.toUpperCase();
+  document.getElementById('brandPageSub').textContent = cfg.sub;
+  document.getElementById('brandPageHeroBanner').style.background = cfg.gradient;
+  document.getElementById('brandPageHeroBanner').textContent = cfg.emoji;
+
+  // Mở trang
+  const page = document.getElementById('brandPage');
+  page.classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  // Load sản phẩm
+  document.getElementById('brandPageGrid').innerHTML = '<div class="brand-page-empty"><div style="font-size:48px;margin-bottom:16px">⏳</div><div>Đang tải...</div></div>';
+  try {
+    const res  = await fetch(`/api/sanpham?thuonghieu=${encodeURIComponent(brand)}&limit=100`);
+    const data = await res.json();
+    _brandPageProducts = (data.data || data || []).map(dbProdToHomeProd);
+    document.getElementById('brandPageCount').textContent = `${_brandPageProducts.length} sản phẩm`;
+    renderBrandPageGrid();
+  } catch(e) {
+    document.getElementById('brandPageGrid').innerHTML = '<div class="brand-page-empty"><div style="font-size:48px">😢</div><div>Không thể tải sản phẩm</div></div>';
+  }
+}
+
+function closeBrandPage() {
+  document.getElementById('brandPage').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function setBrandSort(sort) {
+  _brandPageSort = sort;
+  document.querySelectorAll('#brandPage .db-btn-sm').forEach(b => {
+    b.style.background = ''; b.style.borderColor = '';
+  });
+  const btn = document.getElementById(sort === 'new' ? 'brandSortNew' : sort === 'price_asc' ? 'brandSortPrice' : 'brandSortPriceD');
+  if (btn) { btn.style.background = 'var(--red)'; btn.style.borderColor = 'var(--red)'; }
+  renderBrandPageGrid();
+}
+
+function renderBrandPageGrid() {
+  const grid = document.getElementById('brandPageGrid');
+  let list = [..._brandPageProducts];
+  if (_brandPageSort === 'price_asc')  list.sort((a,b) => a.price - b.price);
+  if (_brandPageSort === 'price_desc') list.sort((a,b) => b.price - a.price);
+
+  if (!list.length) {
+    grid.innerHTML = '<div class="brand-page-empty"><div style="font-size:48px;margin-bottom:16px">📭</div><div>Chưa có sản phẩm nào</div></div>';
+    return;
+  }
+  grid.innerHTML = list.map(p => `
+    <div class="product-card" onclick="closeBrandPage();setTimeout(()=>openPdp('${p.id}'),300)" style="cursor:pointer">
+      <div class="product-img" style="position:relative;overflow:hidden">
+        ${p.imgUrl
+          ? `<img src="${p.imgUrl}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+          : ''}
+        <span style="font-size:72px;${p.imgUrl?'display:none':'display:flex'};align-items:center;justify-content:center;width:100%;height:100%">👟</span>
+      </div>
+      <div class="product-info">
+        <div class="product-brand">${p.brand}</div>
+        <div class="product-name">${p.name}</div>
+        <div class="product-price-row">
+          <div class="product-price">${formatPrice(p.price)}</div>
+        </div>
+        <div class="product-sizes">${(p.sizes||[]).slice(0,4).map(s=>`<button class="size-btn">${s}</button>`).join('')}</div>
+        <button class="add-cart-btn" onclick="event.stopPropagation();addToCart('${p.id}')">+ Thêm Vào Giỏ</button>
+      </div>
+    </div>
+  `).join('');
+}
+
 function promoFilter(brand) {
-  // Scroll lên section sản phẩm
-  const sec = document.getElementById('products') || document.querySelector('.products-section') || document.querySelector('#san-pham');
-  if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-  // Đặt filter thương hiệu
-  setTimeout(() => {
-    // Active brand tab nếu có
-    document.querySelectorAll('.brand-filter-btn, .filter-btn, [data-brand]').forEach(b => {
-      b.classList.toggle('active', b.dataset.brand === brand || b.textContent.trim().toLowerCase() === brand.toLowerCase());
-    });
-    // Gọi filterBrand
-    filterBrand(brand);
-  }, 400);
-
-  showToast('🔍 Lọc sản phẩm', 'Đang hiển thị ' + brand);
+  openBrandPage(brand);
 }
 
 function filterBrand(brand) {
@@ -4705,6 +4778,55 @@ window.checkout = function() {
 ═══════════════════════════════════════════ -->
 <style>
 /* ── PDP OVERLAY ── */
+
+/* ── BRAND PAGE ─────────────────────────────────────────────── */
+#brandPage {
+  position:fixed; inset:0; z-index:3900;
+  background:var(--black); overflow-y:auto;
+  transform:translateX(100%);
+  transition:transform .45s cubic-bezier(.4,0,.2,1);
+}
+#brandPage.open { transform:translateX(0); }
+.brand-page-header {
+  position:sticky; top:0; z-index:10;
+  background:rgba(5,5,5,0.95); backdrop-filter:blur(12px);
+  border-bottom:1px solid rgba(255,255,255,0.08);
+  display:flex; align-items:center; gap:16px;
+  padding:16px 32px;
+}
+.brand-page-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+  gap:24px;
+  padding:32px;
+  max-width:1400px;
+  margin:0 auto;
+}
+.brand-page-hero {
+  padding:48px 32px 32px;
+  max-width:1400px;
+  margin:0 auto;
+}
+.brand-page-title {
+  font-family:'Bebas Neue',cursive;
+  font-size:clamp(40px,6vw,80px);
+  letter-spacing:4px;
+  line-height:1;
+  margin-bottom:8px;
+}
+.brand-page-sub {
+  color:var(--gray-light);
+  font-size:14px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+}
+.brand-page-empty {
+  grid-column:1/-1;
+  text-align:center;
+  padding:80px 20px;
+  color:var(--gray-light);
+}
+
 #pdpPage {
   position:fixed; inset:0; z-index:4000;
   background:var(--black); overflow-y:auto;
@@ -5044,6 +5166,31 @@ window.checkout = function() {
   #pdpStickyBar { padding:10px 16px; }
 }
 </style>
+
+
+<!-- BRAND PAGE -->
+<div id="brandPage">
+  <div class="brand-page-header">
+    <button onclick="closeBrandPage()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:4px 8px;line-height:1">←</button>
+    <div style="flex:1">
+      <div id="brandPageTitle" class="brand-page-title">NIKE</div>
+      <div id="brandPageSub" class="brand-page-sub">Bộ sưu tập sản phẩm</div>
+    </div>
+    <div id="brandPageCount" style="font-size:13px;color:var(--gray-light)"></div>
+  </div>
+  <div class="brand-page-hero">
+    <div id="brandPageHeroBanner" style="width:100%;height:200px;border-radius:12px;overflow:hidden;margin-bottom:24px;display:flex;align-items:center;justify-content:center;font-size:80px;background:linear-gradient(135deg,#1a1a1a,#2a2a2a)"></div>
+    <!-- Bộ lọc -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+      <button class="db-btn-sm" id="brandSortNew" onclick="setBrandSort('new')" style="background:var(--red);border-color:var(--red)">Mới nhất</button>
+      <button class="db-btn-sm" id="brandSortPrice" onclick="setBrandSort('price_asc')">Giá tăng dần</button>
+      <button class="db-btn-sm" id="brandSortPriceD" onclick="setBrandSort('price_desc')">Giá giảm dần</button>
+    </div>
+  </div>
+  <div class="brand-page-grid" id="brandPageGrid">
+    <div class="brand-page-empty"><div style="font-size:48px;margin-bottom:16px">🔍</div><div>Đang tải...</div></div>
+  </div>
+</div>
 
 <div id="pdpPage">
   <!-- HEADER -->

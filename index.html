@@ -1345,48 +1345,48 @@ footer {
 <!-- PROMO BANNER -->
 <section id="promo" class="reveal">
   <div class="promo-grid">
-    <div class="promo-card promo-card-1">
+    <div class="promo-card promo-card-1" style="cursor:pointer" onclick="promoFilter('Nike')">
       <div class="promo-card-bg">🏃</div>
       <div class="promo-overlay">
         <div class="promo-tag">Flash Sale</div>
         <div class="promo-title">Nike Running<br>Collection 2025</div>
         <div class="promo-desc">Giảm đến 40% — Chỉ hôm nay!</div>
-        <button class="promo-btn">Shop Now →</button>
+        <button class="promo-btn" onclick="event.stopPropagation();promoFilter('Nike')">Shop Now →</button>
       </div>
     </div>
-    <div class="promo-card promo-card-2">
+    <div class="promo-card promo-card-2" style="cursor:pointer" onclick="promoFilter('Adidas')">
       <div class="promo-card-bg">👟</div>
       <div class="promo-overlay">
         <div class="promo-tag">New Arrival</div>
         <div class="promo-title">Adidas<br>Originals</div>
         <div class="promo-desc">Bộ sưu tập mới nhất</div>
-        <button class="promo-btn">Khám Phá →</button>
+        <button class="promo-btn" onclick="event.stopPropagation();promoFilter('Adidas')">Khám Phá →</button>
       </div>
     </div>
   </div>
   <div class="promo-row2">
-    <div class="promo-card promo-card-sm" style="background:linear-gradient(135deg,#0a1a0a,#1a3a1a)">
+    <div class="promo-card promo-card-sm" style="background:linear-gradient(135deg,#0a1a0a,#1a3a1a);cursor:pointer" onclick="promoFilter('MLB')">
       <div class="promo-card-bg" style="background:linear-gradient(135deg,#0a1a0a,#1a3a1a);font-size:70px;">👞</div>
       <div class="promo-overlay">
         <div class="promo-tag">MLB</div>
         <div class="promo-title">Big Ball Chunky</div>
-        <button class="promo-btn">Xem Ngay</button>
+        <button class="promo-btn" onclick="event.stopPropagation();promoFilter('MLB')">Xem Ngay</button>
       </div>
     </div>
-    <div class="promo-card promo-card-sm" style="background:linear-gradient(135deg,#1a1a0a,#3a3a15)">
+    <div class="promo-card promo-card-sm" style="background:linear-gradient(135deg,#1a1a0a,#3a3a15);cursor:pointer" onclick="promoFilter('Puma')">
       <div class="promo-card-bg" style="background:linear-gradient(135deg,#1a1a0a,#3a3a15);font-size:70px;">👠</div>
       <div class="promo-overlay">
         <div class="promo-tag">Puma</div>
         <div class="promo-title">RS-X Series</div>
-        <button class="promo-btn">Xem Ngay</button>
+        <button class="promo-btn" onclick="event.stopPropagation();promoFilter('Puma')">Xem Ngay</button>
       </div>
     </div>
-    <div class="promo-card promo-card-sm" style="background:linear-gradient(135deg,#0a0a1a,#15153a)">
+    <div class="promo-card promo-card-sm" style="background:linear-gradient(135deg,#0a0a1a,#15153a);cursor:pointer" onclick="promoFilter('New Balance')">
       <div class="promo-card-bg" style="background:linear-gradient(135deg,#0a0a1a,#15153a);font-size:70px;">🥾</div>
       <div class="promo-overlay">
         <div class="promo-tag">New Balance</div>
         <div class="promo-title">550 Classic</div>
-        <button class="promo-btn">Xem Ngay</button>
+        <button class="promo-btn" onclick="event.stopPropagation();promoFilter('New Balance')">Xem Ngay</button>
       </div>
     </div>
   </div>
@@ -1893,6 +1893,25 @@ function filterProducts(type, btn) {
   document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
   renderProducts(type);
+}
+
+
+function promoFilter(brand) {
+  // Scroll lên section sản phẩm
+  const sec = document.getElementById('products') || document.querySelector('.products-section') || document.querySelector('#san-pham');
+  if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // Đặt filter thương hiệu
+  setTimeout(() => {
+    // Active brand tab nếu có
+    document.querySelectorAll('.brand-filter-btn, .filter-btn, [data-brand]').forEach(b => {
+      b.classList.toggle('active', b.dataset.brand === brand || b.textContent.trim().toLowerCase() === brand.toLowerCase());
+    });
+    // Gọi filterBrand
+    filterBrand(brand);
+  }, 400);
+
+  showToast('🔍 Lọc sản phẩm', 'Đang hiển thị ' + brand);
 }
 
 function filterBrand(brand) {

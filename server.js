@@ -954,7 +954,10 @@ app.patch(
   },
 );
 
-// ── UPLOAD ẢNH SẢN PHẨM ĐƠN LẺ ──────────────────────────────
+// ── UPLOAD ẢNH SẢN PHẨM ĐƠN LẺ (Supabase Storage) ───────────
+const SUPABASE_URL    = "https://mufxhkvktyiykcqnlpzx.supabase.co";
+const SUPABASE_ANON   = "sb_publishable_rv6_3zvCyO0PsfwyNYZzNQ_NUp9m-qX";
+
 app.post(
   "/api/admin/sanpham/:ma/upload-image",
   requireRole("shop", "admin"),
@@ -962,12 +965,29 @@ app.post(
   async (req, res) => {
     try {
       if (!req.file) return res.status(400).json({ error: "Không có file ảnh" });
-      const ma = req.params.ma;
+      const ma  = req.params.ma;
       const ext = req.file.originalname.split(".").pop().toLowerCase() || "jpg";
       const filename = `${ma.replace(/[^a-z0-9_-]/gi, "_")}_${Date.now()}.${ext}`;
-      const filepath = path.join(UPLOADS_DIR, filename);
-      fs.writeFileSync(filepath, req.file.buffer);
-      const url = `/uploads/products/${filename}`;
+
+      // Upload lên Supabase Storage bucket "products"
+      const uploadRes = await fetch(
+        `${SUPABASE_URL}/storage/v1/object/products/${filename}`,
+        {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${SUPABASE_ANON}`,
+            "Content-Type": req.file.mimetype,
+            "x-upsert": "true",
+          },
+          body: req.file.buffer,
+        }
+      );
+      if (!uploadRes.ok) {
+        const err = await uploadRes.text();
+        return res.status(500).json({ error: "Upload Supabase thất bại: " + err });
+      }
+
+      const url = `${SUPABASE_URL}/storage/v1/object/public/products/${filename}`;
       await pool.query("UPDATE sanpham SET hinhanh=$1 WHERE masanpham=$2", [url, ma]);
       res.json({ success: true, url });
     } catch (e) {
@@ -1044,15 +1064,27 @@ app.post(
             continue;
           }
 
-          // Lưu ảnh nhúng nếu có
+          // Lưu ảnh nhúng lên Supabase Storage
           let hinhAnh = row.hinhanh || "";
           const imgData = rowImageMap[row._rowNumber];
           if (imgData) {
             try {
               const filename = `${String(row.masanpham).replace(/[^a-z0-9_-]/gi, "_")}_${Date.now()}.${imgData.ext}`;
-              const filepath = path.join(UPLOADS_DIR, filename);
-              fs.writeFileSync(filepath, imgData.buffer);
-              hinhAnh = `/uploads/products/${filename}`;
+              const uploadRes = await fetch(
+                `${SUPABASE_URL}/storage/v1/object/products/${filename}`,
+                {
+                  method: "POST",
+                  headers: {
+                    "Authorization": `Bearer ${SUPABASE_ANON}`,
+                    "Content-Type": `image/${imgData.ext}`,
+                    "x-upsert": "true",
+                  },
+                  body: imgData.buffer,
+                }
+              );
+              if (uploadRes.ok) {
+                hinhAnh = `${SUPABASE_URL}/storage/v1/object/public/products/${filename}`;
+              }
             } catch (_) { /* lỗi lưu ảnh — vẫn import sản phẩm, bỏ ảnh */ }
           }
 

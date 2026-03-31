@@ -1003,7 +1003,9 @@ app.post(
            VALUES ($1,$2,$3,$4,$5)`,
           [ma, url, mau, isMain, i]
         );
-        if (isMain && datChinh) {
+        // FIX Bug 2b: Luôn update hinhanh khi đây là ảnh chính (isMain),
+        // không phụ thuộc vào flag dat_anh_chinh từ client
+        if (isMain) {
           await pool.query("UPDATE sanpham SET hinhanh=$1 WHERE masanpham=$2", [url, ma]);
         }
         saved.push({ url, mausac: mau, la_anh_chinh: isMain });
@@ -1044,10 +1046,28 @@ app.post(
 // ── LẤY DANH SÁCH ẢNH SẢN PHẨM ──────────────────────────────
 app.get("/api/sanpham/:ma/images", async (req, res) => {
   try {
+    const ma = req.params.ma;
     const r = await pool.query(
       "SELECT id,url,mausac,la_anh_chinh,thu_tu FROM sanpham_images WHERE masanpham=$1 ORDER BY thu_tu,id",
-      [req.params.ma]
+      [ma]
     );
+    // FIX Bug 2b: Nếu sanpham_images trống, fallback sang cột hinhanh
+    if (r.rows.length === 0) {
+      const sp = await pool.query(
+        "SELECT hinhanh FROM sanpham WHERE masanpham=$1",
+        [ma]
+      );
+      if (sp.rows.length && sp.rows[0].hinhanh) {
+        const url = sp.rows[0].hinhanh;
+        // Tự động insert vào sanpham_images để lần sau không cần fallback
+        await pool.query(
+          `INSERT INTO sanpham_images (masanpham, url, mausac, la_anh_chinh, thu_tu)
+           VALUES ($1, $2, '', true, 0) ON CONFLICT DO NOTHING`,
+          [ma, url]
+        ).catch(() => {}); // ignore nếu lỗi constraint
+        return res.json({ images: [{ id: 0, url, mausac: '', la_anh_chinh: true, thu_tu: 0 }] });
+      }
+    }
     res.json({ images: r.rows });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -1071,7 +1091,7 @@ app.post("/api/sanpham-images/batch", async (req, res) => {
     const mainMap = {};
     r.rows.forEach(row => { mainMap[row.masanpham] = row.url; });
 
-    // Với SP chưa có ảnh la_anh_chinh, lấy ảnh đầu tiên
+    // Với SP chưa có ảnh la_anh_chinh, lấy ảnh đầu tiên từ sanpham_images
     const missing = ids.filter(id => !mainMap[id]);
     if (missing.length) {
       const r2 = await pool.query(
@@ -1081,6 +1101,19 @@ app.post("/api/sanpham-images/batch", async (req, res) => {
       );
       r2.rows.forEach(row => { mainMap[row.masanpham] = row.url; });
     }
+
+    // FIX Bug 2a: Với SP vẫn chưa có trong sanpham_images, fallback sang cột hinhanh
+    const stillMissing = ids.filter(id => !mainMap[id]);
+    if (stillMissing.length) {
+      const r3 = await pool.query(
+        `SELECT masanpham, hinhanh FROM sanpham
+         WHERE masanpham = ANY($1)
+           AND hinhanh IS NOT NULL AND hinhanh != ''`,
+        [stillMissing]
+      );
+      r3.rows.forEach(row => { mainMap[row.masanpham] = row.hinhanh; });
+    }
+
     res.json({ images: mainMap });
   } catch (e) {
     res.status(500).json({ error: e.message });

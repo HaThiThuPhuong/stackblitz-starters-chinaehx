@@ -5632,6 +5632,10 @@ const pdpProductData = {
       origPrice: p ? Math.round(p.price * 1.2) : 2400000,
       badge: p ? p.badge : null,
       sku: 'SKU-00' + id,
+      // FIX: luôn dùng sizes từ DB, không copy hardcode từ AF1
+      sizes: p && p.sizes && p.sizes.length > 0
+        ? p.sizes.map(s => ({ s, avail: (p.stock || 0) > 0 }))
+        : [],
     };
   }
 });
@@ -5640,12 +5644,19 @@ function openPdp(productId) {
   // Ưu tiên pdpProductData (sản phẩm demo có đầy đủ thông tin)
   // Nếu không có thì dùng sản phẩm từ DB (mảng products toàn cục)
   let p = pdpProductData[productId];
-  if (!p) {
-    const dbProd = products.find(x => String(x.id) === String(productId));
-    if (dbProd) {
-      // Chuyển đổi format DB sang format pdp
-      // Sizes: nếu hết hàng tổng thể thì tất cả unavail; nếu còn hàng thì avail hết
-      const totalStock = dbProd.stock || 0;
+
+  // FIX: Luôn kiểm tra DB để lấy sizes thật, bất kể pdpProductData có sẵn hay không
+  const dbProd = products.find(x => String(x.id) === String(productId));
+  if (dbProd) {
+    const totalStock = dbProd.stock || 0;
+    const dbSizes = (dbProd.sizes || []).map(s => ({ s, avail: totalStock > 0 }));
+    if (p) {
+      // Sản phẩm có trong pdpProductData (demo) — chỉ override sizes nếu DB có dữ liệu
+      if (dbSizes.length > 0) {
+        p = { ...p, sizes: dbSizes, stock: totalStock };
+      }
+    } else {
+      // Sản phẩm chỉ có trong DB
       const colorMap = {'Trắng':'#f5f5f5','Đen':'#111','Đỏ':'#e62020','Xanh':'#1976d2','Vàng':'#fdd835','Xám':'#888','Xanh lá':'#388e3c','Cam':'#f57c00','Hồng':'#e91e63','Tím':'#7b1fa2','Nâu':'#795548','Kem':'#fdf5e6'};
       const dbColors = (dbProd.colors||[]).map((c,i) => ({name: c, hex: colorMap[c]||'#555'}));
       p = {
@@ -5658,16 +5669,18 @@ function openPdp(productId) {
         price:     dbProd.price,
         origPrice: dbProd.old || dbProd.price,
         colors:    dbColors,
-        sizes:     (dbProd.sizes||[]).map(s => ({s, avail: totalStock > 0})),
+        sizes:     dbSizes,
         desc:      dbProd.desc || '',
         features:  [],
         specs:     [],
         stock:     totalStock,
         _dbColors: dbProd.colors || [],
       };
-    } else {
-      p = pdpProductData[1]; // ultimate fallback
     }
+  }
+
+  if (!p) {
+    p = pdpProductData[1]; // ultimate fallback
   }
   pdpProduct = {...p, id: productId};
   pdpQty = 1; pdpSelectedSize = null; pdpWished = false;

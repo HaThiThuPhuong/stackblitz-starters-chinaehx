@@ -3950,7 +3950,7 @@ function selectPayment(el, type) {
 }
 
 function openCheckout() {
-  if (cart.length === 0) { showToast('Giỏ Hàng Trống','Vui lòng thêm sản phẩm trước!'); return; }
+  if ((window.cart||cart||[]).length === 0) { showToast('Giỏ Hàng Trống','Vui lòng thêm sản phẩm trước!'); return; }
   const pg = document.getElementById('checkoutPage');
   pg.classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -5857,8 +5857,21 @@ function pdpBuyNow() {
     showToast('Chưa chọn size! 📐', 'Vui lòng chọn size trước khi mua');
     return;
   }
+  // Thêm vào giỏ trước để có items
   pdpAddToCart();
-  setTimeout(() => { closePdp(); setTimeout(openCartPage, 400); }, 500);
+  // Mở thẳng checkout, không qua cart
+  setTimeout(() => {
+    closePdp();
+    setTimeout(() => {
+      const pg = document.getElementById('checkoutPage');
+      if (pg) {
+        pg.classList.add('open');
+        document.body.style.overflow = 'hidden';
+        if (typeof renderCheckoutSummary === 'function') renderCheckoutSummary();
+        if (typeof prefillCheckout === 'function') setTimeout(prefillCheckout, 150);
+      }
+    }, 400);
+  }, 300);
 }
 
 function pdpToggleWish() {
@@ -6795,7 +6808,18 @@ function addPdToCart() {
 function buyNowPd() {
   if (!pdSize) { showToast('Chưa Chọn Size -️', 'Vui lòng chọn kích cỡ trước'); return; }
   addPdToCart();
-  setTimeout(() => { closePdPage(); setTimeout(() => openCartPage(), 350); }, 300);
+  setTimeout(() => {
+    closePdPage();
+    setTimeout(() => {
+      const pg = document.getElementById('checkoutPage');
+      if (pg) {
+        pg.classList.add('open');
+        document.body.style.overflow = 'hidden';
+        if (typeof renderCheckoutSummary === 'function') renderCheckoutSummary();
+        if (typeof prefillCheckout === 'function') setTimeout(prefillCheckout, 150);
+      }
+    }, 350);
+  }, 300);
 }
 
 function togglePdWish() {
@@ -13763,14 +13787,17 @@ window.placeOrder = async function() {
   const fullName = [fname,lname].filter(Boolean).join(' ');
   const paymentLbl = { cod:'Tiền mặt', bank:'Chuyển khoản', momo:'MoMo', vnpay:'VNPay', card:'Thẻ tín dụng' };
 
-  const cartItems = (window.cart||[]).map(i => ({
+  const cartItems = (window.cart || cart || []).map(i => ({
     masanpham: String(i.id),
     soluong:   i.qty || 1,
     Size:      i.size || i.selectedSize || '',
     mausac:    i.color || i.selectedColor || '',
   }));
 
-  if (!cartItems.length) { showToast('Lỗi', 'Giỏ hàng trống'); return; }
+  if (!cartItems.length) {
+    showToast('Lỗi ✗', 'Không có sản phẩm nào để đặt hàng');
+    return;
+  }
   if (!fullName || !phone || !addr) { showToast('Lỗi', 'Vui lòng điền đầy đủ thông tin giao hàng'); return; }
 
   const btn = document.getElementById('co-place-btn');

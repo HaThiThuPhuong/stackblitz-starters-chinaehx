@@ -5486,13 +5486,51 @@ function openPdp(productId) {
   const badgeHtml = p.badge ? `<span class="${p.badge==='NEW'?'new':p.badge==='HOT'?'hot':''}">${p.badge}</span>` : '';
   document.getElementById('pdpBadgeOverlay').innerHTML = badgeHtml;
   const thumbs = document.getElementById('pdpThumbs');
-  if (p.imgUrl) {
-    thumbs.innerHTML = `<div class="pdp-thumb active"><img src="${p.imgUrl}" style="width:100%;height:100%;object-fit:cover" onerror="this.outerHTML='👟'"></div>`;
-  } else {
-    thumbs.innerHTML = (p.thumbEmojis||[p.emoji||'👟',p.emoji||'👟',p.emoji||'👟']).map((e,i)=>
-      `<div class="pdp-thumb${i===0?' active':''}" onclick="selectThumb(this,'${e}')">${e}</div>`
-    ).join('');
-  }
+  // Load ảnh gallery từ API
+  (async () => {
+    try {
+      const res = await fetch(`/api/sanpham/${productId}/images`);
+      const data = await res.json();
+      const imgs = data.images || [];
+      if (imgs.length > 0) {
+        // Cập nhật ảnh chính bằng ảnh la_anh_chinh
+        const mainImg = imgs.find(i => i.la_anh_chinh) || imgs[0];
+        const mainImgEl2 = document.getElementById('pdpMainEmoji');
+        if (mainImgEl2) mainImgEl2.innerHTML = `<img src="${mainImg.url}" style="width:100%;height:100%;object-fit:cover;border-radius:8px" onerror="this.outerHTML='<span style=\'font-size:120px\'>👟</span>'">`;
+
+        // Render thumbnails
+        thumbs.innerHTML = imgs.map((img, i) => `
+          <div class="pdp-thumb${i===0?' active':''}" onclick="pdpSelectGalleryImg(this,'${img.url}')" style="position:relative">
+            <img src="${img.url}" style="width:100%;height:100%;object-fit:cover" onerror="this.outerHTML='👟'">
+            ${img.mausac ? `<div style="position:absolute;bottom:2px;left:2px;right:2px;background:rgba(0,0,0,0.6);color:#fff;font-size:9px;text-align:center;border-radius:2px;padding:1px 2px">${img.mausac}</div>` : ''}
+          </div>
+        `).join('');
+
+        // Render bộ lọc màu nếu có
+        const colors = [...new Set(imgs.filter(i=>i.mausac).map(i=>i.mausac))];
+        const colorGrid = document.getElementById('pdpColorGrid');
+        if (colorGrid && colors.length > 0) {
+          const colorMap = {'Trắng':'#fff','Đen':'#111','Đỏ':'#e62020','Xanh':'#1976d2','Vàng':'#fdd835','Xám':'#888','Xanh lá':'#388e3c','Cam':'#f57c00','Hồng':'#e91e63','Tím':'#7b1fa2'};
+          colorGrid.innerHTML = colors.map((c,i) => `
+            <div class="pdp-color-btn${i===0?' active':''}" data-name="${c}" title="${c}"
+              style="background:${colorMap[c]||'#555'};border:2px solid ${i===0?'#fff':'rgba(255,255,255,0.2)'}"
+              onclick="pdpFilterByColor(this,'${c}',${JSON.stringify(imgs)})"></div>
+          `).join('');
+        }
+      } else {
+        // Fallback: chỉ 1 ảnh chính
+        if (p.imgUrl) {
+          thumbs.innerHTML = `<div class="pdp-thumb active"><img src="${p.imgUrl}" style="width:100%;height:100%;object-fit:cover" onerror="this.outerHTML='👟'"></div>`;
+        } else {
+          thumbs.innerHTML = `<div class="pdp-thumb active" style="display:flex;align-items:center;justify-content:center;font-size:36px">👟</div>`;
+        }
+      }
+    } catch(e) {
+      if (p.imgUrl) {
+        thumbs.innerHTML = `<div class="pdp-thumb active"><img src="${p.imgUrl}" style="width:100%;height:100%;object-fit:cover" onerror="this.outerHTML='👟'"></div>`;
+      }
+    }
+  })();
 
   // Info
   document.getElementById('pdpBrand').textContent = p.brand;
@@ -12371,6 +12409,33 @@ function shopRemoveColorSlot(color) {
   delete _shopColorImages[color];
   shopRenderColorImgList();
 }
+// ── PDP GALLERY HELPERS ───────────────────────────────────────
+function pdpSelectGalleryImg(el, url) {
+  document.querySelectorAll('.pdp-thumb').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  const mainEl = document.getElementById('pdpMainEmoji');
+  if (mainEl) mainEl.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:8px" onerror="this.outerHTML='<span style=\'font-size:120px\'>👟</span>'">`;
+}
+
+function pdpFilterByColor(el, color, allImgs) {
+  document.querySelectorAll('.pdp-color-btn').forEach(b => {
+    b.style.border = '2px solid rgba(255,255,255,0.2)';
+    b.classList.remove('active');
+  });
+  el.style.border = '2px solid #fff';
+  el.classList.add('active');
+  const filtered = allImgs.filter(i => i.mausac === color);
+  const thumbs = document.getElementById('pdpThumbs');
+  if (thumbs && filtered.length > 0) {
+    thumbs.innerHTML = filtered.map((img, i) => `
+      <div class="pdp-thumb${i===0?' active':''}" onclick="pdpSelectGalleryImg(this,'${img.url}')">
+        <img src="${img.url}" style="width:100%;height:100%;object-fit:cover" onerror="this.outerHTML='👟'">
+      </div>
+    `).join('');
+    pdpSelectGalleryImg(thumbs.firstElementChild, filtered[0].url);
+  }
+}
+
 
 async function adminSaveProduct() {
   const ma  = document.getElementById('shop-p-ma')?.value.trim();
@@ -12446,42 +12511,34 @@ async function adminSaveProduct() {
       return;
     }
 
-    // Upload ảnh nếu có file/camera
+    // Upload tất cả ảnh: ảnh chính + gallery + ảnh theo màu
+    const savedMa = isEdit ? _shopProdEditMa : ma;
+    const allFiles = [];
+
     if (_shopProdImgData) {
       try {
-        const savedMa = isEdit ? _shopProdEditMa : ma;
-        const blob    = await (await fetch(_shopProdImgData)).blob();
-        const fd      = new FormData();
-        fd.append('image', blob, 'product.jpg');
-        await fetch(`/api/admin/sanpham/${savedMa}/upload-image`, {
-          method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + adminToken() },
-          body: fd
-        });
+        const blob = await (await fetch(_shopProdImgData)).blob();
+        allFiles.push({ file: new File([blob], 'main.jpg', { type: 'image/jpeg' }), mausac: '', isMain: true });
       } catch(_) {}
     }
-
-    // Upload ảnh gallery phụ
-    if (_shopGalleryFiles.length > 0) {
-      try {
-        const savedMa = isEdit ? _shopProdEditMa : ma;
-        const fd = new FormData();
-        _shopGalleryFiles.forEach(g => fd.append('images', g.file, 'gallery.jpg'));
-        await fetch(`/api/admin/sanpham/${savedMa}/upload-gallery`, {
-          method: 'POST', headers: { 'Authorization': 'Bearer ' + adminToken() }, body: fd
-        });
-      } catch(_) {}
-    }
-    // Upload ảnh theo màu
+    _shopGalleryFiles.forEach(g => {
+      allFiles.push({ file: g.file, mausac: '', isMain: false });
+    });
     for (const [color, img] of Object.entries(_shopColorImages)) {
       if (!img) continue;
       try {
-        const savedMa = isEdit ? _shopProdEditMa : ma;
         const blob = await (await fetch(img.dataUrl)).blob();
+        allFiles.push({ file: new File([blob], 'color_'+color+'.jpg', { type: 'image/jpeg' }), mausac: color, isMain: false });
+      } catch(_) {}
+    }
+    if (allFiles.length > 0) {
+      try {
         const fd = new FormData();
-        fd.append('image', blob, 'color.jpg');
-        fd.append('color', color);
-        await fetch(`/api/admin/sanpham/${savedMa}/upload-color-image`, {
+        const mainIdx = allFiles.findIndex(f => f.isMain);
+        allFiles.forEach(f => { fd.append('images', f.file, f.file.name); fd.append('mausac', f.mausac); });
+        fd.append('la_anh_chinh', String(mainIdx >= 0 ? mainIdx : 0));
+        fd.append('dat_anh_chinh', 'true');
+        await fetch(`/api/admin/sanpham/${savedMa}/upload-images`, {
           method: 'POST', headers: { 'Authorization': 'Bearer ' + adminToken() }, body: fd
         });
       } catch(_) {}

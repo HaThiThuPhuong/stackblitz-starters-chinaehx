@@ -954,10 +954,68 @@ app.patch(
   },
 );
 
-// ── UPLOAD ẢNH SẢN PHẨM ĐƠN LẺ (Supabase Storage) ───────────
-const SUPABASE_URL    = "https://mufxhkvktyiykcqnlpzx.supabase.co";
-const SUPABASE_ANON   = "sb_publishable_rv6_3zvCyO0PsfwyNYZzNQ_NUp9m-qX";
+// ── SUPABASE STORAGE CONFIG ───────────────────────────────────
+const SUPABASE_URL  = "https://mufxhkvktyiykcqnlpzx.supabase.co";
+const SUPABASE_ANON = "sb_publishable_rv6_3zvCyO0PsfwyNYZzNQ_NUp9m-qX";
 
+async function uploadToSupabase(buffer, filename, mimetype) {
+  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/products/${filename}`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${SUPABASE_ANON}`,
+      "Content-Type": mimetype,
+      "x-upsert": "true",
+    },
+    body: buffer,
+  });
+  if (!res.ok) throw new Error("Upload Supabase thất bại: " + await res.text());
+  return `${SUPABASE_URL}/storage/v1/object/public/products/${filename}`;
+}
+
+// ── UPLOAD NHIỀU ẢNH SẢN PHẨM ────────────────────────────────
+// POST /api/admin/sanpham/:ma/upload-images
+// fields: images[] (files), mausac[] (string per file), la_anh_chinh (index of main image)
+app.post(
+  "/api/admin/sanpham/:ma/upload-images",
+  requireRole("shop", "admin"),
+  upload.array("images", 10),
+  async (req, res) => {
+    try {
+      const ma = req.params.ma;
+      const files = req.files || [];
+      if (!files.length) return res.status(400).json({ error: "Không có file ảnh" });
+
+      const mausacArr   = [].concat(req.body.mausac   || []);
+      const mainIndex   = parseInt(req.body.la_anh_chinh ?? 0, 10);
+      const datChinh    = req.body.dat_anh_chinh === "true"; // có update hinhanh không
+
+      const saved = [];
+      for (let i = 0; i < files.length; i++) {
+        const f    = files[i];
+        const ext  = f.originalname.split(".").pop().toLowerCase() || "jpg";
+        const fname= `${ma.replace(/[^a-z0-9_-]/gi,"_")}_${Date.now()}_${i}.${ext}`;
+        const url  = await uploadToSupabase(f.buffer, fname, f.mimetype);
+        const mau  = mausacArr[i] || "";
+        const isMain = (i === mainIndex);
+
+        await pool.query(
+          `INSERT INTO sanpham_images (masanpham, url, mausac, la_anh_chinh, thu_tu)
+           VALUES ($1,$2,$3,$4,$5)`,
+          [ma, url, mau, isMain, i]
+        );
+        if (isMain && datChinh) {
+          await pool.query("UPDATE sanpham SET hinhanh=$1 WHERE masanpham=$2", [url, ma]);
+        }
+        saved.push({ url, mausac: mau, la_anh_chinh: isMain });
+      }
+      res.json({ success: true, images: saved });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  },
+);
+
+// ── UPLOAD ẢNH ĐƠN LẺ (backward compat) ─────────────────────
 app.post(
   "/api/admin/sanpham/:ma/upload-image",
   requireRole("shop", "admin"),
@@ -967,34 +1025,44 @@ app.post(
       if (!req.file) return res.status(400).json({ error: "Không có file ảnh" });
       const ma  = req.params.ma;
       const ext = req.file.originalname.split(".").pop().toLowerCase() || "jpg";
-      const filename = `${ma.replace(/[^a-z0-9_-]/gi, "_")}_${Date.now()}.${ext}`;
-
-      // Upload lên Supabase Storage bucket "products"
-      const uploadRes = await fetch(
-        `${SUPABASE_URL}/storage/v1/object/products/${filename}`,
-        {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${SUPABASE_ANON}`,
-            "Content-Type": req.file.mimetype,
-            "x-upsert": "true",
-          },
-          body: req.file.buffer,
-        }
-      );
-      if (!uploadRes.ok) {
-        const err = await uploadRes.text();
-        return res.status(500).json({ error: "Upload Supabase thất bại: " + err });
-      }
-
-      const url = `${SUPABASE_URL}/storage/v1/object/public/products/${filename}`;
+      const fname = `${ma.replace(/[^a-z0-9_-]/gi,"_")}_${Date.now()}.${ext}`;
+      const url = await uploadToSupabase(req.file.buffer, fname, req.file.mimetype);
       await pool.query("UPDATE sanpham SET hinhanh=$1 WHERE masanpham=$2", [url, ma]);
+      await pool.query(
+        `INSERT INTO sanpham_images (masanpham,url,mausac,la_anh_chinh,thu_tu)
+         VALUES ($1,$2,'',true,0)
+         ON CONFLICT DO NOTHING`,
+        [ma, url]
+      );
       res.json({ success: true, url });
     } catch (e) {
       res.status(500).json({ error: e.message });
     }
   },
 );
+
+// ── LẤY DANH SÁCH ẢNH SẢN PHẨM ──────────────────────────────
+app.get("/api/sanpham/:ma/images", async (req, res) => {
+  try {
+    const r = await pool.query(
+      "SELECT id,url,mausac,la_anh_chinh,thu_tu FROM sanpham_images WHERE masanpham=$1 ORDER BY thu_tu,id",
+      [req.params.ma]
+    );
+    res.json({ images: r.rows });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── XÓA ẢNH SẢN PHẨM ─────────────────────────────────────────
+app.delete("/api/admin/sanpham/:ma/images/:id", requireRole("shop","admin"), async (req, res) => {
+  try {
+    await pool.query("DELETE FROM sanpham_images WHERE id=$1 AND masanpham=$2", [req.params.id, req.params.ma]);
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 
 // ── IMPORT EXCEL (admin/shop) — có trích xuất ảnh nhúng ──────
 app.post(

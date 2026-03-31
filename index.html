@@ -11962,8 +11962,11 @@ async function adminLoadProducts(page) {
       const tt = p.tinhtrang ?? p.TinhTrang ?? 'Đang bán';
       const ttClass = tt === 'Ẩn' ? 'status-cancel' : 'status-done';
       const ma = p.masanpham ?? p.MaSanPham ?? '';
+      const imgSrc = p.hinhanh || p.HinhAnh || '';
       return `<tr data-ma="${ma}">
-        <td>👟</td>
+        <td>${imgSrc
+          ? `<img src="${imgSrc}" style="width:48px;height:48px;object-fit:cover;border-radius:6px" onerror="this.outerHTML='<span style=\\'font-size:24px\\'>👟</span>'">`
+          : '<span style="font-size:24px">👟</span>'}</td>
         <td><strong>${p.tensanpham ?? p.TenSanPham ?? '--'}</strong><br><span style="font-size:11px;color:var(--gray-light)">SKU: ${p.sku ?? p.SKU ?? '--'}</span></td>
         <td>${p.thuonghieu ?? p.ThuongHieu ?? '--'}</td>
         <td>${p.danhmuc ?? p.DanhMuc ?? '--'}</td>

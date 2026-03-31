@@ -1943,22 +1943,68 @@ const ACCOUNTS = [
   { email: 'admin@sneakervn.com',   password: 'admin@super', role: 'admin',      name: 'Nguyễn Thị Admin' },
 ];
 
-function handleLogin() {
+async function handleLogin() {
   const email = document.getElementById('loginEmail').value.trim().toLowerCase();
   const pass  = document.getElementById('loginPassword').value;
   const errEl = document.getElementById('loginError');
 
-  const account = ACCOUNTS.find(a => a.email === email && a.password === pass);
-
-  if (!account) {
-    errEl.style.display = 'block';
-    document.getElementById('loginPassword').value = '';
+  // Kiểm tra có phải staff không (shop/admin/accountant)
+  const staffAccount = ACCOUNTS.find(a => a.email === email && a.password === pass && a.role !== 'member');
+  if (staffAccount) {
+    errEl.style.display = 'none';
+    closeModal();
+    setTimeout(() => loginWithRole(staffAccount), 200);
     return;
   }
 
-  errEl.style.display = 'none';
-  closeModal();
-  setTimeout(() => loginWithRole(account), 200);
+  // Khách hàng thành viên — gọi API thật
+  try {
+    const res  = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, matkhau: pass })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      errEl.textContent = data.error || 'Email hoặc mật khẩu không đúng';
+      errEl.style.display = 'block';
+      document.getElementById('loginPassword').value = '';
+      return;
+    }
+
+    // Lưu token khách hàng
+    localStorage.setItem('customer_token', data.token);
+    sessionStorage.setItem('customer_token', data.token);
+    const name = data.user?.hoten || data.user?.HoTen || email;
+    const p = SVN.getProfile();
+    p.name  = name;
+    p.email = data.user?.email || email;
+    p.phone = data.user?.sodienthoai || p.phone;
+    SVN.saveProfile(p);
+
+    errEl.style.display = 'none';
+    closeModal();
+
+    currentUser = { role: 'member', name };
+    const initials = name.trim().split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    document.getElementById('navLoginBtn').style.display = 'none';
+    const wrap = document.getElementById('userNavWrap');
+    if (wrap) {
+      wrap.classList.add('visible');
+      const avatarEl = document.getElementById('userNavAvatar');
+      const nameEl   = document.getElementById('userNavName');
+      const ddNameEl = document.getElementById('ddName');
+      if (avatarEl) avatarEl.textContent = initials || 'KH';
+      if (nameEl)   nameEl.textContent   = name;
+      if (ddNameEl) ddNameEl.textContent = name;
+    }
+    showToast('Đăng Nhập Thành Công 👋', 'Chào mừng trở lại, ' + name + '!');
+
+  } catch(e) {
+    errEl.textContent = 'Không thể kết nối server';
+    errEl.style.display = 'block';
+  }
 }
 
 async function loginWithRole(account) {
@@ -1990,7 +2036,7 @@ async function loginWithRole(account) {
     const res  = await fetch('/api/admin/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ Email: account.email, MatKhau: account.password })
+      body: JSON.stringify({ email: account.email, matkhau: account.password })
     });
     const data = await res.json();
     if (data.token) {
@@ -2873,7 +2919,7 @@ async function saSavePw() {
     // Xác minh mật khẩu cũ bằng cách thử login lại
     const verRes = await fetch('/api/admin/auth/login', {
       method: 'POST', headers: { 'Content-Type':'application/json' },
-      body: JSON.stringify({ Email: email, MatKhau: oldPw })
+      body: JSON.stringify({ email: email, matkhau: oldPw })
     });
     if (!verRes.ok) { showToast('Lỗi', 'Mật khẩu hiện tại không đúng'); return; }
 
@@ -11270,7 +11316,7 @@ async function confirmRole() {
     const res  = await fetch('/api/admin/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ Email: email, MatKhau: pw })
+      body: JSON.stringify({ email: email, matkhau: pw })
     });
     const ct = res.headers.get('content-type')||'';
     if (!ct.includes('application/json')) { showToast('Lỗi -', 'Server không phản hồi'); return; }
@@ -13191,6 +13237,10 @@ function addrSetDefault(idx) {
 
 // Điền form checkout từ profile + địa chỉ đã lưu
 function prefillCheckout() {
+  // Chỉ prefill nếu là khách hàng đã đăng nhập (có customer_token)
+  const custToken = localStorage.getItem('customer_token') || sessionStorage.getItem('customer_token') || '';
+  if (!custToken) return; // Khách vãn lai: không điền tự động
+
   const profile   = SVN.getProfile();
   const addresses = SVN.getAddresses();
 
@@ -13450,8 +13500,8 @@ function syncCheckoutToProfile() {
 // --------------------------------------------
 // PATCH placeOrder -- Tự động lưu địa chỉ mới + đồng bộ profile
 // --------------------------------------------
-const _orig_placeOrder = window.placeOrder;
-window.placeOrder = function() {
+// placeOrder gọi API thật /api/donhang
+window.placeOrder = async function() {
   if (typeof validateForm === 'function' && !validateForm()) return;
 
   const get = id => document.getElementById(id)?.value?.trim() || '';
@@ -13464,55 +13514,89 @@ window.placeOrder = function() {
   const distTxt = distEl?.options[distEl?.selectedIndex]?.text || '';
   const wardTxt = wardEl?.options[wardEl?.selectedIndex]?.text || '';
   const addr    = [street,wardTxt,distTxt,provTxt].filter(s=>s&&!s.startsWith('--')).join(', ');
+  const fullName = [fname,lname].filter(Boolean).join(' ');
+  const paymentLbl = { cod:'Tiền mặt', bank:'Chuyển khoản', momo:'MoMo', vnpay:'VNPay', card:'Thẻ tín dụng' };
 
-  const picked  = document.querySelector('input[name="co-addr-pick"]:checked');
-  const isNew   = !picked || picked.value === 'new';
+  const cartItems = (window.cart||[]).map(i => ({
+    masanpham: String(i.id),
+    soluong:   i.qty || 1,
+    Size:      i.size || i.selectedSize || '',
+    mausac:    i.color || i.selectedColor || '',
+  }));
 
-  // -- Tự động lưu địa chỉ giao hàng mới --------------------------
-  if (isNew && street && provTxt && !provTxt.startsWith('--')) {
-    const list   = SVN.getAddresses();
-    const fullName = [fname,lname].filter(Boolean).join(' ');
-    const exists = list.find(a => a.street===street && a.province===provTxt);
-    if (!exists) {
-      list.push({ name:fullName, phone, street, province:provTxt, district:distTxt, ward:wardTxt, isDefault:list.length===0 });
-      SVN.saveAddresses(list);
-    }
-    // Đồng bộ profile nếu tên/phone khác
-    const p = SVN.getProfile();
-    if (fullName && fullName !== p.name) { p.name=fullName; p.phone=phone||p.phone; SVN.saveProfile(p); }
-  }
+  if (!cartItems.length) { showToast('Lỗi', 'Giỏ hàng trống'); return; }
+  if (!fullName || !phone || !addr) { showToast('Lỗi', 'Vui lòng điền đầy đủ thông tin giao hàng'); return; }
 
-  // -- Lưu đơn hàng ------------------------------------------------
-  const items    = (window.cart||[]).map(i=>({ id:i.id, name:i.name, size:i.size, qty:i.qty, price:i.price||0 }));
-  const total    = document.getElementById('co-total-final')?.textContent || '0đ';
-  const d        = new Date();
-  const date     = d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();
-  const orderId  = '#SVN-' + Date.now().toString().slice(-6);
+  const btn = document.getElementById('co-place-btn');
+  if (btn) { btn.classList.add('loading'); btn.disabled = true; }
 
-  const shippingLbl = { free:'Giao Tiêu Chuẩn (Miễn phí)', express:'J&T Express (30.000đ)', same_day:'Hỏa Tốc (60.000đ)' };
-  const paymentLbl  = { cod:'COD', bank:'Chuyển khoản', momo:'MoMo', vnpay:'VNPay', card:'Thẻ tín dụng' };
-
-  SVN.addOrder({
-    id:orderId, date, items, total, status:'pending',
-    address:  addr,
-    shipping: shippingLbl[window.selectedShipping] || 'Giao Tiêu Chuẩn',
-    payment:  paymentLbl[window.selectedPayment]   || 'COD',
-    trackingCode: null,
-  });
-  window._lastOrderId = orderId;
-
-  // Cộng điểm
-  const p   = SVN.getProfile();
-  const num = parseFloat(total.replace(/[^\d]/g,''));
-  if (!isNaN(num)) p.points = (p.points||0) + Math.floor(num/10000);
-  SVN.saveProfile(p);
-
-  if (typeof _orig_placeOrder === 'function') _orig_placeOrder();
-
+  // Animate steps
+  document.getElementById('step2')?.classList.remove('active');
+  document.getElementById('step2')?.classList.add('done');
+  const s2num = document.getElementById('step2')?.querySelector('.co-step-num');
+  if (s2num) s2num.textContent = '✓';
   setTimeout(() => {
-    const idEl = document.getElementById('success-order-id');
-    if (idEl) { idEl.textContent = orderId; window._lastOrderId = orderId; }
-  }, 2100);
+    document.getElementById('step3')?.classList.add('active');
+    document.getElementById('step3')?.classList.remove('done');
+  }, 400);
+
+  try {
+    const custToken = localStorage.getItem('customer_token') || sessionStorage.getItem('customer_token') || '';
+    const headers = { 'Content-Type': 'application/json' };
+    if (custToken) headers['Authorization'] = 'Bearer ' + custToken;
+
+    const res = await fetch('/api/donhang', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        items:           cartItems,
+        hotennguoinhan:  fullName,
+        sodienthoainhan: phone,
+        diachigiao:      addr,
+        ghichu:          get('co-note') || '',
+        phuongthuctt:    paymentLbl[window.selectedPayment] || 'Tiền mặt',
+      })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      showToast('Lỗi Đặt Hàng ✗', data.error || 'Không thể đặt hàng, thử lại sau');
+      if (btn) { btn.classList.remove('loading'); btn.disabled = false; }
+      return;
+    }
+
+    const orderId = data.maHoaDon || ('#SVN-' + Date.now().toString().slice(-6));
+    window._lastOrderId = orderId;
+    window.cart = [];
+    if (typeof updateCartUI === 'function') updateCartUI();
+
+    setTimeout(() => {
+      document.getElementById('step3')?.classList.remove('active');
+      document.getElementById('step3')?.classList.add('done');
+      const s3num = document.getElementById('step3')?.querySelector('.co-step-num');
+      if (s3num) s3num.textContent = '✓';
+      document.getElementById('step4')?.classList.add('active');
+
+      const totalEl = document.getElementById('co-total-final');
+      const total   = totalEl?.textContent || (data.tongTien ? Number(data.tongTien).toLocaleString('vi-VN')+'đ' : '--');
+      const idEl    = document.getElementById('success-order-id');
+      if (idEl) idEl.textContent = orderId;
+      const delEl   = document.getElementById('success-delivery');
+      if (delEl) delEl.textContent = (typeof deliveryTimes !== 'undefined' && deliveryTimes[window.selectedShipping]) || '3-5 ngày';
+      const payEl   = document.getElementById('success-payment');
+      if (payEl) payEl.textContent = paymentLbl[window.selectedPayment] || 'COD';
+      const totEl   = document.getElementById('success-total');
+      if (totEl) totEl.textContent = total;
+
+      document.getElementById('checkoutPage')?.classList.remove('open');
+      document.getElementById('successPage')?.classList.add('open');
+      if (typeof spawnConfetti === 'function') spawnConfetti();
+    }, 1000);
+
+  } catch(e) {
+    showToast('Lỗi Kết Nối ✗', e.message);
+    if (btn) { btn.classList.remove('loading'); btn.disabled = false; }
+  }
 };
 
 // --------------------------------------------
@@ -15581,17 +15665,16 @@ async function saSubmitUser() {
     if (isEdit) {
       url    = `/api/admin/users/${editId}`;
       method = 'PUT';
-      body   = { HoTen:hoten, Email:email, SoDienThoai:sdt, VaiTro:vaitro, TrangThai:trangthai };
-      if (matkhau) body.MatKhau = matkhau;
+      body   = { hoten, email, sodienthoai:sdt, vaitro, trangthai };
+      if (matkhau) body.matkhau = matkhau;
     } else {
       url    = '/api/admin/users';
       method = 'POST';
-      body   = { HoTen:hoten, Email:email, SoDienThoai:sdt, MatKhau:matkhau, VaiTro:vaitro };
+      body   = { hoten, email, sodienthoai:sdt, matkhau, vaitro };
     }
     const json = await SA.sf(url, { method, headers:SA.h(), body:JSON.stringify(body) });
-    if (!json) { showToast('Lỗi kết nối','Server không phản hồi'); return; }
-    if (!json.id && !json.success) {
-      errEl.textContent = json.error || 'Có lỗi xảy ra';
+    if (!json || json.__error) {
+      errEl.textContent = json?.error || 'Lỗi kết nối server';
       errEl.style.display = 'block';
       return;
     }

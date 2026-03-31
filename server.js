@@ -1366,6 +1366,157 @@ app.put(
   },
 );
 
+// ── KẾ TOÁN: HÓA ĐƠN VAT ────────────────────────────────────
+app.get("/api/ketoan/hoadon-vat", requireRole("accountant","admin","shop"), async (req,res) => {
+  try {
+    const { month } = req.query;
+    let q = "SELECT * FROM hoadon_vat ORDER BY ngaytao DESC LIMIT 200";
+    const params = [];
+    if (month) {
+      q = "SELECT * FROM hoadon_vat WHERE TO_CHAR(ngaytao,'YYYY-MM')=$1 ORDER BY ngaytao DESC";
+      params.push(month);
+    }
+    const r = await pool.query(q, params);
+    res.json({ ok: true, data: r.rows });
+  } catch(e) { res.status(500).json({ ok:false, error: e.message }); }
+});
+
+app.post("/api/ketoan/hoadon-vat", requireRole("accountant","admin"), async (req,res) => {
+  try {
+    const { tenkhach, mst, diachi, giaTruocVAT, vatRate=10, ghichu, mahoadon } = req.body;
+    if (!tenkhach || !giaTruocVAT) return res.status(400).json({ ok:false, error:"Thiếu tên khách hoặc giá trị" });
+    const tienVAT = Math.round(giaTruocVAT * vatRate / 100);
+    const tongTT  = giaTruocVAT + tienVAT;
+    const soHD    = "VAT" + Date.now();
+    const r = await pool.query(
+      `INSERT INTO hoadon_vat (sohd, tenkhach, mst, diachi, gia_truoc_vat, vat_rate, tien_vat, tong_tt, ghichu, mahoadon, ngaytao)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW()) RETURNING *`,
+      [soHD, tenkhach, mst||"", diachi||"", giaTruocVAT, vatRate, tienVAT, tongTT, ghichu||"", mahoadon||null]
+    );
+    res.json({ ok:true, data: { ...r.rows[0], soHD, tongTT } });
+  } catch(e) { res.status(400).json({ ok:false, error: e.message }); }
+});
+
+// ── KẾ TOÁN: CHI PHÍ ─────────────────────────────────────────
+app.get("/api/ketoan/chiphi", requireRole("accountant","admin","shop"), async (req,res) => {
+  try {
+    const { month } = req.query;
+    let q = "SELECT * FROM chiphi ORDER BY ngaytao DESC LIMIT 200";
+    const params = [];
+    if (month) { q = "SELECT * FROM chiphi WHERE TO_CHAR(ngaytao,'YYYY-MM')=$1 ORDER BY ngaytao DESC"; params.push(month); }
+    const r = await pool.query(q, params);
+    res.json({ ok:true, data: r.rows });
+  } catch(e) { res.status(500).json({ ok:false, error: e.message }); }
+});
+
+app.post("/api/ketoan/chiphi", requireRole("accountant","admin"), async (req,res) => {
+  try {
+    const { loaichiphi, mota, sotien, ngaytao, trangthai } = req.body;
+    if (!loaichiphi || !sotien) return res.status(400).json({ ok:false, error:"Thiếu loại chi phí hoặc số tiền" });
+    const r = await pool.query(
+      `INSERT INTO chiphi (loaichiphi, mota, sotien, trangthai, ngaytao) VALUES ($1,$2,$3,$4,COALESCE($5::date, NOW())) RETURNING *`,
+      [loaichiphi, mota||"", sotien, trangthai||"Chờ duyệt", ngaytao||null]
+    );
+    res.json({ ok:true, data: r.rows[0] });
+  } catch(e) { res.status(400).json({ ok:false, error: e.message }); }
+});
+
+app.patch("/api/ketoan/chiphi/:id/approve", requireRole("accountant","admin"), async (req,res) => {
+  try {
+    const r = await pool.query("UPDATE chiphi SET trangthai='Đã duyệt' WHERE id=$1 RETURNING *", [req.params.id]);
+    res.json({ ok:true, data: r.rows[0] });
+  } catch(e) { res.status(400).json({ ok:false, error: e.message }); }
+});
+
+// ── KẾ TOÁN: DÒNG TIỀN (CASHFLOW) ───────────────────────────
+app.get("/api/ketoan/cashflow", requireRole("accountant","admin","shop"), async (req,res) => {
+  try {
+    const { month } = req.query;
+    const m = month || new Date().toISOString().slice(0,7);
+    const [thu, chi] = await Promise.all([
+      pool.query(`SELECT 'thu' as loai, mahoadon as ma, hotennguoinhan as mota, tongtien as sotien, ngayban as ngay FROM hoadonbanhang WHERE TO_CHAR(ngayban,'YYYY-MM')=$1 AND trangthai!='Đã huỷ' ORDER BY ngayban DESC LIMIT 100`, [m]),
+      pool.query(`SELECT 'chi' as loai, maphieuchi as ma, noidung as mota, sotien, ngaydukien as ngay FROM phieuchi WHERE TO_CHAR(ngaydukien,'YYYY-MM')=$1 ORDER BY ngaydukien DESC LIMIT 100`, [m])
+    ]);
+    const rows = [...thu.rows, ...chi.rows].sort((a,b) => new Date(b.ngay) - new Date(a.ngay));
+    const tongThu = thu.rows.reduce((s,r) => s+parseFloat(r.sotien||0), 0);
+    const tongChi = chi.rows.reduce((s,r) => s+parseFloat(r.sotien||0), 0);
+    res.json({ ok:true, data: rows, tongThu, tongChi, conLai: tongThu-tongChi });
+  } catch(e) { res.status(500).json({ ok:false, error: e.message }); }
+});
+
+// ── KẾ TOÁN: EXPORT ──────────────────────────────────────────
+app.get("/api/ketoan/export/donhang", requireRole("accountant","admin","shop"), async (req,res) => {
+  try {
+    const { month, status } = req.query;
+    const m = month || new Date().toISOString().slice(0,7);
+    const params = [m];
+    let q = `SELECT mahoadon,hotennguoinhan,sodienthoainhan,diachigiao,tongtien,trangthai,phuongthuctt,ngayban FROM hoadonbanhang WHERE TO_CHAR(ngayban,'YYYY-MM')=$1`;
+    if (status) { params.push(status); q += ` AND trangthai=$${params.length}`; }
+    q += " ORDER BY ngayban DESC";
+    const r = await pool.query(q, params);
+    // CSV
+    const headers = "Mã HĐ,Người Nhận,SĐT,Địa Chỉ,Tổng Tiền,Trạng Thái,Thanh Toán,Ngày\n";
+    const rows = r.rows.map(row =>
+      [row.mahoadon,row.hotennguoinhan,row.sodienthoainhan,`"${row.diachigiao||''}"`,row.tongtien,row.trangthai,row.phuongthuctt,new Date(row.ngayban).toLocaleDateString('vi-VN')].join(',')
+    ).join('\n');
+    res.setHeader('Content-Type','text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition',`attachment; filename=DonHang_${m}.csv`);
+    res.send('\uFEFF' + headers + rows);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get("/api/ketoan/export/doanhthu", requireRole("accountant","admin","shop"), async (req,res) => {
+  try {
+    const { month } = req.query;
+    const m = month || new Date().toISOString().slice(0,7);
+    const r = await pool.query(`SELECT mahoadon,hotennguoinhan,tongtien,trangthai,ngayban FROM hoadonbanhang WHERE TO_CHAR(ngayban,'YYYY-MM')=$1 ORDER BY ngayban DESC`, [m]);
+    const headers = "Mã HĐ,Khách Hàng,Doanh Thu,Trạng Thái,Ngày\n";
+    const rows = r.rows.map(row => [row.mahoadon,row.hotennguoinhan,row.tongtien,row.trangthai,new Date(row.ngayban).toLocaleDateString('vi-VN')].join(',')).join('\n');
+    res.setHeader('Content-Type','text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition',`attachment; filename=DoanhThu_${m}.csv`);
+    res.send('\uFEFF' + headers + rows);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get("/api/ketoan/export/chiphi", requireRole("accountant","admin","shop"), async (req,res) => {
+  try {
+    const { month } = req.query;
+    const m = month || new Date().toISOString().slice(0,7);
+    const r = await pool.query(`SELECT * FROM chiphi WHERE TO_CHAR(ngaytao,'YYYY-MM')=$1 ORDER BY ngaytao DESC`, [m]);
+    const headers = "Loại Chi Phí,Mô Tả,Số Tiền,Trạng Thái,Ngày\n";
+    const rows = r.rows.map(row => [row.loaichiphi,`"${row.mota||''}"`,row.sotien,row.trangthai,new Date(row.ngaytao).toLocaleDateString('vi-VN')].join(',')).join('\n');
+    res.setHeader('Content-Type','text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition',`attachment; filename=ChiPhi_${m}.csv`);
+    res.send('\uFEFF' + headers + rows);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get("/api/ketoan/export/cashflow", requireRole("accountant","admin","shop"), async (req,res) => {
+  try {
+    const { month } = req.query;
+    const m = month || new Date().toISOString().slice(0,7);
+    const r = await pool.query(`SELECT mahoadon as ma,'Thu' as loai,hotennguoinhan as mota,tongtien as sotien,ngayban as ngay FROM hoadonbanhang WHERE TO_CHAR(ngayban,'YYYY-MM')=$1 ORDER BY ngayban DESC`, [m]);
+    const headers = "Mã,Loại,Mô Tả,Số Tiền,Ngày\n";
+    const rows = r.rows.map(row => [row.ma,row.loai,`"${row.mota||''}"`,row.sotien,new Date(row.ngay).toLocaleDateString('vi-VN')].join(',')).join('\n');
+    res.setHeader('Content-Type','text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition',`attachment; filename=CashFlow_${m}.csv`);
+    res.send('\uFEFF' + headers + rows);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get("/api/ketoan/export/misa", requireRole("accountant","admin","shop"), async (req,res) => {
+  try {
+    const { month } = req.query;
+    const m = month || new Date().toISOString().slice(0,7);
+    const r = await pool.query(`SELECT mahoadon,hotennguoinhan,tongtien,trangthai,ngayban FROM hoadonbanhang WHERE TO_CHAR(ngayban,'YYYY-MM')=$1 ORDER BY ngayban DESC`, [m]);
+    const headers = "Ngày Chứng Từ,Số Chứng Từ,Diễn Giải,Số Tiền,Tài Khoản\n";
+    const rows = r.rows.map(row => [new Date(row.ngayban).toLocaleDateString('vi-VN'),row.mahoadon,`"Thu tiền ${row.hotennguoinhan||''}"`,row.tongtien,'131'].join(',')).join('\n');
+    res.setHeader('Content-Type','text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition',`attachment; filename=MISA_${m}.csv`);
+    res.send('\uFEFF' + headers + rows);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── THỐNG KÊ MỞ RỘNG (staff only) ───────────────────────────
 app.get(
   "/api/admin/thongke",

@@ -298,6 +298,37 @@ Lưu ý:
 ════════════════════════════════════════════
 `);
 
+  // ── Bảng kế toán (tạo nếu chưa có) ──────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS hoadon_vat (
+      id          SERIAL PRIMARY KEY,
+      sohd        VARCHAR(50) UNIQUE,
+      tenkhach    VARCHAR(200),
+      mst         VARCHAR(50),
+      diachi      TEXT,
+      gia_truoc_vat NUMERIC(15,2),
+      vat_rate    INTEGER DEFAULT 10,
+      tien_vat    NUMERIC(15,2),
+      tong_tt     NUMERIC(15,2),
+      ghichu      TEXT,
+      mahoadon    VARCHAR(50),
+      ngaytao     TIMESTAMP DEFAULT NOW()
+    )
+  `);
+  console.log('  ✅ Bảng hoadon_vat OK');
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS chiphi (
+      id          SERIAL PRIMARY KEY,
+      loaichiphi  VARCHAR(100),
+      mota        TEXT,
+      sotien      NUMERIC(15,2),
+      trangthai   VARCHAR(50) DEFAULT 'Chờ duyệt',
+      ngaytao     DATE DEFAULT CURRENT_DATE
+    )
+  `);
+  console.log('  ✅ Bảng chiphi OK');
+
   await pool.end();
 }
 

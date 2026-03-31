@@ -1936,28 +1936,48 @@ function switchTab(tab, btn) {
   document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
 }
 // -- ACCOUNTS DATABASE --
-const ACCOUNTS = [
-  { email: 'hoang@sneakervn.com',   password: 'member123',   role: 'member',     name: 'Nguyễn Hoàng' },
-  { email: 'shop@sneakervn.com',    password: 'shop@123',    role: 'shop',       name: 'Trần Văn Shop' },
-  { email: 'ketoan@sneakervn.com',  password: 'ketoan@123',  role: 'accountant', name: 'Lê Thị Kế Toán' },
-  { email: 'admin@sneakervn.com',   password: 'admin@super', role: 'admin',      name: 'Nguyễn Thị Admin' },
-];
-
 async function handleLogin() {
   const email = document.getElementById('loginEmail').value.trim().toLowerCase();
   const pass  = document.getElementById('loginPassword').value;
   const errEl = document.getElementById('loginError');
 
-  // Kiểm tra có phải staff không (shop/admin/accountant)
-  const staffAccount = ACCOUNTS.find(a => a.email === email && a.password === pass && a.role !== 'member');
-  if (staffAccount) {
-    errEl.style.display = 'none';
-    closeModal();
-    setTimeout(() => loginWithRole(staffAccount), 200);
-    return;
-  }
+  // Thử đăng nhập Staff trước
+  try {
+    const staffRes  = await fetch('/api/admin/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, matkhau: pass })
+    });
+    const staffData = await staffRes.json();
 
-  // Khách hàng thành viên — gọi API thật
+    if (staffRes.ok && staffData.token) {
+      sessionStorage.setItem('admin_token', staffData.token);
+      localStorage.setItem('admin_token', staffData.token);
+      const role = staffData.user?.vaitro || staffData.user?.VaiTro || 'shop';
+      const name = staffData.user?.hoten  || staffData.user?.HoTen  || email;
+      localStorage.setItem('svn_admin_role', role);
+      localStorage.setItem('svn_admin_name', name);
+      currentUser = { role, name };
+      errEl.style.display = 'none';
+      closeModal();
+      const dashMap = { shop: 'shopDashboard', accountant: 'accountantDashboard', admin: 'superAdminDashboard' };
+      const dashId  = dashMap[role] || 'shopDashboard';
+      const dashEl  = document.getElementById(dashId);
+      if (dashEl) { dashEl.classList.add('open'); document.body.style.overflow = 'hidden'; }
+      showToast('Đăng Nhập Thành Công 👋', 'Chào mừng ' + name + '!');
+      if (role === 'shop') {
+        const initials = name.trim().split(/\s+/).map(w=>w[0]).join('').slice(-2).toUpperCase();
+        const avatarEl = document.getElementById('shop-db-avatar');
+        const nameEl   = document.getElementById('shop-db-name');
+        if (avatarEl) avatarEl.textContent = initials;
+        if (nameEl)   nameEl.textContent   = name;
+        initAdminChart();
+      }
+      return;
+    }
+  } catch(e) { /* không phải staff, thử khách hàng */ }
+
+  // Thử đăng nhập Khách hàng
   try {
     const res  = await fetch('/api/auth/login', {
       method: 'POST',

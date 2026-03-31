@@ -40,7 +40,8 @@ const pool = new Pool({
 });
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static("."));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
@@ -301,7 +302,7 @@ app.get("/api/sanpham", async (req, res) => {
   try {
     const { search, danhmuc, thuonghieu, page = 1, limit = 50 } = req.query;
     let query =
-      "SELECT masanpham,tensanpham,thuonghieu,madanhmuc,giaban,size,mausac,motasanpham,soluongton,sku,tinhtrang FROM sanpham WHERE tinhtrang != 'Ẩn'";
+      "SELECT masanpham,tensanpham,thuonghieu,madanhmuc,danhmuc,giaban,size,mausac,motasanpham,soluongton,sku,tinhtrang,hinhanh FROM sanpham WHERE tinhtrang != 'Ẩn'";
     const params = [];
 
     if (search) {
@@ -1820,7 +1821,19 @@ app.put('/api/admin/chat/session/:id/close', requireRole('shop','admin'), async 
 app.get("*", (req, res) => {
   if (!req.path.startsWith("/api")) {
     res.sendFile("index.html", { root: "." });
+  } else {
+    // API route không tồn tại → trả JSON thay vì HTML
+    res.status(404).json({ error: "API route không tồn tại: " + req.path });
   }
+});
+
+// ── Global error handler — đảm bảo /api luôn trả JSON ───────
+app.use((err, req, res, next) => {
+  console.error("Server error:", err.message);
+  if (req.path.startsWith("/api")) {
+    return res.status(500).json({ error: err.message || "Lỗi server" });
+  }
+  next(err);
 });
 
 // ── Khởi động server ─────────────────────────────────────────

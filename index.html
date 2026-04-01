@@ -2099,21 +2099,17 @@ async function handleLogin() {
     if (staffRes.ok && staffData.token) {
       sessionStorage.setItem('admin_token', staffData.token);
       localStorage.setItem('admin_token', staffData.token);
-      const role = staffData.user?.vaitro || staffData.user?.VaiTro || 'shop';
-      const name = staffData.user?.hoten  || staffData.user?.HoTen  || email;
+      const role = staffData.user?.vaitro || staffData.user?.VaiTro || staffData.user?.role || 'shop';
+      const name = staffData.user?.hoten  || staffData.user?.HoTen  || staffData.user?.hoTen || email;
       localStorage.setItem('svn_admin_role', role);
       localStorage.setItem('svn_admin_name', name);
       currentUser = { role, name };
       errEl.style.display = 'none';
       closeModal();
-      const dashMap = { shop: 'shopDashboard', accountant: 'accountantDashboard', admin: 'superAdminDashboard' };
-      const dashId  = dashMap[role] || 'shopDashboard';
-      const dashEl  = document.getElementById(dashId);
-      if (dashEl) { dashEl.classList.add('open'); document.body.style.overflow = 'hidden'; }
-      showToast('Đăng Nhập Thành Công 👋', 'Chào mừng ' + name + '!');
       // Tất cả staff đều vào shopDashboard (unified dashboard)
       const _hDash = document.getElementById('shopDashboard');
-      if (_hDash && !_hDash.classList.contains('open')) { _hDash.classList.add('open'); document.body.style.overflow = 'hidden'; }
+      if (_hDash) { _hDash.classList.add('open'); document.body.style.overflow = 'hidden'; }
+      showToast('Đăng Nhập Thành Công 👋', 'Chào mừng ' + name + '!');
       applyRoleToUnifiedDashboard(role, name);
       return;
     }
@@ -12318,7 +12314,7 @@ async function confirmRole() {
     localStorage.setItem('admin_token', token);
 
     document.getElementById('roleModalOverlay').classList.remove('open');
-    const actualRole = data.user?.vaitro || data.user?.VaiTro || data.user?.role || selectedRole;
+    const actualRole = data.user?.role || data.user?.vaitro || data.user?.VaiTro || selectedRole;
     // Lưu role + tên để restore phiên khi reload trang
     localStorage.setItem('svn_admin_role', actualRole);
     localStorage.setItem('svn_admin_name', data.user?.HoTen || data.user?.hoTen || email);

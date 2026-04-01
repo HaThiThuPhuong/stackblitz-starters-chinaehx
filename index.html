@@ -12579,12 +12579,14 @@ function adminEditProduct(ma) {
 let _shopProdImgData  = null; // base64 ảnh đã chọn
 let _shopProdEditMa   = null; // null = thêm mới, string = đang sửa
 let _shopCameraStream = null;
+let _shopMainImgExistingId = null; // ID ảnh chính đã có trong DB
 
 function adminAddProduct() { shopShowProdForm(null); }
 
 function shopShowProdForm(p) {
   _shopProdEditMa  = p ? (p.masanpham || p.MaSanPham || '') : null;
   _shopProdImgData = null;
+  _shopMainImgExistingId = null;
 
   const isEdit    = !!_shopProdEditMa;
   const formEl    = document.getElementById('shop-prod-form-wrap');
@@ -12651,6 +12653,7 @@ function shopShowProdForm(p) {
           previewEl.style.display = 'block';
           if (phEl) phEl.style.display = 'none';
           if (rmEl) rmEl.style.display = 'block';
+          _shopMainImgExistingId = mainImg.id; // ← lưu ID để không upload lại
         }
 
         // Điền ảnh phụ vào _shopGalleryFiles (dạng URL — đánh dấu là existing)
@@ -12673,6 +12676,7 @@ function shopHideProdForm() {
   if (formEl) formEl.style.display = 'none';
   shopStopCamera();
   _shopProdImgData = null;
+  _shopMainImgExistingId = null;
   _shopProdEditMa  = null;
   _shopGalleryFiles = [];
   _shopColorImages  = {};
@@ -12695,6 +12699,7 @@ function shopProdFileChange(inp) {
   const reader = new FileReader();
   reader.onload = e => {
     _shopProdImgData = e.target.result;
+    _shopMainImgExistingId = null; // ảnh mới chọn → xóa ID cũ
     shopSetImgPreview(_shopProdImgData);
   };
   reader.readAsDataURL(file);
@@ -12702,6 +12707,7 @@ function shopProdFileChange(inp) {
 
 function shopRemoveImg() {
   _shopProdImgData = null;
+  _shopMainImgExistingId = null; // ← reset để cho phép chọn ảnh mới
   const prev = document.getElementById('shop-p-img-preview');
   const ph   = document.getElementById('shop-p-img-placeholder');
   const rm   = document.getElementById('shop-p-img-remove');
@@ -12997,7 +13003,8 @@ async function adminSaveProduct() {
     const savedMa = isEdit ? _shopProdEditMa : ma;
     const allFiles = [];
 
-    if (_shopProdImgData) {
+    // Ảnh chính: chỉ upload nếu user chọn ảnh mới (_shopProdImgData) và chưa có trong DB
+    if (_shopProdImgData && !_shopMainImgExistingId) {
       try {
         const blob = await (await fetch(_shopProdImgData)).blob();
         allFiles.push({ file: new File([blob], 'main.jpg', { type: 'image/jpeg' }), mausac: '', isMain: true });
@@ -13024,10 +13031,21 @@ async function adminSaveProduct() {
         allFiles.forEach(f => { fd.append('images', f.file, f.file.name); fd.append('mausac', f.mausac); });
         fd.append('la_anh_chinh', String(mainIdx >= 0 ? mainIdx : 0));
         fd.append('dat_anh_chinh', 'true');
-        await fetch(`/api/admin/sanpham/${savedMa}/upload-images`, {
+        const uploadRes = await fetch(`/api/admin/sanpham/${savedMa}/upload-images`, {
           method: 'POST', headers: { 'Authorization': 'Bearer ' + adminToken() }, body: fd
         });
-      } catch(_) {}
+        if (!uploadRes.ok) {
+          const errData = await uploadRes.json().catch(() => ({}));
+          const msg = errData.error || `Lỗi upload ảnh (${uploadRes.status})`;
+          showToast('⚠️ Cảnh báo', msg);
+          console.error('[Upload ảnh]', msg);
+        } else {
+          console.log('[Upload ảnh] Thành công:', allFiles.length, 'ảnh');
+        }
+      } catch(uploadErr) {
+        showToast('⚠️ Upload thất bại', uploadErr.message);
+        console.error('[Upload ảnh] Lỗi:', uploadErr.message);
+      }
     }
     showToast('Thành Công -', isEdit ? 'Đã cập nhật sản phẩm' : 'Đã thêm sản phẩm mới');
     shopHideProdForm();

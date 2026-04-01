@@ -142,6 +142,26 @@ app.get("/api/health", async (req, res) => {
   }
 });
 
+// ── KIỂM TRA KẾT NỐI SUPABASE STORAGE ───────────────────────
+app.get("/api/admin/storage-check", async (req, res) => {
+  try {
+    const testUrl = `${SUPABASE_URL}/storage/v1/bucket/products`;
+    const r = await fetch(testUrl, {
+      headers: { "Authorization": `Bearer ${SUPABASE_ANON}` }
+    });
+    const body = await r.text();
+    res.json({
+      supabase_url: SUPABASE_URL,
+      key_prefix: SUPABASE_ANON.substring(0, 20) + '...',
+      bucket_status: r.status,
+      bucket_ok: r.ok,
+      bucket_response: body.substring(0, 300),
+    });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ============================================================
 // XÁC THỰC — KHÁCH HÀNG (đăng ký / đăng nhập)
 // ============================================================
@@ -955,11 +975,13 @@ app.patch(
 );
 
 // ── SUPABASE STORAGE CONFIG ───────────────────────────────────
-const SUPABASE_URL  = "https://mufxhkvktyiykcqnlpzx.supabase.co";
-const SUPABASE_ANON = "sb_publishable_rv6_3zvCyO0PsfwyNYZzNQ_NUp9m-qX";
+const SUPABASE_URL  = process.env.SUPABASE_URL  || "https://mufxhkvktyiykcqnlpzx.supabase.co";
+const SUPABASE_ANON = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON || "sb_publishable_rv6_3zvCyO0PsfwyNYZzNQ_NUp9m-qX";
 
 async function uploadToSupabase(buffer, filename, mimetype) {
-  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/products/${filename}`, {
+  const uploadUrl = `${SUPABASE_URL}/storage/v1/object/products/${filename}`;
+  console.log(`[Upload] → ${uploadUrl}`);
+  const res = await fetch(uploadUrl, {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${SUPABASE_ANON}`,
@@ -968,8 +990,14 @@ async function uploadToSupabase(buffer, filename, mimetype) {
     },
     body: buffer,
   });
-  if (!res.ok) throw new Error("Upload Supabase thất bại: " + await res.text());
-  return `${SUPABASE_URL}/storage/v1/object/public/products/${filename}`;
+  const responseText = await res.text();
+  if (!res.ok) {
+    console.error(`[Upload] Thất bại (${res.status}):`, responseText);
+    throw new Error(`Upload Supabase thất bại (${res.status}): ${responseText}`);
+  }
+  const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/products/${filename}`;
+  console.log(`[Upload] Thành công → ${publicUrl}`);
+  return publicUrl;
 }
 
 // ── UPLOAD NHIỀU ẢNH SẢN PHẨM ────────────────────────────────
@@ -1917,6 +1945,25 @@ app.post(
 // Bảng: Chat_Sessions, Chat_Messages (tạo tự động nếu chưa có)
 // Env: ANTHROPIC_API_KEY
 // ============================================================
+
+// ── AUTO-CREATE sanpham_images table ─────────────────────────
+(async () => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS sanpham_images (
+        id           SERIAL PRIMARY KEY,
+        masanpham    VARCHAR(50)  NOT NULL,
+        url          TEXT         NOT NULL,
+        mausac       VARCHAR(100) DEFAULT '',
+        la_anh_chinh BOOLEAN      DEFAULT false,
+        thu_tu       INT          DEFAULT 0,
+        created_at   TIMESTAMP    DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_sanpham_images_ma ON sanpham_images(masanpham);
+    `);
+    console.log('[DB] Bảng sanpham_images đã sẵn sàng');
+  } catch(e) { console.error('[DB] Tạo bảng sanpham_images thất bại:', e.message); }
+})();
 
 (async () => {
   try {

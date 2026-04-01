@@ -1115,7 +1115,118 @@ footer {
 #svc-i{flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#fff;padding:7px 9px;border-radius:7px;font-size:12px;resize:none;font-family:inherit;line-height:1.4;}
 #svc-i::placeholder{color:rgba(255,255,255,.3);}
 #svc-sb{background:#e62020;color:#fff;border:none;width:32px;height:32px;border-radius:7px;cursor:pointer;font-size:14px;flex-shrink:0;}
-</style></head>
+</style>
+
+<!-- Google Maps Autocomplete CSS -->
+<style>
+/* ── MAPS ADDRESS AUTOCOMPLETE ── */
+.co-address-wrap { position: relative; }
+.pac-container {
+  background: #1a1a1a !important;
+  border: 1px solid rgba(230,32,32,0.4) !important;
+  border-top: none !important;
+  border-radius: 0 0 4px 4px !important;
+  font-family: 'Barlow', sans-serif !important;
+  z-index: 99999 !important;
+}
+.pac-item {
+  background: #1a1a1a !important;
+  color: #ccc !important;
+  border-top: 1px solid rgba(255,255,255,0.06) !important;
+  padding: 10px 14px !important;
+  font-size: 13px !important;
+  cursor: pointer !important;
+  transition: background .15s !important;
+}
+.pac-item:hover { background: rgba(230,32,32,0.1) !important; }
+.pac-item-selected { background: rgba(230,32,32,0.15) !important; }
+.pac-icon { display: none !important; }
+.pac-item-query { color: #f5f3ef !important; font-weight: 600 !important; }
+.pac-matched { color: var(--red) !important; }
+
+/* Map preview */
+#co-map-preview {
+  width: 100%; height: 200px; margin-top: 12px;
+  border: 1px solid rgba(230,32,32,0.2);
+  border-radius: 2px; overflow: hidden;
+  display: none; position: relative;
+}
+#co-map-preview iframe { width: 100%; height: 100%; border: none; }
+.co-map-badge {
+  position: absolute; bottom: 8px; left: 8px;
+  background: rgba(0,0,0,0.8); color: #4caf50;
+  font-size: 11px; font-weight: 700; letter-spacing: 1px;
+  padding: 4px 10px; border-radius: 2px; pointer-events: none;
+}
+.co-address-confirm {
+  display: none; align-items: center; gap: 8px;
+  padding: 10px 14px; margin-top: 8px;
+  background: rgba(76,175,80,0.08); border: 1px solid rgba(76,175,80,0.25);
+  font-size: 12px; color: #4caf50;
+}
+.co-address-confirm.show { display: flex; }
+
+/* ── UNIFIED PAYMENT (tất cả về 1 TK) ── */
+.unipay-wrap {
+  display: flex; flex-direction: column; gap: 16px;
+}
+.unipay-tabs {
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+.unipay-tab {
+  flex: 1; min-width: 80px; padding: 10px 6px;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+  color: var(--gray-light); font-size: 12px; font-weight: 700;
+  letter-spacing: 1px; text-align: center; cursor: pointer;
+  transition: all .2s; border-radius: 2px;
+}
+.unipay-tab.active {
+  background: rgba(230,32,32,0.1); border-color: var(--red);
+  color: var(--white);
+}
+.unipay-method { display: none; }
+.unipay-method.show { display: block; }
+
+.unipay-qr-row {
+  display: flex; gap: 20px; align-items: flex-start;
+}
+.unipay-qr-img {
+  width: 150px; height: 150px; flex-shrink: 0;
+  background: #fff; padding: 4px; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+}
+.unipay-qr-img img { width: 100%; height: 100%; object-fit: contain; }
+
+.unipay-info-rows { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.unipay-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);
+  font-size: 13px;
+}
+.unipay-row-key { color: var(--gray-light); }
+.unipay-row-val { font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.unipay-row-val.red { color: var(--red); font-family: 'Bebas Neue', cursive; font-size: 17px; }
+.unipay-row-val.green { color: #4caf50; }
+.unipay-amount-locked {
+  background: rgba(230,32,32,0.08); border: 1px solid rgba(230,32,32,0.3);
+  padding: 10px 14px; font-size: 12px; color: var(--gray-light);
+  display: flex; align-items: center; gap: 8px;
+}
+
+.unipay-copy {
+  background: none; border: none; color: var(--red);
+  font-size: 11px; font-weight: 700; cursor: pointer; padding: 2px 6px;
+  border: 1px solid rgba(230,32,32,0.3); border-radius: 2px;
+}
+.unipay-copy:hover { background: rgba(230,32,32,0.1); }
+
+.unipay-verify-note {
+  font-size: 11px; color: var(--gray-light); line-height: 1.7;
+  padding: 10px 14px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.06);
+}
+</style>
+</head>
 <body>
 
 <!-- HEADER -->
@@ -3951,8 +4062,28 @@ initReveal();
               <input class="co-input" id="co-phone" type="tel" placeholder="0912 345 678" oninput="validateField(this)">
             </div>
             <div class="co-field co-form-full">
-              <label class="co-label">Địa Chỉ *</label>
-              <input class="co-input" id="co-address" placeholder="Số nhà, tên đường" oninput="validateField(this)">
+              <label class="co-label">🔍 Tìm Địa Chỉ Trên Bản Đồ *</label>
+              <div class="co-address-wrap">
+                <input class="co-input" id="co-address-search" 
+                  placeholder="Nhập địa chỉ để tìm trên Google Maps (VD: 123 Nguyễn Trãi, Hà Nội)"
+                  autocomplete="off"
+                  oninput="validateField(this)">
+              </div>
+              <div class="co-input-hint">📍 Nhập địa chỉ và chọn từ gợi ý để xác nhận vị trí chính xác trên bản đồ</div>
+              <div class="co-address-confirm" id="co-addr-confirm">
+                ✅ <span id="co-addr-confirm-text">Địa chỉ đã được xác nhận trên bản đồ</span>
+              </div>
+              <div id="co-map-preview">
+                <iframe id="co-map-iframe" src="" allowfullscreen loading="lazy"></iframe>
+                <div class="co-map-badge">📍 Đã xác nhận vị trí</div>
+              </div>
+            </div>
+            <!-- Hidden input giữ full address -->
+            <input type="hidden" id="co-address" value="">
+            <div class="co-field co-form-full">
+              <label class="co-label">Chi Tiết Địa Chỉ (số nhà, tên đường, phường/xã)</label>
+              <input class="co-input" id="co-address-detail" placeholder="VD: Số 5, Ngách 12, Ngõ 45 Đường ABC, Phường XYZ">
+              <div class="co-input-hint">Bổ sung số nhà, ngõ ngách nếu cần thiết</div>
             </div>
             <div class="co-field">
               <label class="co-label">Tỉnh / Thành Phố *</label>
@@ -4060,69 +4191,33 @@ initReveal();
               </div>
             </div>
 
-            <!-- Bank Transfer -->
+            <!-- Chuyển khoản MB Bank -->
             <div class="payment-option" onclick="selectPayment(this,'bank')">
               <div class="payment-option-header">
                 <input type="radio" name="payment" value="bank">
                 <div class="payment-option-icon">🏦</div>
-                <div class="payment-option-name">Chuyển Khoản Ngân Hàng</div>
+                <div class="payment-option-name">Chuyển Khoản Ngân Hàng (MB Bank)</div>
                 <div class="payment-option-logos">
-                  <span class="pay-logo">VCB</span>
-                  <span class="pay-logo">TCB</span>
-                  <span class="pay-logo">MBB</span>
+                  <span class="pay-logo" style="background:#0066cc;color:#fff;">MB</span>
                 </div>
               </div>
-              <div class="payment-detail">
-                <div class="qr-box">
-                  <div class="qr-code">📱</div>
-                  <div class="qr-info">
-                    <div class="qr-bank">Quét QR hoặc chuyển khoản theo thông tin dưới</div>
-                    <div class="qr-value" id="co-bank-amount">0đ</div>
-                    <div class="bank-detail">
-                      <div class="bank-row">
-                        <span class="bank-row-key">Ngân hàng</span>
-                        <span class="bank-row-val">Vietcombank (VCB) <button class="copy-btn" onclick="copyText('Vietcombank')">📋 Copy</button></span>
-                      </div>
-                      <div class="bank-row">
-                        <span class="bank-row-key">Số tài khoản</span>
-                        <span class="bank-row-val">1234567890 <button class="copy-btn" onclick="copyText('1234567890')">📋 Copy</button></span>
-                      </div>
-                      <div class="bank-row">
-                        <span class="bank-row-key">Chủ tài khoản</span>
-                        <span class="bank-row-val">CONG TY SNEAKERVN</span>
-                      </div>
-                      <div class="bank-row">
-                        <span class="bank-row-key">Nội dung CK</span>
-                        <span class="bank-row-val" id="co-ck-content">SNEAKERVN ORD... <button class="copy-btn" onclick="copyOrderContent()">📋 Copy</button></span>
-                      </div>
-                    </div>
-                    <div style="margin-top:12px;font-size:12px;color:var(--gray-light);">⚠️ Đơn hàng sẽ được xác nhận trong vòng 1–2 giờ sau khi nhận được thanh toán</div>
-                  </div>
-                </div>
-              </div>
+              <div class="payment-detail" id="bank-detail-wrap"></div>
             </div>
 
-            <!-- MoMo -->
+            <!-- MoMo → MB Bank -->
             <div class="payment-option" onclick="selectPayment(this,'momo')">
               <div class="payment-option-header">
                 <input type="radio" name="payment" value="momo">
-                <div class="payment-option-icon">💜</div>
+                <div class="payment-option-icon" style="background:#a50064;color:#fff;border-radius:50%;font-size:18px;">💜</div>
                 <div class="payment-option-name">Ví MoMo</div>
                 <div class="payment-option-logos">
                   <span class="pay-logo" style="background:#a50064;color:#fff;">MoMo</span>
                 </div>
               </div>
-              <div class="payment-detail">
-                <div class="momo-info">
-                  <div class="momo-logo">💜</div>
-                  <div class="momo-phone">0912 345 678</div>
-                  <div style="font-size:13px;font-weight:600;margin-bottom:8px;">SNEAKERVN Official</div>
-                  <div class="momo-note">Chuyển khoản MoMo đến số trên với nội dung là mã đơn hàng của bạn.<br>Sau khi chuyển thành công, đơn hàng sẽ được xác nhận trong 30 phút.</div>
-                </div>
-              </div>
+              <div class="payment-detail" id="momo-detail-wrap"></div>
             </div>
 
-            <!-- VNPay -->
+            <!-- VNPay / Thẻ → MB Bank -->
             <div class="payment-option" onclick="selectPayment(this,'vnpay')">
               <div class="payment-option-header">
                 <input type="radio" name="payment" value="vnpay">
@@ -4134,15 +4229,21 @@ initReveal();
                   <span class="pay-logo">ATM</span>
                 </div>
               </div>
-              <div class="payment-detail">
-                <div class="cod-info">
-                  <span class="cod-icon">🔐</span>
-                  <div class="cod-text">
-                    Thanh toán an toàn qua cổng <strong>VNPay</strong>. Hỗ trợ tất cả thẻ ATM nội địa, Visa, MasterCard, JCB.<br>
-                    Bạn sẽ được chuyển đến trang thanh toán VNPay sau khi đặt hàng.
-                  </div>
+              <div class="payment-detail" id="vnpay-detail-wrap"></div>
+            </div>
+
+            <!-- VPPay / Ví khác → MB Bank -->
+            <div class="payment-option" onclick="selectPayment(this,'vppay')">
+              <div class="payment-option-header">
+                <input type="radio" name="payment" value="vppay">
+                <div class="payment-option-icon">💳</div>
+                <div class="payment-option-name">VPPay / Ví Điện Tử Khác</div>
+                <div class="payment-option-logos">
+                  <span class="pay-logo" style="background:#005baa;color:#fff;">VP</span>
+                  <span class="pay-logo">ZaloPay</span>
                 </div>
               </div>
+              <div class="payment-detail" id="vppay-detail-wrap"></div>
             </div>
 
           </div>
@@ -19315,6 +19416,369 @@ async function checkDbStatus() {
     el.textContent = '❌ ' + e.message;
   }
 }
+</script>
+
+
+<script>
+// ============================================================
+// GOOGLE MAPS AUTOCOMPLETE – Địa chỉ giao hàng
+// ============================================================
+(function initGoogleMapsAddress() {
+  // Load Google Maps JS API (Places) dynamically – dùng key miễn phí cho Places Autocomplete
+  // Người dùng cần thay YOUR_GOOGLE_MAPS_API_KEY bằng key thật (hoặc để trống để dùng chế độ fallback)
+  const GMAPS_API_KEY = 'AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFMBWY'; // Demo key - thay bằng key thật
+
+  function loadScript() {
+    if (window._gmapsLoaded) return;
+    window._gmapsLoaded = true;
+    const s = document.createElement('script');
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${GMAPS_API_KEY}&libraries=places&callback=_initAutocomplete&language=vi&region=VN`;
+    s.async = true; s.defer = true;
+    document.head.appendChild(s);
+  }
+
+  window._initAutocomplete = function() {
+    const input = document.getElementById('co-address-search');
+    if (!input) return;
+
+    const autocomplete = new google.maps.places.Autocomplete(input, {
+      componentRestrictions: { country: 'vn' },
+      fields: ['formatted_address', 'geometry', 'address_components'],
+      types: ['geocode', 'establishment'],
+    });
+
+    autocomplete.addListener('place_changed', function() {
+      const place = autocomplete.getPlace();
+      if (!place.geometry) return;
+
+      const fullAddr = place.formatted_address || input.value;
+      // Gán vào hidden input co-address
+      const hiddenAddr = document.getElementById('co-address');
+      if (hiddenAddr) hiddenAddr.value = fullAddr;
+
+      // Hiển thị xác nhận
+      const confirmEl = document.getElementById('co-addr-confirm');
+      const confirmTxt = document.getElementById('co-addr-confirm-text');
+      if (confirmEl) confirmEl.classList.add('show');
+      if (confirmTxt) confirmTxt.textContent = '✅ ' + fullAddr;
+
+      // Tự động điền province từ address_components
+      const comps = place.address_components || [];
+      let province = '', district = '';
+      comps.forEach(c => {
+        if (c.types.includes('administrative_area_level_1')) province = c.long_name;
+        if (c.types.includes('administrative_area_level_2')) district = c.long_name;
+      });
+
+      // Match province to select
+      const provSel = document.getElementById('co-province');
+      if (provSel && province) {
+        const pLower = province.toLowerCase();
+        let val = 'other';
+        if (pLower.includes('hà nội') || pLower.includes('ha noi')) val = 'hn';
+        else if (pLower.includes('hồ chí minh') || pLower.includes('ho chi minh')) val = 'hcm';
+        else if (pLower.includes('đà nẵng') || pLower.includes('da nang')) val = 'dn';
+        else if (pLower.includes('hải phòng') || pLower.includes('hai phong')) val = 'hp';
+        else if (pLower.includes('cần thơ') || pLower.includes('can tho')) val = 'ct';
+        provSel.value = val;
+        if (typeof loadDistricts === 'function') loadDistricts(val);
+      }
+
+      // Hiển thị bản đồ embed
+      const lat = place.geometry.location.lat();
+      const lng = place.geometry.location.lng();
+      showMapPreview(lat, lng, fullAddr);
+    });
+  };
+
+  window.showMapPreview = function(lat, lng, label) {
+    const GMAPS_API_KEY = 'AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFMBWY';
+    const preview = document.getElementById('co-map-preview');
+    const iframe  = document.getElementById('co-map-iframe');
+    if (!preview || !iframe) return;
+    const src = `https://www.google.com/maps/embed/v1/place?key=${GMAPS_API_KEY}&q=${lat},${lng}&zoom=16&language=vi`;
+    iframe.src = src;
+    preview.style.display = 'block';
+  };
+
+  // Fallback: nếu Google Maps không load được, dùng OpenStreetMap Nominatim
+  window._gmapsLoadFailed = function() {
+    console.warn('[SneakerVN] Google Maps API không khả dụng, dùng chế độ tìm kiếm thủ công');
+    const input = document.getElementById('co-address-search');
+    if (!input) return;
+    let timeout;
+    input.addEventListener('input', function() {
+      clearTimeout(timeout);
+      const q = input.value.trim();
+      if (q.length < 5) return;
+      timeout = setTimeout(() => nominatimSearch(q), 700);
+    });
+  };
+
+  // Nominatim fallback autocomplete
+  window._nominatimDropdown = null;
+  async function nominatimSearch(q) {
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q + ', Việt Nam')}&format=json&limit=5&accept-language=vi`;
+      const res = await fetch(url, { headers: { 'Accept-Language': 'vi' } });
+      const data = await res.json();
+      showNominatimDropdown(data);
+    } catch(e) {}
+  }
+
+  function showNominatimDropdown(results) {
+    const input = document.getElementById('co-address-search');
+    if (!input) return;
+    let dd = document.getElementById('_nominatim_dd');
+    if (!dd) {
+      dd = document.createElement('div');
+      dd.id = '_nominatim_dd';
+      dd.style.cssText = 'position:absolute;z-index:99999;background:#1a1a1a;border:1px solid rgba(230,32,32,0.4);width:100%;max-height:240px;overflow-y:auto;';
+      input.parentNode.style.position = 'relative';
+      input.parentNode.appendChild(dd);
+    }
+    dd.innerHTML = '';
+    if (!results.length) { dd.style.display = 'none'; return; }
+    dd.style.display = 'block';
+    results.forEach(r => {
+      const item = document.createElement('div');
+      item.textContent = r.display_name;
+      item.style.cssText = 'padding:10px 14px;font-size:13px;color:#ccc;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.06);';
+      item.onmouseenter = () => item.style.background = 'rgba(230,32,32,0.1)';
+      item.onmouseleave = () => item.style.background = '';
+      item.onclick = () => {
+        input.value = r.display_name;
+        const hidden = document.getElementById('co-address');
+        if (hidden) hidden.value = r.display_name;
+        const confirm = document.getElementById('co-addr-confirm');
+        const confirmTxt = document.getElementById('co-addr-confirm-text');
+        if (confirm) confirm.classList.add('show');
+        if (confirmTxt) confirmTxt.textContent = r.display_name;
+        dd.style.display = 'none';
+        showMapPreviewOSM(r.lat, r.lon, r.display_name);
+      };
+      dd.appendChild(item);
+    });
+    document.addEventListener('click', function(e) {
+      if (!dd.contains(e.target) && e.target !== input) dd.style.display = 'none';
+    }, { once: true });
+  }
+
+  window.showMapPreviewOSM = function(lat, lon, label) {
+    const preview = document.getElementById('co-map-preview');
+    const iframe  = document.getElementById('co-map-iframe');
+    if (!preview || !iframe) return;
+    // OpenStreetMap embed
+    const src = `https://www.openstreetmap.org/export/embed.html?bbox=${parseFloat(lon)-0.003},${parseFloat(lat)-0.003},${parseFloat(lon)+0.003},${parseFloat(lat)+0.003}&layer=mapnik&marker=${lat},${lon}`;
+    iframe.src = src;
+    preview.style.display = 'block';
+  };
+
+  // Khởi động khi checkout mở
+  const _origCheckout = window.checkout;
+  window.checkout = function() {
+    if (typeof _origCheckout === 'function') _origCheckout();
+    setTimeout(() => {
+      if (!window._gmapsLoaded) loadScript();
+    }, 600);
+  };
+
+  // Cũng load khi checkoutPage được mở trực tiếp
+  const _origShowCheckout = window.showCheckout || window.openCheckout;
+  ['showCheckout','openCheckout'].forEach(fn => {
+    if (window[fn]) {
+      const orig = window[fn];
+      window[fn] = function() {
+        orig.apply(this, arguments);
+        setTimeout(() => { if (!window._gmapsLoaded) loadScript(); }, 600);
+      };
+    }
+  });
+
+  // Fallback: load khi DOM ready nếu checkout page đã open
+  document.addEventListener('DOMContentLoaded', function() {
+    const page = document.getElementById('checkoutPage');
+    if (page && page.classList.contains('open')) {
+      loadScript();
+    }
+    // Observer nếu checkout mở sau
+    if (page) {
+      const obs = new MutationObserver(() => {
+        if (page.classList.contains('open') && !window._gmapsLoaded) loadScript();
+      });
+      obs.observe(page, { attributes: true, attributeFilter: ['class'] });
+    }
+  });
+
+  // Timeout fallback
+  setTimeout(() => {
+    if (!window.google?.maps?.places) window._gmapsLoadFailed?.();
+  }, 8000);
+})();
+
+
+// ============================================================
+// UNIFIED PAYMENT – Tất cả phương thức → MB Bank 1803042005
+// ============================================================
+(function() {
+  // Hàm tạo UI thanh toán chuyển khoản chung
+  function buildUnifiedPayUI(method) {
+    const ref    = window._bkRef || ('SVN' + Math.floor(100000 + Math.random()*900000));
+    const amount = window._bkAmount || 0;
+    const amtFmt = amount.toLocaleString('vi-VN') + 'đ';
+
+    const methodLabels = {
+      momo:   { title: 'Ví MoMo', note: 'Mở app MoMo → Chuyển tiền → Chuyển đến Ngân hàng → Điền thông tin bên dưới', color: '#a50064', icon: '💜' },
+      vnpay:  { title: 'VNPay / Thẻ', note: 'Mở app VNPay hoặc app ngân hàng của bạn → Chuyển khoản đến tài khoản MB Bank bên dưới', color: '#005baa', icon: '🔵' },
+      vppay:  { title: 'VPPay / Ví khác', note: 'Mở ví điện tử của bạn → Chuyển đến tài khoản ngân hàng → Điền thông tin MB Bank bên dưới', color: '#005baa', icon: '💳' },
+      bank:   { title: 'Chuyển khoản', note: 'Quét QR hoặc chuyển khoản thủ công theo thông tin bên dưới', color: '#0066cc', icon: '🏦' },
+    };
+    const cfg = methodLabels[method] || methodLabels.bank;
+
+    // QR từ VietQR
+    const qrUrl = `https://img.vietqr.io/image/MB-1803042005-compact2.jpg?amount=${amount}&addInfo=${encodeURIComponent(ref)}&accountName=${encodeURIComponent('HA THI THU PHUONG')}`;
+
+    return `
+    <div class="unipay-wrap">
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);font-size:13px;">
+        <span style="font-size:18px;">${cfg.icon}</span>
+        <span style="color:var(--gray-light);">${cfg.note}</span>
+      </div>
+
+      <div class="unipay-qr-row">
+        <div class="unipay-qr-img">
+          <img src="${qrUrl}" alt="QR MB Bank"
+            onerror="this.outerHTML='<div style=\'text-align:center;color:#888;font-size:11px;padding:10px;\'>📱<br>QR đang tải...</div>'">
+        </div>
+        <div class="unipay-info-rows">
+          <div class="unipay-row">
+            <span class="unipay-row-key">Ngân hàng</span>
+            <span class="unipay-row-val" style="color:#0066cc;font-weight:700;">MB Bank (MBBank)</span>
+          </div>
+          <div class="unipay-row">
+            <span class="unipay-row-key">Số tài khoản</span>
+            <span class="unipay-row-val">
+              1803042005
+              <button class="unipay-copy" onclick="navigator.clipboard.writeText('1803042005').then(()=>showToast('Đã copy 📋','STK: 1803042005'))">Copy</button>
+            </span>
+          </div>
+          <div class="unipay-row">
+            <span class="unipay-row-key">Chủ tài khoản</span>
+            <span class="unipay-row-val green">Hà Thị Thu Phương</span>
+          </div>
+          <div class="unipay-row">
+            <span class="unipay-row-key">Số tiền</span>
+            <span class="unipay-row-val red" id="upay-amt-${method}">${amtFmt}</span>
+          </div>
+          <div class="unipay-row">
+            <span class="unipay-row-key">Nội dung CK</span>
+            <span class="unipay-row-val">
+              <span id="upay-ref-${method}" style="font-family:monospace;color:var(--red);">${ref}</span>
+              <button class="unipay-copy" onclick="navigator.clipboard.writeText(document.getElementById('upay-ref-${method}').textContent).then(()=>showToast('Đã copy 📋','Nội dung CK đã được copy'))">Copy</button>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="unipay-amount-locked">
+        🔒 <span>Số tiền <strong style="color:var(--red);">${amtFmt}</strong> là cố định theo hóa đơn và <strong>không thể thay đổi</strong>. Vui lòng chuyển đúng số tiền để đơn hàng được xác nhận tự động.</span>
+      </div>
+
+      <div id="bk-verify-box-${method}">
+        <div class="bk-verify-hdr">
+          <span>🔍 Xác Minh Thanh Toán Tự Động</span>
+          <span id="bk-badge-${method}">⏳ Đang theo dõi</span>
+        </div>
+        <div id="bk-status-body-${method}" style="padding:14px 16px;">
+          <div style="font-size:12px;color:var(--gray-light);text-align:center;">Đang chờ giao dịch chuyển khoản...</div>
+        </div>
+      </div>
+
+      <div class="unipay-verify-note">
+        ℹ️ Hệ thống kiểm tra giao dịch mỗi <strong>8 giây</strong>. Sau khi chuyển khoản thành công, đơn hàng sẽ được xác nhận <strong>tự động trong vài giây</strong>.
+      </div>
+    </div>`;
+  }
+
+  // Override selectPayment để inject unified UI cho momo, vnpay, vppay
+  const _origSP = window.selectPayment;
+  window.selectPayment = function(el, type) {
+    // Gọi original (xử lý CSS selected)
+    if (typeof _origSP === 'function') _origSP(el, type);
+
+    const nonBankTypes = ['momo','vnpay','vppay'];
+    if (nonBankTypes.includes(type)) {
+      const wrapId = type + '-detail-wrap';
+      const wrap   = document.getElementById(wrapId);
+      if (wrap && !wrap.dataset.uniBuilt) {
+        wrap.dataset.uniBuilt = '1';
+        wrap.innerHTML = buildUnifiedPayUI(type);
+      } else if (wrap && wrap.dataset.uniBuilt) {
+        // Cập nhật số tiền nếu thay đổi
+        const amtEl = document.getElementById('upay-amt-' + type);
+        if (amtEl && window._bkAmount) amtEl.textContent = window._bkAmount.toLocaleString('vi-VN') + 'đ';
+      }
+      // Unified method cũng cần xác nhận payment
+      window._bkVerified = false;
+      _bkSetBtn('waiting');
+      // Dùng lại polling của _bkRef cho unified
+      if (!window._bkRef) {
+        window._bkRef = 'SVN' + Math.floor(100000 + Math.random()*900000);
+      }
+    }
+  };
+
+  // Khi tổng đơn hàng thay đổi → cập nhật unified UI
+  function updateUnifiedAmounts() {
+    const totalEl = document.getElementById('co-total-final');
+    if (!totalEl) return;
+    const txt = totalEl.textContent.replace(/[^\d]/g,'');
+    const amt = parseInt(txt) || 0;
+    if (amt === window._bkAmount) return;
+    ['momo','vnpay','vppay','bank'].forEach(type => {
+      const el = document.getElementById('upay-amt-' + type);
+      if (el) el.textContent = amt.toLocaleString('vi-VN') + 'đ';
+    });
+  }
+
+  // Quan sát tổng tiền
+  document.addEventListener('DOMContentLoaded', function() {
+    const totalEl = document.getElementById('co-total-final');
+    if (totalEl) {
+      new MutationObserver(updateUnifiedAmounts).observe(totalEl, { childList: true, subtree: true, characterData: true });
+    }
+  });
+})();
+
+
+// ============================================================
+// PATCH: validate co-address từ hidden field
+// ============================================================
+(function() {
+  // Đảm bảo validate địa chỉ dùng hidden input hoặc search input
+  const _origValidate = window.validateField;
+  window.validateField = function(el) {
+    if (el && el.id === 'co-address-search') {
+      // Sync sang hidden
+      const hidden = document.getElementById('co-address');
+      if (hidden && el.value) hidden.value = el.value;
+    }
+    if (typeof _origValidate === 'function') return _origValidate(el);
+  };
+
+  // Patch placeOrder để lấy địa chỉ từ hidden + detail
+  const _origPO = window.placeOrder;
+  window.placeOrder = function() {
+    const hidden  = document.getElementById('co-address');
+    const search  = document.getElementById('co-address-search');
+    const detail  = document.getElementById('co-address-detail');
+    // Ghép địa chỉ đầy đủ
+    let fullAddr = (hidden && hidden.value) || (search && search.value) || '';
+    if (detail && detail.value.trim()) fullAddr = detail.value.trim() + ', ' + fullAddr;
+    if (hidden) hidden.value = fullAddr;
+    if (typeof _origPO === 'function') _origPO();
+  };
+})();
 </script>
 
 </body>

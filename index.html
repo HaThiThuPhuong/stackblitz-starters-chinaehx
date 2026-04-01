@@ -2111,13 +2111,24 @@ async function handleLogin() {
       const dashEl  = document.getElementById(dashId);
       if (dashEl) { dashEl.classList.add('open'); document.body.style.overflow = 'hidden'; }
       showToast('Đăng Nhập Thành Công 👋', 'Chào mừng ' + name + '!');
+      const initials = name.trim().split(/\s+/).map(w=>w[0]).join('').slice(-2).toUpperCase();
       if (role === 'shop') {
-        const initials = name.trim().split(/\s+/).map(w=>w[0]).join('').slice(-2).toUpperCase();
         const avatarEl = document.getElementById('shop-db-avatar');
         const nameEl   = document.getElementById('shop-db-name');
         if (avatarEl) avatarEl.textContent = initials;
         if (nameEl)   nameEl.textContent   = name;
         initAdminChart();
+        setTimeout(adminLoadDashboard, 300);
+        setTimeout(adminLoadOrders, 400);
+        setTimeout(adminLoadProducts, 500);
+      } else if (role === 'accountant') {
+        const avatarEl = document.getElementById('acc-db-avatar');
+        const nameEl   = document.getElementById('acc-db-name');
+        if (avatarEl) avatarEl.textContent = initials;
+        if (nameEl)   nameEl.textContent   = name;
+        // Load dữ liệu kế toán sau khi đăng nhập
+        setTimeout(() => { if (typeof accLoadOverview === 'function') accLoadOverview(); }, 300);
+        setTimeout(() => { if (typeof accLoadOrders  === 'function') accLoadOrders();  }, 400);
       }
       return;
     }
@@ -2230,14 +2241,23 @@ async function loginWithRole(account) {
 
   showToast('Đăng Nhập Thành Công 👋', 'Chào mừng ' + currentUser.name + '!');
 
+  const initials2 = account.name.split(' ').map(w=>w[0]).join('').slice(-2).toUpperCase();
   if (account.role === 'shop') {
-    // Update shop dashboard header with real user info
-    const initials = account.name.split(' ').map(w=>w[0]).join('').slice(-2).toUpperCase();
     const avatarEl = document.getElementById('shop-db-avatar');
-    const nameEl = document.getElementById('shop-db-name');
-    if (avatarEl) avatarEl.textContent = initials;
-    if (nameEl) nameEl.textContent = account.name;
+    const nameEl   = document.getElementById('shop-db-name');
+    if (avatarEl) avatarEl.textContent = initials2;
+    if (nameEl)   nameEl.textContent   = account.name;
     initAdminChart();
+    setTimeout(adminLoadDashboard, 300);
+    setTimeout(adminLoadOrders, 400);
+    setTimeout(adminLoadProducts, 500);
+  } else if (account.role === 'accountant') {
+    const avatarEl = document.getElementById('acc-db-avatar');
+    const nameEl   = document.getElementById('acc-db-name');
+    if (avatarEl) avatarEl.textContent = initials2;
+    if (nameEl)   nameEl.textContent   = account.name;
+    setTimeout(() => { if (typeof accLoadOverview === 'function') accLoadOverview(); }, 300);
+    setTimeout(() => { if (typeof accLoadOrders  === 'function') accLoadOrders();  }, 400);
   }
 }
 
@@ -10367,8 +10387,8 @@ select.mp-field-input option { background: #1a1a1a; }
     <div class="db-logo">SNEAKER<span>VN</span> <span style="font-size:14px;color:var(--gray-light);letter-spacing:0;font-family:'Barlow',sans-serif;font-weight:400">Kế Toán</span></div>
     <div class="db-header-right">
       <div class="db-user">
-        <div class="db-avatar" style="background:rgba(33,150,243,0.2);color:#2196f3">KT</div>
-        <div><div style="font-weight:600;font-size:13px">Kế Toán</div><div style="font-size:11px;color:var(--gray-light)">Finance Department</div></div>
+        <div class="db-avatar" id="acc-db-avatar" style="background:rgba(33,150,243,0.2);color:#2196f3">KT</div>
+        <div><div style="font-weight:600;font-size:13px" id="acc-db-name">Kế Toán</div><div style="font-size:11px;color:var(--gray-light)">Finance Department</div></div>
       </div>
       <span class="db-role-tag" style="background:rgba(33,150,243,0.2);border:1px solid rgba(33,150,243,0.4);color:#2196f3;">📒 Kế Toán</span>
       <button class="db-back-btn" onclick="logoutDashboard('accountantDashboard')" style="color:#f44336;border-color:rgba(244,67,54,0.35)">🚪 Đăng Xuất</button>
@@ -18560,11 +18580,27 @@ async function checkDbStatus() {
       }
       if (name && nameEl) nameEl.textContent = name;
     }
+    // Update accountant dashboard header
+    if (role === 'accountant') {
+      const accAvatarEl = document.getElementById('acc-db-avatar');
+      const accNameEl   = document.getElementById('acc-db-name');
+      if (name && accAvatarEl) {
+        accAvatarEl.textContent = name.split(' ').map(function(w){return w[0];}).join('').slice(-2).toUpperCase();
+      }
+      if (name && accNameEl) accNameEl.textContent = name;
+    }
     // Load dữ liệu dashboard
     if (role === 'shop' || role === 'admin') {
       setTimeout(function() {
         if (typeof initAdminChart === 'function') initAdminChart();
         if (typeof adminLoadDashboard === 'function') adminLoadDashboard();
+        if (typeof adminLoadOrders === 'function') adminLoadOrders();
+        if (typeof adminLoadProducts === 'function') adminLoadProducts();
+      }, 400);
+    } else if (role === 'accountant') {
+      setTimeout(function() {
+        if (typeof accLoadOverview === 'function') accLoadOverview();
+        if (typeof accLoadOrders  === 'function') accLoadOrders();
       }, 400);
     }
   }

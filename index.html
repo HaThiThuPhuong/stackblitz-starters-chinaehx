@@ -2111,25 +2111,10 @@ async function handleLogin() {
       const dashEl  = document.getElementById(dashId);
       if (dashEl) { dashEl.classList.add('open'); document.body.style.overflow = 'hidden'; }
       showToast('Đăng Nhập Thành Công 👋', 'Chào mừng ' + name + '!');
-      const initials = name.trim().split(/\s+/).map(w=>w[0]).join('').slice(-2).toUpperCase();
-      if (role === 'shop') {
-        const avatarEl = document.getElementById('shop-db-avatar');
-        const nameEl   = document.getElementById('shop-db-name');
-        if (avatarEl) avatarEl.textContent = initials;
-        if (nameEl)   nameEl.textContent   = name;
-        initAdminChart();
-        setTimeout(adminLoadDashboard, 300);
-        setTimeout(adminLoadOrders, 400);
-        setTimeout(adminLoadProducts, 500);
-      } else if (role === 'accountant') {
-        const avatarEl = document.getElementById('acc-db-avatar');
-        const nameEl   = document.getElementById('acc-db-name');
-        if (avatarEl) avatarEl.textContent = initials;
-        if (nameEl)   nameEl.textContent   = name;
-        // Load dữ liệu kế toán sau khi đăng nhập
-        setTimeout(() => { if (typeof accLoadOverview === 'function') accLoadOverview(); }, 300);
-        setTimeout(() => { if (typeof accLoadOrders  === 'function') accLoadOrders();  }, 400);
-      }
+      // Tất cả staff đều vào shopDashboard (unified dashboard)
+      const _hDash = document.getElementById('shopDashboard');
+      if (_hDash && !_hDash.classList.contains('open')) { _hDash.classList.add('open'); document.body.style.overflow = 'hidden'; }
+      applyRoleToUnifiedDashboard(role, name);
       return;
     }
   } catch(e) { /* không phải staff, thử khách hàng */ }
@@ -2241,24 +2226,8 @@ async function loginWithRole(account) {
 
   showToast('Đăng Nhập Thành Công 👋', 'Chào mừng ' + currentUser.name + '!');
 
-  const initials2 = account.name.split(' ').map(w=>w[0]).join('').slice(-2).toUpperCase();
-  if (account.role === 'shop') {
-    const avatarEl = document.getElementById('shop-db-avatar');
-    const nameEl   = document.getElementById('shop-db-name');
-    if (avatarEl) avatarEl.textContent = initials2;
-    if (nameEl)   nameEl.textContent   = account.name;
-    initAdminChart();
-    setTimeout(adminLoadDashboard, 300);
-    setTimeout(adminLoadOrders, 400);
-    setTimeout(adminLoadProducts, 500);
-  } else if (account.role === 'accountant') {
-    const avatarEl = document.getElementById('acc-db-avatar');
-    const nameEl   = document.getElementById('acc-db-name');
-    if (avatarEl) avatarEl.textContent = initials2;
-    if (nameEl)   nameEl.textContent   = account.name;
-    setTimeout(() => { if (typeof accLoadOverview === 'function') accLoadOverview(); }, 300);
-    setTimeout(() => { if (typeof accLoadOrders  === 'function') accLoadOrders();  }, 400);
-  }
+  // Tất cả staff đều vào shopDashboard (unified)
+  applyRoleToUnifiedDashboard(account.role, account.name);
 }
 
 // -- MEMBER PANEL --
@@ -7262,6 +7231,18 @@ function switchPdTab(name, btn) {
 }
 .db-nav-item:hover { color:var(--white); background:rgba(255,255,255,0.03); }
 .db-nav-item.active { color:var(--white); background:rgba(230,32,32,0.08); border-left-color:var(--red); }
+.db-nav-item.nav-locked {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+  filter: grayscale(1);
+  position: relative;
+}
+.db-nav-section.nav-section-locked {
+  opacity: 0.25;
+  pointer-events: none;
+  filter: grayscale(1);
+}
 .db-nav-icon { font-size:16px; width:20px; text-align:center; }
 .db-nav-badge {
   margin-left:auto; background:var(--red); color:#fff;
@@ -8028,35 +8009,57 @@ select.mp-field-input option { background: #1a1a1a; }
       <button class="db-notif-btn" onclick="showToast('Thông Báo 🔔','12 đơn hàng cần xử lý')">🔔<span class="db-notif-dot"></span></button>
       <div class="db-user">
         <div class="db-avatar" style="background:rgba(230,32,32,0.2);color:var(--red)" id="shop-db-avatar">SO</div>
-        <div><div style="font-weight:600;font-size:13px" id="shop-db-name">Trần Shop Owner</div><div style="font-size:11px;color:var(--gray-light)">Chủ Cửa Hàng</div></div>
+        <div><div style="font-weight:600;font-size:13px" id="shop-db-name">Trần Shop Owner</div><div style="font-size:11px;color:var(--gray-light)" id="shop-db-subtitle">Chủ Cửa Hàng</div></div>
       </div>
-      <span class="db-role-tag" style="background:rgba(230,32,32,0.2);border:1px solid rgba(230,32,32,0.4);color:var(--red);">🏪 Chủ Shop</span>
+      <span class="db-role-tag" id="shop-db-role-tag" style="background:rgba(230,32,32,0.2);border:1px solid rgba(230,32,32,0.4);color:var(--red);">🏪 Chủ Shop</span>
       <button class="db-back-btn" onclick="logoutDashboard('shopDashboard')" style="color:#f44336;border-color:rgba(244,67,54,0.35)">🚪 Đăng Xuất</button>
     </div>
   </div>
   <div class="db-layout">
-    <div class="db-sidebar">
+    <div class="db-sidebar" id="unified-sidebar">
+      <!-- TỔNG QUAN -->
       <div class="db-nav-section">
         <div class="db-nav-section-title">Tổng Quan</div>
-        <div class="db-nav-item active" onclick="switchDbPanel('shopDashboard','panel-admin-home',this)"><span class="db-nav-icon">📊</span> Dashboard</div>
+        <div class="db-nav-item active" data-roles="admin,shop,accountant" onclick="switchDbPanel('shopDashboard','panel-admin-home',this)"><span class="db-nav-icon">📊</span> Dashboard</div>
       </div>
+
+      <!-- BÁN HÀNG -->
       <div class="db-nav-section">
         <div class="db-nav-section-title">Bán Hàng</div>
-        <div class="db-nav-item" onclick="switchDbPanel('shopDashboard','panel-admin-orders',this)"><span class="db-nav-icon">📦</span> Đơn Hàng <span class="db-nav-badge">12</span></div>
-        <div class="db-nav-item" onclick="switchDbPanel('shopDashboard','panel-admin-products',this)"><span class="db-nav-icon">👟</span> Sản Phẩm</div>
-        <div class="db-nav-item" onclick="switchDbPanel('shopDashboard','panel-admin-inventory',this)"><span class="db-nav-icon">🏭</span> Kho Hàng</div>
-        <div class="db-nav-item" onclick="switchDbPanel('shopDashboard','panel-admin-customers',this)"><span class="db-nav-icon">👥</span> Khách Hàng</div>
+        <div class="db-nav-item" data-roles="admin,shop" onclick="switchDbPanel('shopDashboard','panel-admin-orders',this)"><span class="db-nav-icon">📦</span> Đơn Hàng <span class="db-nav-badge" id="nav-badge-orders">0</span></div>
+        <div class="db-nav-item" data-roles="admin,shop" onclick="switchDbPanel('shopDashboard','panel-admin-products',this)"><span class="db-nav-icon">👟</span> Sản Phẩm</div>
+        <div class="db-nav-item" data-roles="admin,shop" onclick="switchDbPanel('shopDashboard','panel-admin-inventory',this)"><span class="db-nav-icon">🏭</span> Kho Hàng</div>
+        <div class="db-nav-item" data-roles="admin,shop,accountant" onclick="switchDbPanel('shopDashboard','panel-admin-customers',this)"><span class="db-nav-icon">👥</span> Khách Hàng</div>
       </div>
+
+      <!-- MARKETING -->
       <div class="db-nav-section">
         <div class="db-nav-section-title">Marketing</div>
-        <div class="db-nav-item" onclick="switchDbPanel('shopDashboard','panel-admin-reviews',this)"><span class="db-nav-icon">⭐</span> Đánh Giá <span class="db-nav-badge">5</span></div>
-        <div class="db-nav-item" onclick="switchDbPanel('shopDashboard','panel-admin-marketing',this)"><span class="db-nav-icon">🎯</span> Marketing</div>
+        <div class="db-nav-item" data-roles="admin,shop" onclick="switchDbPanel('shopDashboard','panel-admin-reviews',this)"><span class="db-nav-icon">⭐</span> Đánh Giá <span class="db-nav-badge" id="nav-badge-reviews">5</span></div>
+        <div class="db-nav-item" data-roles="admin,shop" onclick="switchDbPanel('shopDashboard','panel-admin-marketing',this)"><span class="db-nav-icon">🎯</span> Marketing</div>
       </div>
+
+      <!-- TÀI CHÍNH -->
       <div class="db-nav-section">
         <div class="db-nav-section-title">Tài Chính</div>
-        <div class="db-nav-item" onclick="switchDbPanel('shopDashboard','panel-admin-finance',this)"><span class="db-nav-icon">💰</span> Kế Toán</div>
-        <div class="db-nav-item" onclick="switchDbPanel('shopDashboard','panel-admin-reports',this)"><span class="db-nav-icon">📈</span> Báo Cáo & Thống Kê</div>
-        <div class="db-nav-item" onclick="switchDbPanel('shopDashboard','panel-admin-settings',this)"><span class="db-nav-icon">⚙️</span> Cài Đặt & Hệ Thống</div>
+        <div class="db-nav-item" data-roles="admin,shop,accountant" onclick="switchDbPanel('shopDashboard','panel-admin-finance',this)"><span class="db-nav-icon">💰</span> Kế Toán</div>
+        <div class="db-nav-item" data-roles="admin,shop,accountant" onclick="switchDbPanel('shopDashboard','panel-admin-reports',this)"><span class="db-nav-icon">📈</span> Báo Cáo & Thống Kê</div>
+      </div>
+
+      <!-- QUẢN TRỊ HỆ THỐNG (admin only) -->
+      <div class="db-nav-section" data-roles="admin">
+        <div class="db-nav-section-title">Quản Trị Hệ Thống</div>
+        <div class="db-nav-item" data-roles="admin" onclick="switchDbPanel('shopDashboard','panel-admin-users',this)"><span class="db-nav-icon">👥</span> Quản Lý Users</div>
+        <div class="db-nav-item" data-roles="admin" onclick="switchDbPanel('shopDashboard','panel-admin-categories',this)"><span class="db-nav-icon">🗂️</span> Danh Mục</div>
+        <div class="db-nav-item" data-roles="admin" onclick="switchDbPanel('shopDashboard','panel-admin-perms',this)"><span class="db-nav-icon">🔑</span> Ma Trận Phân Quyền</div>
+        <div class="db-nav-item" data-roles="admin" onclick="switchDbPanel('shopDashboard','panel-admin-logs',this)"><span class="db-nav-icon">📋</span> Activity Logs</div>
+      </div>
+
+      <!-- CÀI ĐẶT -->
+      <div class="db-nav-section">
+        <div class="db-nav-section-title">Cài Đặt</div>
+        <div class="db-nav-item" data-roles="admin,shop" onclick="switchDbPanel('shopDashboard','panel-admin-settings',this)"><span class="db-nav-icon">⚙️</span> Cài Đặt & Hệ Thống</div>
+        <div class="db-nav-item" data-roles="admin,shop,accountant" onclick="switchDbPanel('shopDashboard','panel-admin-profile',this)"><span class="db-nav-icon">👤</span> Hồ Sơ Cá Nhân</div>
       </div>
     </div>
     <div class="db-content">
@@ -10379,10 +10382,381 @@ select.mp-field-input option { background: #1a1a1a; }
         </div>
       </div>
 
+      <!-- ADMIN-ONLY PANELS (copied from superAdminDashboard) -->
+
+      <div class="db-panel" id="panel-admin-users">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <div class="db-page-title" style="margin-bottom:0">Quản Lý Users & Staff</div>
+          <div style="display:flex;gap:8px">
+            <button class="db-btn-sm primary" onclick="saOpenCreateUser()">+ Tạo Tài Khoản</button>
+            <button class="db-btn-sm" onclick="saExportUsers()">📊 Xuất CSV</button>
+          </div>
+        </div>
+        <div class="db-page-sub">Tạo, chỉnh sửa, khóa/mở khóa tài khoản nhân viên</div>
+
+        <!-- Form tạo / sửa tài khoản -->
+        <div id="sa-user-form" style="display:none;background:rgba(255,255,255,0.03);border:1px solid rgba(230,32,32,0.25);border-radius:6px;padding:20px;margin-bottom:20px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:16px" id="sa-user-form-title">➕ Tạo Tài Khoản Mới</div>
+          <input type="hidden" id="sa-user-edit-id">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div>
+              <label class="db-label">Họ & Tên *</label>
+              <input class="db-input" id="sa-u-hoten" placeholder="Nguyễn Văn A" style="width:100%">
+            </div>
+            <div>
+              <label class="db-label">Email *</label>
+              <input class="db-input" id="sa-u-email" type="email" placeholder="email@sneakervn.com" style="width:100%">
+            </div>
+            <div>
+              <label class="db-label">Số Điện Thoại</label>
+              <input class="db-input" id="sa-u-sdt" placeholder="0912 345 678" style="width:100%">
+            </div>
+            <div>
+              <label class="db-label">Vai Trò *</label>
+              <select class="db-input" id="sa-u-vaitro" style="width:100%">
+                <option value="shop">👑 Shop Admin</option>
+                <option value="accountant">📒 Kế Toán</option>
+                <option value="admin">🛡️ Super Admin</option>
+              </select>
+            </div>
+            <div>
+              <label class="db-label">Mật Khẩu <span id="sa-u-pw-hint" style="color:var(--gray-light);font-weight:400">(bắt buộc khi tạo mới)</span></label>
+              <input class="db-input" id="sa-u-matkhau" type="password" placeholder="Tối thiểu 6 ký tự" style="width:100%">
+            </div>
+            <div>
+              <label class="db-label">Trạng Thái</label>
+              <select class="db-input" id="sa-u-trangthai" style="width:100%">
+                <option value="Hoạt động">✅ Hoạt Động</option>
+                <option value="Khóa">🔒 Khóa</option>
+              </select>
+            </div>
+          </div>
+          <div id="sa-user-form-error" style="display:none;margin-top:10px;padding:8px 12px;background:rgba(244,67,54,0.1);border:1px solid rgba(244,67,54,0.3);color:#f44336;font-size:12px;border-radius:4px"></div>
+          <div style="display:flex;gap:10px;margin-top:16px">
+            <button class="db-btn-sm primary" onclick="saSubmitUser()" id="sa-user-submit-btn">💾 Lưu Tài Khoản</button>
+            <button class="db-btn-sm" onclick="saCloseUserForm()">Hủy</button>
+          </div>
+        </div>
+
+        <!-- Bộ lọc -->
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+          <input class="db-input" id="sa-user-search" placeholder="🔍 Tìm tên, email..." style="max-width:220px"
+            oninput="saFilterUsersTable(this.value)">
+          <select class="db-input" id="sa-user-role-filter" style="max-width:160px" onchange="SA.loadUsers()">
+            <option value="">Tất Cả Role</option>
+            <option value="admin">🛡️ Admin</option>
+            <option value="shop">👑 Shop</option>
+            <option value="accountant">📒 Kế Toán</option>
+          </select>
+          <span style="font-size:12px;color:var(--gray-light);margin-left:auto">
+            Tổng: <b style="color:var(--white)" id="sa-user-count">--</b> nhân viên
+          </span>
+        </div>
+
+        <div class="db-table-wrap">
+          <div class="db-table-header">
+            <div class="db-table-title" id="sa-users-title">Danh Sách Nhân Viên</div>
+          </div>
+          <table class="db-table">
+            <thead>
+              <tr>
+                <th>Họ Tên</th>
+                <th>Email</th>
+                <th>SĐT</th>
+                <th>Vai Trò</th>
+                <th>Trạng Thái</th>
+                <th>Ngày Tạo</th>
+                <th>Hành Động</th>
+              </tr>
+            </thead>
+            <tbody id="sa-users-tbody">
+              <tr><td colspan="7" style="text-align:center;padding:20px;color:var(--gray-light)">⏳ Đang tải...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="db-panel" id="panel-admin-categories">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <div class="db-page-title" style="margin-bottom:0">Quản Lý Danh Mục</div>
+          <button class="db-btn-sm primary" onclick="saOpenCreateCat()">+ Thêm Danh Mục</button>
+        </div>
+        <div class="db-page-sub">Thêm, sửa, xóa, ẩn/hiện danh mục sản phẩm</div>
+
+        <!-- Form tạo / sửa danh mục -->
+        <div id="sa-cat-form" style="display:none;background:rgba(255,255,255,0.03);border:1px solid rgba(230,32,32,0.25);border-radius:6px;padding:20px;margin-bottom:20px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:16px" id="sa-cat-form-title">➕ Thêm Danh Mục Mới</div>
+          <input type="hidden" id="sa-cat-edit-id">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div>
+              <label class="db-label">Tên Danh Mục *</label>
+              <input class="db-input" id="sa-cat-ten" placeholder="VD: Giày Chạy Bộ" style="width:100%">
+            </div>
+            <div>
+              <label class="db-label">Mã (slug)</label>
+              <input class="db-input" id="sa-cat-ma" placeholder="giay-chay-bo" style="width:100%">
+            </div>
+            <div style="grid-column:1/-1">
+              <label class="db-label">Mô Tả</label>
+              <input class="db-input" id="sa-cat-mota" placeholder="Mô tả ngắn về danh mục..." style="width:100%">
+            </div>
+            <div>
+              <label class="db-label">Trạng Thái</label>
+              <select class="db-input" id="sa-cat-trangthai" style="width:100%">
+                <option value="Hoat dong">✅ Hoạt Động</option>
+                <option value="An">🙈 Ẩn</option>
+              </select>
+            </div>
+          </div>
+          <div id="sa-cat-form-error" style="display:none;margin-top:10px;padding:8px 12px;background:rgba(244,67,54,0.1);border:1px solid rgba(244,67,54,0.3);color:#f44336;font-size:12px;border-radius:4px"></div>
+          <div style="display:flex;gap:10px;margin-top:16px">
+            <button class="db-btn-sm primary" id="sa-cat-submit-btn" onclick="saSubmitCat()">💾 Lưu Danh Mục</button>
+            <button class="db-btn-sm" onclick="saCloseCatForm()">Hủy</button>
+          </div>
+        </div>
+
+        <!-- Bộ lọc + tìm kiếm -->
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+          <input class="db-input" placeholder="🔍 Tìm tên, mã danh mục..." style="max-width:240px"
+            oninput="saFilterCatTable(this.value)">
+          <select class="db-input" style="max-width:160px" onchange="saFilterCatStatus(this.value)" id="sa-cat-status-filter">
+            <option value="">Tất Cả Trạng Thái</option>
+            <option value="Hoat dong">✅ Hoạt Động</option>
+            <option value="An">🙈 Ẩn</option>
+          </select>
+          <span style="font-size:12px;color:var(--gray-light);margin-left:auto">
+            Tổng: <b style="color:var(--white)" id="sa-cat-count">--</b> danh mục
+          </span>
+        </div>
+
+        <div class="db-widget" style="padding:0;overflow:hidden">
+          <table class="db-table" style="width:100%">
+            <thead><tr>
+              <th>Tên Danh Mục</th>
+              <th>Mã</th>
+              <th>Mô Tả</th>
+              <th>Trạng Thái</th>
+              <th>Hành Động</th>
+            </tr></thead>
+            <tbody id="sa-cat-tbody">
+              <tr><td colspan="5" style="text-align:center;padding:20px;color:var(--gray-light)">⏳ Đang tải...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="db-panel" id="panel-admin-perms">
+        <div class="db-page-title">Ma Trận Phân Quyền</div>
+        <div class="db-page-sub">Kiểm soát quyền truy cập theo từng chức năng</div>
+        <div class="db-table-wrap">
+          <div class="db-table-header"><div class="db-table-title">Permission Matrix</div><button class="db-btn-sm primary" onclick="showToast('Lưu Phân Quyền','Ma trận phân quyền đã được cập nhật')">💾 Lưu Thay Đổi</button></div>
+          <div style="overflow-x:auto">
+            <table class="perm-matrix">
+              <thead>
+                <tr>
+                  <th>Chức Năng / Module</th>
+                  <th>👤 Thành Viên</th>
+                  <th>👑 Shop Admin</th>
+                  <th>📒 Kế Toán</th>
+                  <th>🎯 Marketing</th>
+                  <th>🛡️ Super Admin</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="6" style="background:var(--red);color:#fff;font-size:11px;font-weight:700;letter-spacing:1px;padding:6px 12px;text-transform:uppercase">Storefront & Khách Hàng</td></tr>
+                <tr><td>Xem trang cửa hàng</td><td><span class="perm-check">✓</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-check">✓</span></td></tr>
+                <tr><td>Mua hàng / đặt đơn</td><td><span class="perm-check">✓</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-cross">✗</span></td><td><span class="perm-cross">✗</span></td><td><span class="perm-check">✓</span></td></tr>
+                <tr><td>Dashboard cá nhân</td><td><span class="perm-check">✓</span></td><td><span class="perm-cross">✗</span></td><td><span class="perm-cross">✗</span></td><td><span class="perm-cross">✗</span></td><td><span class="perm-check">✓</span></td></tr>
+                <tr><td colspan="6" style="background:rgba(230,32,32,0.15);color:var(--white);font-size:11px;font-weight:700;letter-spacing:1px;padding:6px 12px;text-transform:uppercase">Quản Lý Bán Hàng</td></tr>
+                <tr><td>Xem danh sách đơn hàng</td><td><span class="perm-cross">✗</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-partial">Xem</span></td><td><span class="perm-cross">✗</span></td><td><span class="perm-check">✓</span></td></tr>
+                <tr><td>Duyệt / hủy đơn hàng</td><td><span class="perm-cross">✗</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-cross">✗</span></td><td><span class="perm-cross">✗</span></td><td><span class="perm-check">✓</span></td></tr>
+                <tr><td>Quản lý sản phẩm (CRUD)</td><td><span class="perm-cross">✗</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-cross">✗</span></td><td><span class="perm-partial">Xem</span></td><td><span class="perm-check">✓</span></td></tr>
+                <tr><td>Quản lý kho hàng</td><td><span class="perm-cross">✗</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-cross">✗</span></td><td><span class="perm-cross">✗</span></td><td><span class="perm-check">✓</span></td></tr>
+                <tr><td>Xem thông tin khách hàng</td><td><span class="perm-cross">✗</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-partial">Hạn chế</span></td><td><span class="perm-partial">Hạn chế</span></td><td><span class="perm-check">✓</span></td></tr>
+                <tr><td colspan="6" style="background:rgba(33,150,243,0.15);color:var(--white);font-size:11px;font-weight:700;letter-spacing:1px;padding:6px 12px;text-transform:uppercase">Tài Chính & Kế Toán</td></tr>
+                <tr><td>Xem báo cáo doanh thu</td><td><span class="perm-cross">✗</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-cross">✗</span></td><td><span class="perm-check">✓</span></td></tr>
+                <tr><td>Xem / xuất hóa đơn VAT</td><td><span class="perm-cross">✗</span></td><td><span class="perm-partial">Xem</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-cross">✗</span></td><td><span class="perm-check">✓</span></td></tr>
+                <tr><td>Quản lý chi phí</td><td><span class="perm-cross">✗</span></td><td><span class="perm-cross">✗</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-cross">✗</span></td><td><span class="perm-check">✓</span></td></tr>
+                <tr><td colspan="6" style="background:rgba(156,39,176,0.15);color:var(--white);font-size:11px;font-weight:700;letter-spacing:1px;padding:6px 12px;text-transform:uppercase">Hệ Thống & Quản Trị</td></tr>
+                <tr><td>Quản lý tài khoản người dùng</td><td><span class="perm-cross">✗</span></td><td><span class="perm-cross">✗</span></td><td><span class="perm-cross">✗</span></td><td><span class="perm-cross">✗</span></td><td><span class="perm-check">✓</span></td></tr>
+                <tr><td>Phân quyền vai trò</td><td><span class="perm-cross">✗</span></td><td><span class="perm-cross">✗</span></td><td><span class="perm-cross">✗</span></td><td><span class="perm-cross">✗</span></td><td><span class="perm-check">✓</span></td></tr>
+                <tr><td>Xem logs hệ thống</td><td><span class="perm-cross">✗</span></td><td><span class="perm-cross">✗</span></td><td><span class="perm-cross">✗</span></td><td><span class="perm-cross">✗</span></td><td><span class="perm-check">✓</span></td></tr>
+                <tr><td>Cài đặt bảo mật</td><td><span class="perm-cross">✗</span></td><td><span class="perm-cross">✗</span></td><td><span class="perm-cross">✗</span></td><td><span class="perm-cross">✗</span></td><td><span class="perm-check">✓</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="db-panel" id="panel-admin-logs">
+        <div class="db-page-title">Activity Logs</div>
+        <div class="db-page-sub">Toàn bộ hoạt động hệ thống trong 24h qua</div>
+        <div class="db-table-wrap">
+          <div class="db-table-header"><div class="db-table-title">System Logs</div><button class="db-btn-sm" onclick="showToast('Xuất Logs','Audit log đang được xuất...')">📋 Xuất Log</button></div>
+          <table class="db-table">
+            <thead><tr><th>Thời Gian</th><th>User</th><th>IP</th><th>Hành Động</th><th>Module</th><th>Mức Độ</th></tr></thead>
+            <tbody>
+              <tr><td>10:41:28</td><td>shopowner</td><td>192.168.1.42</td><td>Duyệt đơn hàng #SVN-240401</td><td>Orders</td><td><span class="db-status status-done" style="font-size:10px">INFO</span></td></tr>
+              <tr><td>10:28:15</td><td>marketing</td><td>192.168.1.45</td><td>Đăng nhập thành công</td><td>Auth</td><td><span class="db-status status-done" style="font-size:10px">INFO</span></td></tr>
+              <tr><td>09:15:04</td><td>shopowner</td><td>192.168.1.42</td><td>Cập nhật sản phẩm #142 Nike Air Max</td><td>Products</td><td><span class="db-status status-shipping" style="font-size:10px">WRITE</span></td></tr>
+              <tr><td style="color:orange">23:47:12</td><td style="color:orange">unknown</td><td style="color:orange">103.72.84.15</td><td style="color:orange">Đăng nhập thất bại × 5</td><td>Auth</td><td><span class="db-status status-cancel" style="font-size:10px">⚠️ WARN</span></td></tr>
+              <tr><td>16:20:55</td><td>ketoan</td><td>10.0.0.18</td><td>Xóa hóa đơn nháp #0004</td><td>Finance</td><td><span class="db-status status-shipping" style="font-size:10px">DELETE</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="db-panel" id="panel-admin-profile">
+        <div class="db-page-title">Hồ Sơ Cá Nhân</div>
+        <div class="db-page-sub">Quản lý thông tin tài khoản Super Admin</div>
+
+        <div class="db-grid-2" style="gap:24px;align-items:start">
+
+          <!-- CỘT TRÁI: Avatar + thông tin cơ bản -->
+          <div>
+            <!-- Avatar card -->
+            <div class="db-widget" style="text-align:center;padding:32px 24px;margin-bottom:16px">
+              <div style="position:relative;display:inline-block;margin-bottom:16px">
+                <div id="sa-avatar-display" style="width:100px;height:100px;border-radius:50%;background:rgba(156,39,176,0.2);border:3px solid #9c27b0;color:#9c27b0;font-size:32px;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto;overflow:hidden">SA</div>
+                <button onclick="document.getElementById('sa-avatar-upload').click()" style="position:absolute;bottom:4px;right:4px;width:28px;height:28px;border-radius:50%;background:#9c27b0;border:2px solid #141414;color:#fff;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center" title="Đổi ảnh">📷</button>
+                <input type="file" id="sa-avatar-upload" accept="image/*" style="display:none" onchange="saHandleAvatar(event)">
+              </div>
+              <div style="font-size:18px;font-weight:800;margin-bottom:4px" id="sa-display-name">Nguyễn Admin</div>
+              <div style="font-size:12px;color:#9c27b0;margin-bottom:4px">🛡️ Super Admin · Root</div>
+              <div style="font-size:11px;color:var(--gray-light)">ID: #SA-001 &nbsp;·&nbsp; Từ 01/2023</div>
+              <div style="margin-top:16px;padding:10px 16px;background:rgba(156,39,176,0.08);border:1px solid rgba(156,39,176,0.2);font-size:12px;color:#9c27b0">
+                🛡️ Tài khoản có toàn quyền hệ thống
+              </div>
+            </div>
+
+            <!-- Bảo mật nhanh -->
+            <div class="db-widget">
+              <div class="db-widget-title">Bảo Mật Tài Khoản</div>
+              <div style="display:flex;flex-direction:column;gap:12px;font-size:13px">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+                  <span style="color:var(--gray-light)">Đăng nhập 2 bước (2FA)</span>
+                  <span style="color:#4caf50;font-weight:700">✅ Đang bật</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+                  <span style="color:var(--gray-light)">Phiên đăng nhập</span>
+                  <span style="color:var(--white)">3 thiết bị</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+                  <span style="color:var(--gray-light)">Đăng nhập cuối</span>
+                  <span style="color:var(--white)">03/03/2026 10:40</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0">
+                  <span style="color:var(--gray-light)">IP cuối</span>
+                  <span style="color:var(--white)">192.168.1.42</span>
+                </div>
+                <button class="db-btn-sm" style="width:100%;margin-top:4px" onclick="showToast('Phiên Đăng Nhập','Quản lý tất cả phiên đang hoạt động')">Quản Lý Phiên →</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- CỘT PHẢI: Form chỉnh sửa -->
+          <div style="display:flex;flex-direction:column;gap:16px">
+
+            <!-- Thông tin cá nhân -->
+            <div class="db-widget">
+              <div class="db-widget-title">👤 Thông Tin Cá Nhân</div>
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                  <div>
+                    <label class="db-label">Họ & Tên *</label>
+                    <input class="db-input" id="sa-pf-name" type="text" value="Nguyễn Admin">
+                  </div>
+                  <div>
+                    <label class="db-label">Tên Hiển Thị</label>
+                    <input class="db-input" id="sa-pf-displayname" type="text" value="Super Admin">
+                  </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                  <div>
+                    <label class="db-label">Ngày Sinh</label>
+                    <input class="db-input" id="sa-pf-dob" type="date" value="1990-05-15">
+                  </div>
+                  <div>
+                    <label class="db-label">Giới Tính</label>
+                    <select class="db-input" id="sa-pf-gender">
+                      <option value="male" selected>Nam</option>
+                      <option value="female">Nữ</option>
+                      <option value="other">Khác</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label class="db-label">Chức Vụ / Mô Tả</label>
+                  <input class="db-input" id="sa-pf-title" type="text" value="System Administrator — SneakerVN">
+                </div>
+                <button class="db-btn-sm primary" style="width:fit-content" onclick="saSaveProfile()">💾 Lưu Thông Tin</button>
+              </div>
+            </div>
+
+            <!-- Liên hệ -->
+            <div class="db-widget">
+              <div class="db-widget-title">📞 Liên Hệ & Tài Khoản</div>
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div>
+                  <label class="db-label">Email Đăng Nhập</label>
+                  <div style="display:flex;gap:8px">
+                    <input class="db-input" id="sa-pf-email" type="email" value="admin@sneakervn.com" disabled style="flex:1">
+                    <button class="db-btn-sm" onclick="saEnableField('sa-pf-email',this)">Đổi</button>
+                  </div>
+                  <div style="font-size:11px;color:var(--gray-light);margin-top:4px">Đổi email yêu cầu xác minh OTP và phê duyệt hệ thống</div>
+                </div>
+                <div>
+                  <label class="db-label">Số Điện Thoại</label>
+                  <div style="display:flex;gap:8px">
+                    <input class="db-input" id="sa-pf-phone" type="tel" value="0901 234 567" disabled style="flex:1">
+                    <button class="db-btn-sm" onclick="saEnableField('sa-pf-phone',this)">Đổi</button>
+                  </div>
+                </div>
+                <div>
+                  <label class="db-label">Telegram / Zalo (nhận cảnh báo hệ thống)</label>
+                  <input class="db-input" id="sa-pf-telegram" type="text" value="@nguyen.admin" placeholder="@username">
+                </div>
+                <button class="db-btn-sm primary" style="width:fit-content" onclick="showToast('Lưu Liên Hệ ✅','Thông tin liên hệ đã được cập nhật')">💾 Lưu Liên Hệ</button>
+              </div>
+            </div>
+
+            <!-- Đổi mật khẩu -->
+            <div class="db-widget">
+              <div class="db-widget-title">🔒 Đổi Mật Khẩu</div>
+              <div id="sa-pw-collapsed">
+                <button class="db-btn-sm" style="width:100%;text-align:center" onclick="saTogglePw(true)">Thay Đổi Mật Khẩu →</button>
+              </div>
+              <div id="sa-pw-form" style="display:none;display:flex;flex-direction:column;gap:12px">
+                <div>
+                  <label class="db-label">Mật Khẩu Hiện Tại</label>
+                  <input class="db-input" id="sa-pw-old" type="password" placeholder="••••••••">
+                </div>
+                <div>
+                  <label class="db-label">Mật Khẩu Mới</label>
+                  <input class="db-input" id="sa-pw-new" type="password" placeholder="Tối thiểu 12 ký tự (yêu cầu SA)" oninput="saUpdatePwStrength(this.value)">
+                  <div style="height:4px;border-radius:2px;background:rgba(255,255,255,0.07);margin-top:6px"><div id="sa-pw-bar" style="height:4px;border-radius:2px;transition:all .3s;width:0"></div></div>
+                  <div id="sa-pw-label" style="font-size:11px;color:var(--gray-light);margin-top:4px">Nhập mật khẩu để kiểm tra độ mạnh</div>
+                </div>
+                <div>
+                  <label class="db-label">Xác Nhận Mật Khẩu Mới</label>
+                  <input class="db-input" id="sa-pw-confirm" type="password" placeholder="Nhập lại mật khẩu mới">
+                </div>
+                <div style="display:flex;gap:8px">
+                  <button class="db-btn-sm primary" onclick="saSavePw()">Cập Nhật Mật Khẩu</button>
+                  <button class="db-btn-sm" onclick="saTogglePw(false)">Hủy</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+
     </div>
   </div>
 </div>
-<div class="dashboard-page" id="accountantDashboard">
+<div class="dashboard-page" id="accountantDashboard" style="display:none!important">
   <div class="db-header">
     <div class="db-logo">SNEAKER<span>VN</span> <span style="font-size:14px;color:var(--gray-light);letter-spacing:0;font-family:'Barlow',sans-serif;font-weight:400">Kế Toán</span></div>
     <div class="db-header-right">
@@ -10977,7 +11351,7 @@ select.mp-field-input option { background: #1a1a1a; }
     </div>
   </div>
 </div>
-<div class="dashboard-page" id="superAdminDashboard">
+<div class="dashboard-page" id="superAdminDashboard" style="display:none!important">
   <div class="db-header">
     <div class="db-logo">SNEAKER<span>VN</span> <span style="font-size:14px;color:#9c27b0;letter-spacing:0;font-family:'Barlow',sans-serif;font-weight:700">SUPER ADMIN</span></div>
     <div class="db-header-right">
@@ -11957,29 +12331,11 @@ async function confirmRole() {
     document.getElementById('navLoginBtn').style.display = 'none';
 
     if (dashId && document.getElementById(dashId)) {
-      document.getElementById(dashId).classList.add('open');
-      document.body.style.overflow = 'hidden';
-
-      const _name = data.user?.hoTen || data.user?.HoTen || data.user?.hoten || email;
-      const _initials = _name.trim().split(/\s+/).map(w=>w[0]).join('').slice(-2).toUpperCase();
-
-      if (dashId === 'shopDashboard') {
-        const shopAvatar = document.getElementById('shop-db-avatar');
-        const shopName   = document.getElementById('shop-db-name');
-        if (shopAvatar) shopAvatar.textContent = _initials;
-        if (shopName)   shopName.textContent   = _name;
-        initAdminChart();
-        setTimeout(adminLoadDashboard, 300);
-        setTimeout(adminLoadOrders, 400);
-        setTimeout(adminLoadProducts, 500);
-      } else if (dashId === 'accountantDashboard') {
-        const accAvatar = document.getElementById('acc-db-avatar');
-        const accName   = document.getElementById('acc-db-name');
-        if (accAvatar) accAvatar.textContent = _initials;
-        if (accName)   accName.textContent   = _name;
-        setTimeout(function() { if (typeof accLoadOverview === 'function') accLoadOverview(); }, 300);
-        setTimeout(function() { if (typeof accLoadOrders   === 'function') accLoadOrders();   }, 400);
-      }
+      // Tất cả role đều vào shopDashboard (unified)
+      const _uDash = document.getElementById('shopDashboard');
+      if (_uDash) { _uDash.classList.add('open'); document.body.style.overflow = 'hidden'; }
+      const _uName = data.user?.hoTen || data.user?.HoTen || data.user?.hoten || email;
+      applyRoleToUnifiedDashboard(actualRole, _uName);
       updateChatVisibility();
     }
 
@@ -12017,6 +12373,112 @@ function updateChatVisibility() {
   chatBtn.style.opacity     = anyAdminOpen ? '0' : '1';
   chatBtn.style.pointerEvents = anyAdminOpen ? 'none' : '';
   if (anyAdminOpen && chatBox) chatBox.classList.remove('open');
+}
+
+// ============================================================
+// UNIFIED DASHBOARD — Phân quyền sidebar theo role
+// Gọi applyRoleToUnifiedDashboard(role, name) sau khi login
+// ============================================================
+const ROLE_CONFIG = {
+  admin: {
+    label:    '🛡️ Super Admin',
+    subtitle: 'Quản Trị Viên',
+    tagBg:    'rgba(156,39,176,0.2)',
+    tagBorder:'rgba(156,39,176,0.4)',
+    tagColor: '#9c27b0',
+    avatarBg: 'rgba(156,39,176,0.2)',
+    avatarColor: '#9c27b0',
+  },
+  shop: {
+    label:    '👑 Chủ Shop',
+    subtitle: 'Chủ Cửa Hàng',
+    tagBg:    'rgba(230,32,32,0.2)',
+    tagBorder:'rgba(230,32,32,0.4)',
+    tagColor: 'var(--red)',
+    avatarBg: 'rgba(230,32,32,0.2)',
+    avatarColor: 'var(--red)',
+  },
+  accountant: {
+    label:    '📒 Kế Toán',
+    subtitle: 'Finance Department',
+    tagBg:    'rgba(33,150,243,0.2)',
+    tagBorder:'rgba(33,150,243,0.4)',
+    tagColor: '#2196f3',
+    avatarBg: 'rgba(33,150,243,0.2)',
+    avatarColor: '#2196f3',
+  },
+};
+
+function applyRoleToUnifiedDashboard(role, name) {
+  const cfg = ROLE_CONFIG[role] || ROLE_CONFIG.shop;
+
+  // -- Cập nhật header --
+  const avatarEl   = document.getElementById('shop-db-avatar');
+  const nameEl     = document.getElementById('shop-db-name');
+  const subtitleEl = document.getElementById('shop-db-subtitle');
+  const roleTagEl  = document.getElementById('shop-db-role-tag');
+
+  const initials = (name||role).trim().split(/\s+/).map(w=>w[0]).join('').slice(-2).toUpperCase();
+  if (avatarEl) {
+    avatarEl.textContent = initials;
+    avatarEl.style.background = cfg.avatarBg;
+    avatarEl.style.color      = cfg.avatarColor;
+  }
+  if (nameEl)     nameEl.textContent     = name || role;
+  if (subtitleEl) subtitleEl.textContent = cfg.subtitle;
+  if (roleTagEl) {
+    roleTagEl.textContent   = cfg.label;
+    roleTagEl.style.background  = cfg.tagBg;
+    roleTagEl.style.borderColor = cfg.tagBorder;
+    roleTagEl.style.color       = cfg.tagColor;
+  }
+
+  // -- Cập nhật sidebar: khoá/mở từng item --
+  const sidebar = document.getElementById('unified-sidebar');
+  if (!sidebar) return;
+
+  // Xử lý từng nav-item
+  sidebar.querySelectorAll('.db-nav-item[data-roles]').forEach(function(item) {
+    const allowed = (item.dataset.roles || '').split(',').map(r => r.trim());
+    if (allowed.includes(role)) {
+      item.classList.remove('nav-locked');
+    } else {
+      item.classList.add('nav-locked');
+    }
+  });
+
+  // Xử lý từng nav-section có data-roles (admin-only sections)
+  sidebar.querySelectorAll('.db-nav-section[data-roles]').forEach(function(section) {
+    const allowed = (section.dataset.roles || '').split(',').map(r => r.trim());
+    if (allowed.includes(role)) {
+      section.classList.remove('nav-section-locked');
+    } else {
+      section.classList.add('nav-section-locked');
+    }
+  });
+
+  // Kế toán: nếu panel đang active là panel bị khóa → chuyển về home
+  const activeItem = sidebar.querySelector('.db-nav-item.active');
+  if (activeItem && activeItem.classList.contains('nav-locked')) {
+    const homeItem = sidebar.querySelector('.db-nav-item[data-roles]');
+    if (homeItem) {
+      homeItem.classList.add('active');
+      activeItem.classList.remove('active');
+      switchDbPanel('shopDashboard', 'panel-admin-home', homeItem);
+    }
+  }
+
+  // Load dữ liệu phù hợp
+  if (role === 'accountant') {
+    setTimeout(function() {
+      if (typeof accLoadOverview === 'function') accLoadOverview();
+    }, 300);
+  } else {
+    if (typeof initAdminChart    === 'function') initAdminChart();
+    if (typeof adminLoadDashboard=== 'function') setTimeout(adminLoadDashboard, 300);
+    if (typeof adminLoadOrders   === 'function') setTimeout(adminLoadOrders,    400);
+    if (typeof adminLoadProducts === 'function') setTimeout(adminLoadProducts,  500);
+  }
 }
 
 function logoutDashboard(id) {
@@ -12105,6 +12567,10 @@ function switchDbPanel(dashId, panelId, navItem) {
   if (panelId === 'panel-admin-reviews')    adminLoadReviews();
   if (panelId === 'panel-admin-finance')    adminLoadFinance();
   if (panelId === 'panel-admin-reports')    adminLoadReports();
+  // Admin-only panels (from superAdmin)
+  if (panelId === 'panel-admin-users')      { if (typeof SA !== 'undefined' && SA.loadUsers)     SA.loadUsers();      }
+  if (panelId === 'panel-admin-categories') { if (typeof SA !== 'undefined' && SA.loadCategories) SA.loadCategories(); }
+  if (panelId === 'panel-admin-profile')    { if (typeof saLoadProfile === 'function')            saLoadProfile();     }
 }
 
 function initAdminChart() {
@@ -18577,52 +19043,20 @@ async function checkDbStatus() {
   sessionStorage.setItem('svn_shop_logged_in', '1');
   currentUser = { role, name: name || role };
 
-  const dashMap = { shop: 'shopDashboard', accountant: 'accountantDashboard', admin: 'superAdminDashboard' };
-  const dashId  = dashMap[role];
-  if (!dashId) return;
+  if (!['shop','accountant','admin'].includes(role)) return;
 
   // Đợi DOM sẵn sàng
   function doRestore() {
-    const dash = document.getElementById(dashId);
+    // Tất cả role đều mở shopDashboard (unified)
+    const dash = document.getElementById('shopDashboard');
     if (!dash) return;
     dash.classList.add('open');
     document.body.style.overflow = 'hidden';
-    // Ẩn nút đăng nhập
     const loginBtn = document.getElementById('navLoginBtn');
     if (loginBtn) { loginBtn.style.display = 'none'; }
     updateChatVisibility && updateChatVisibility();
-    // Update shop dashboard header if applicable
-    if (role === 'shop') {
-      const avatarEl = document.getElementById('shop-db-avatar');
-      const nameEl   = document.getElementById('shop-db-name');
-      if (name && avatarEl) {
-        avatarEl.textContent = name.split(' ').map(function(w){return w[0];}).join('').slice(-2).toUpperCase();
-      }
-      if (name && nameEl) nameEl.textContent = name;
-    }
-    // Update accountant dashboard header
-    if (role === 'accountant') {
-      const accAvatarEl = document.getElementById('acc-db-avatar');
-      const accNameEl   = document.getElementById('acc-db-name');
-      if (name && accAvatarEl) {
-        accAvatarEl.textContent = name.split(' ').map(function(w){return w[0];}).join('').slice(-2).toUpperCase();
-      }
-      if (name && accNameEl) accNameEl.textContent = name;
-    }
-    // Load dữ liệu dashboard
-    if (role === 'shop' || role === 'admin') {
-      setTimeout(function() {
-        if (typeof initAdminChart === 'function') initAdminChart();
-        if (typeof adminLoadDashboard === 'function') adminLoadDashboard();
-        if (typeof adminLoadOrders === 'function') adminLoadOrders();
-        if (typeof adminLoadProducts === 'function') adminLoadProducts();
-      }, 400);
-    } else if (role === 'accountant') {
-      setTimeout(function() {
-        if (typeof accLoadOverview === 'function') accLoadOverview();
-        if (typeof accLoadOrders  === 'function') accLoadOrders();
-      }, 400);
-    }
+    // Áp dụng unified dashboard cho tất cả role
+    applyRoleToUnifiedDashboard(role, name || role);
   }
 
   if (document.readyState === 'loading') {

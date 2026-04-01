@@ -162,6 +162,76 @@ app.get("/api/admin/storage-check", async (req, res) => {
   }
 });
 
+// ── MIGRATE ẢNH LOCAL → SUPABASE ────────────────────────────
+// GET /api/admin/migrate-images — chuyển toàn bộ /uploads/products/* lên Supabase
+app.get("/api/admin/migrate-images", async (req, res) => {
+  if (!SUPABASE_ANON || !SUPABASE_ANON.startsWith("eyJ")) {
+    return res.status(400).json({
+      error: "Chưa cấu hình SUPABASE_ANON. Vào Supabase Dashboard → Project Settings → API → lấy anon/public key (eyJhbGci...) → điền vào .env"
+    });
+  }
+  try {
+    const results = { migrated: [], failed: [], skipped: [] };
+
+    // Lấy tất cả ảnh local trong DB
+    const r = await pool.query(
+      "SELECT id, masanpham, url FROM sanpham_images WHERE url LIKE '/uploads/%'"
+    );
+    const r2 = await pool.query(
+      "SELECT masanpham, hinhanh FROM sanpham WHERE hinhanh LIKE '/uploads/%'"
+    );
+
+    // Migrate sanpham_images
+    for (const row of r.rows) {
+      try {
+        const filename = row.url.replace("/uploads/products/", "");
+        const localPath = path.join(UPLOADS_DIR, filename);
+        if (!fs.existsSync(localPath)) {
+          results.skipped.push({ id: row.id, url: row.url, reason: "File không tồn tại local" });
+          continue;
+        }
+        const buffer = fs.readFileSync(localPath);
+        const ext = filename.split(".").pop() || "jpg";
+        const mime = ext === "png" ? "image/png" : "image/jpeg";
+        const newUrl = await uploadToSupabase(buffer, filename, mime);
+        await pool.query("UPDATE sanpham_images SET url=$1 WHERE id=$2", [newUrl, row.id]);
+        // Cũng update hinhanh nếu la_anh_chinh
+        const imgRow = await pool.query("SELECT la_anh_chinh FROM sanpham_images WHERE id=$1", [row.id]);
+        if (imgRow.rows[0]?.la_anh_chinh) {
+          await pool.query("UPDATE sanpham SET hinhanh=$1 WHERE masanpham=$2", [newUrl, row.masanpham]);
+        }
+        results.migrated.push({ old: row.url, new: newUrl });
+      } catch(e) {
+        results.failed.push({ url: row.url, error: e.message });
+      }
+    }
+
+    // Migrate hinhanh trong bảng sanpham (nếu chưa có trong sanpham_images)
+    for (const row of r2.rows) {
+      try {
+        const filename = row.hinhanh.replace("/uploads/products/", "");
+        const localPath = path.join(UPLOADS_DIR, filename);
+        if (!fs.existsSync(localPath)) {
+          results.skipped.push({ ma: row.masanpham, url: row.hinhanh, reason: "File không tồn tại local" });
+          continue;
+        }
+        const buffer = fs.readFileSync(localPath);
+        const ext = filename.split(".").pop() || "jpg";
+        const mime = ext === "png" ? "image/png" : "image/jpeg";
+        const newUrl = await uploadToSupabase(buffer, filename, mime);
+        await pool.query("UPDATE sanpham SET hinhanh=$1 WHERE masanpham=$2", [newUrl, row.masanpham]);
+        results.migrated.push({ old: row.hinhanh, new: newUrl });
+      } catch(e) {
+        results.failed.push({ url: row.hinhanh, error: e.message });
+      }
+    }
+
+    res.json({ success: true, ...results });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ============================================================
 // XÁC THỰC — KHÁCH HÀNG (đăng ký / đăng nhập)
 // ============================================================
@@ -976,11 +1046,14 @@ app.patch(
 
 // ── SUPABASE STORAGE CONFIG ───────────────────────────────────
 const SUPABASE_URL  = process.env.SUPABASE_URL  || "https://mufxhkvktyiykcqnlpzx.supabase.co";
-const SUPABASE_ANON = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON || "sb_publishable_rv6_3zvCyO0PsfwyNYZzNQ_NUp9m-qX";
+// ⚠️ QUAN TRỌNG: phải dùng "anon key" dạng eyJhbGci... từ Supabase Dashboard → Project Settings → API
+// KHÔNG dùng sb_publishable_* (đó là Publishable key, không dùng được cho Storage)
+const SUPABASE_ANON = process.env.SUPABASE_ANON || process.env.SUPABASE_SERVICE_KEY || "";
 
 async function uploadToSupabase(buffer, filename, mimetype) {
   // Thử upload Supabase nếu key hợp lệ (không phải sb_publishable)
-  if (SUPABASE_URL && SUPABASE_ANON && !SUPABASE_ANON.startsWith("sb_publishable")) {
+  // Dùng Supabase nếu SUPABASE_ANON đã được set (dạng eyJhbGci...)
+  if (SUPABASE_URL && SUPABASE_ANON && SUPABASE_ANON.startsWith("eyJ")) {
     try {
       const uploadUrl = `${SUPABASE_URL}/storage/v1/object/products/${filename}`;
       console.log(`[Upload Supabase] → ${uploadUrl}`);
@@ -1961,6 +2034,43 @@ app.post(
 // Bảng: Chat_Sessions, Chat_Messages (tạo tự động nếu chưa có)
 // Env: ANTHROPIC_API_KEY
 // ============================================================
+
+// ── RESET MẬT KHẨU STAFF (chỉ admin) ───────────────────────
+app.post("/api/admin/staff/reset-password", requireRole("admin"), async (req, res) => {
+  try {
+    const { email, matkhau_moi } = req.body;
+    if (!email || !matkhau_moi) return res.status(400).json({ error: "Thiếu email hoặc mật khẩu mới" });
+    const hashedPw = crypto.createHash("sha256").update(matkhau_moi + JWT_SECRET).digest("hex");
+    const r = await pool.query(
+      "UPDATE nguoiquanly SET matkhau=$1 WHERE email=$2 RETURNING email, vaitro",
+      [hashedPw, email]
+    );
+    if (!r.rows.length) return res.status(404).json({ error: "Không tìm thấy tài khoản" });
+    res.json({ success: true, email: r.rows[0].email, role: r.rows[0].vaitro });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── TẠO STAFF MỚI hoặc CẬP NHẬT nếu đã có (dùng để seed từ API) ──
+app.post("/api/admin/staff/upsert", requireRole("admin"), async (req, res) => {
+  try {
+    const { hoten, email, matkhau, vaitro } = req.body;
+    if (!email || !matkhau) return res.status(400).json({ error: "Thiếu email hoặc mật khẩu" });
+    const hashedPw = crypto.createHash("sha256").update(matkhau + JWT_SECRET).digest("hex");
+    const ex = await pool.query("SELECT idnguoiquanly FROM nguoiquanly WHERE email=$1", [email]);
+    if (ex.rows.length) {
+      await pool.query(
+        "UPDATE nguoiquanly SET hoten=$1, matkhau=$2, vaitro=$3, trangthai='Hoạt động' WHERE email=$4",
+        [hoten || email, hashedPw, vaitro || "shop", email]
+      );
+    } else {
+      await pool.query(
+        "INSERT INTO nguoiquanly (hoten,email,sodienthoai,matkhau,vaitro,trangthai,ngaytao) VALUES ($1,$2,'',$3,$4,'Hoạt động',NOW())",
+        [hoten || email, email, hashedPw, vaitro || "shop"]
+      );
+    }
+    res.json({ success: true, email, vaitro: vaitro || "shop" });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
 
 // ── AUTO-CREATE sanpham_images table ─────────────────────────
 (async () => {

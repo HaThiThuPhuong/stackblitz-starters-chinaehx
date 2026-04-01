@@ -29,9 +29,10 @@ async function seed() {
   // ══════════════════════════════════════════════════════
   console.log('👤 1. Tài khoản nhân viên...');
   const staffAccounts = [
-    { HoTen:'Nguyễn Thị Admin',  Email:'admin@sneakervn.com',    MatKhau:'admin@super',    VaiTro:'admin' },
-    { HoTen:'Trần Văn Shop',     Email:'shop@sneakervn.com',      MatKhau:'shop@123',       VaiTro:'shop' },
-    { HoTen:'Lê Thị Kế Toán',   Email:'ketoan@sneakervn.com',    MatKhau:'ketoan@123',     VaiTro:'accountant' },
+    { HoTen:'Nguyễn Thị Admin',  Email:'admin@sneakervn.com',     MatKhau:'admin123',    VaiTro:'admin' },
+    { HoTen:'Trần Văn Shop',     Email:'shopowner@sneakervn.com', MatKhau:'shop123',     VaiTro:'shop' },
+    { HoTen:'Trần Văn Shop 2',   Email:'shop@sneakervn.com',      MatKhau:'shop123',     VaiTro:'shop' },
+    { HoTen:'Lê Thị Kế Toán',   Email:'ketoan@sneakervn.com',    MatKhau:'ketoan123',   VaiTro:'accountant' },
   ];
   for (const s of staffAccounts) {
     try {
@@ -223,8 +224,9 @@ async function seed() {
    ├─────────────────────────────────────────────────────┤
    │ 👤 Thành Viên│ member@sneakervn.com    │ member@123 │
    │ 👑 Chủ Shop  │ shop@sneakervn.com      │ shop@123   │
-   │ 📒 Kế Toán   │ ketoan@sneakervn.com    │ ketoan@123 │
-   │ 🛡️  Super Admin│ admin@sneakervn.com   │ admin@super│
+   │ 📒 Kế Toán   │ ketoan@sneakervn.com    │ ketoan123  │
+   │ 🏪 Shop owner │ shopowner@sneakervn.com │ shop123    │
+   │ 🛡️  Admin      │ admin@sneakervn.com    │ admin123   │
    └─────────────────────────────────────────────────────┘
 ════════════════════════════════════════════`);
 

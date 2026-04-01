@@ -1689,6 +1689,7 @@ let currentFilter = 'all';
 function renderProducts(filter) {
   const grid = document.getElementById('productsGrid');
   if (!grid) return;
+  if (!Array.isArray(products)) products = [];  // guard: tránh lỗi filter
   const filtered = filter === 'all' ? products :
     filter === 'hot' ? products.filter(p => p.badge === 'hot') :
     filter === 'sale' ? products.filter(p => p.badge === 'sale') :
@@ -2135,11 +2136,13 @@ async function handleLogin() {
     localStorage.setItem('customer_token', data.token);
     sessionStorage.setItem('customer_token', data.token);
     const name = data.user?.hoten || data.user?.HoTen || email;
-    const p = SVN.getProfile();
-    p.name  = name;
-    p.email = data.user?.email || email;
-    p.phone = data.user?.sodienthoai || p.phone;
-    SVN.saveProfile(p);
+    if (typeof SVN !== 'undefined') {
+      const p = SVN.getProfile();
+      p.name  = name;
+      p.email = data.user?.email || email;
+      p.phone = data.user?.sodienthoai || p.phone;
+      SVN.saveProfile(p);
+    }
 
     errEl.style.display = 'none';
     closeModal();
@@ -3193,7 +3196,7 @@ async function accSaveVATFromOrder(order) {
   }
 }
 
-function saLoadProfile() {
+async function saLoadProfile() {
   try {
     // Lấy thông tin từ /api/admin/users (tìm chính mình qua email trong token)
     const list = await SA.sf('/api/admin/users');
@@ -4997,7 +5000,7 @@ function renderCpCart() {
   }).join('');
 
   // upsell
-  const upsellProds = products.filter(p => !cart.find(c => c.id === p.id)).slice(0,4);
+  const upsellProds = Array.isArray(products) ? products.filter(p => !cart.find(c => c.id === p.id)).slice(0,4) : [];
   document.getElementById('cpUpsell').innerHTML = upsellProds.map(p => `
     <div class="cp-upsell-item">
       <div class="cp-upsell-img">${p.emoji}</div>
@@ -6277,7 +6280,7 @@ function openPdp(productId) {
   ).join('');
 
   // Related
-  const related = products.filter(x=>String(x.id)!==String(productId)).slice(0,4);
+  const related = Array.isArray(products) ? products.filter(x=>String(x.id)!==String(productId)).slice(0,4) : [];
   document.getElementById('pdpRelatedGrid').innerHTML = related.map(r=>
     `<div class="pdp-rel-card" onclick="openPdp('${r.id}')">
       <div class="pdp-rel-img">
@@ -12568,7 +12571,7 @@ async function confirmRole() {
     const wrap = document.getElementById('userNavWrap');
     if (wrap) {
       wrap.classList.add('visible');
-      const profile = SVN.getProfile();
+      const profile = (typeof SVN !== 'undefined') ? SVN.getProfile() : { name: '' };
       const name = profile.name || 'Thành Viên';
       const initials = name.trim().split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase();
       const avatarEl = document.getElementById('userNavAvatar');
@@ -19213,6 +19216,7 @@ function svcPollFn(){
 if(svcSid)document.addEventListener('DOMContentLoaded',function(){svcShowConv();});
 </script>
 
+<script>
 // ── CÀI ĐẶT: KIỂM TRA STORAGE & DB ───────────────────────────
 async function initDefaultAccounts() {
   const el = document.getElementById('init-accounts-result');
@@ -19311,6 +19315,8 @@ async function checkDbStatus() {
     el.textContent = '❌ ' + e.message;
   }
 }
+</script>
+
 </body>
 
 <script>
@@ -19333,44 +19339,23 @@ async function checkDbStatus() {
         localStorage.removeItem('admin_token');
         localStorage.removeItem('svn_admin_role');
         localStorage.removeItem('svn_admin_name');
-        localStorage.removeItem('svn_shop_logged_in');
         return;
       }
-    } catch(e) { return; }
+    } catch(e) {
+      localStorage.removeItem('admin_token');
+      return;
+    }
   }
 
-  // Restore phiên
-  sessionStorage.setItem('admin_token', token);
-  sessionStorage.setItem('svn_shop_logged_in', '1');
-  currentUser = { role, name: name || role };
-
-  if (!['shop','accountant','admin'].includes(role)) return;
-
-  // Đợi DOM sẵn sàng
-  function doRestore() {
-    // Tất cả role đều mở shopDashboard (unified)
-    const dash = document.getElementById('shopDashboard');
-    if (!dash) return;
-    dash.classList.add('open');
-    document.body.style.overflow = 'hidden';
-    const loginBtn = document.getElementById('navLoginBtn');
-    if (loginBtn) { loginBtn.style.display = 'none'; }
-    updateChatVisibility && updateChatVisibility();
-    // Áp dụng unified dashboard cho tất cả role
-    applyRoleToUnifiedDashboard(role, name || role);
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', doRestore);
+  // Token còn hạn → restore UI
+  if (typeof showAdminPanel === 'function') {
+    showAdminPanel(role, name);
   } else {
-    doRestore();
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof showAdminPanel === 'function') showAdminPanel(role, name);
+    });
   }
 })();
-
-// Xóa token khi đóng tab/trình duyệt (beforeunload)
-window.addEventListener('beforeunload', function() {
-  // Chỉ xóa sessionStorage, giữ localStorage để restore khi mở lại
-  sessionStorage.removeItem('admin_token');
-});
 </script>
+</body>
 </html>

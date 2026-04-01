@@ -5696,16 +5696,8 @@ function openPdp(productId) {
   document.getElementById('pdpBreadName').textContent = p.name;
 
   // Gallery — hỗ trợ cả ảnh thật lẫn emoji
-  const mainImgEl = document.getElementById('pdpMainEmoji');
-  if (p.imgUrl) {
-    mainImgEl.innerHTML = `<img src="${p.imgUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:8px" onerror="this.outerHTML='<span style=\\'font-size:120px\\'>👟</span>'">`;
-  } else {
-    mainImgEl.textContent = p.emoji || '👟';
-  }
   const badgeHtml = p.badge ? `<span class="${p.badge==='NEW'?'new':p.badge==='HOT'?'hot':''}">${p.badge}</span>` : '';
   document.getElementById('pdpBadgeOverlay').innerHTML = badgeHtml;
-  const thumbs = document.getElementById('pdpThumbs');
-  // ── Biến toàn cục lưu ảnh sản phẩm cho pdpFilterByColor ──
   // — lưu toàn bộ ảnh đầy đủ đẳ pdpFilterByColor dùng
   window._pdpAllImages = [];
 
@@ -6161,7 +6153,7 @@ document.addEventListener('click', function(e) {
   // Don't open PDP when clicking size btn or add-to-cart btn
   if (e.target.closest('.size-btn') || e.target.closest('.add-to-cart')) return;
   const pid = card.dataset.productId;
-  if (pid) openPdp(parseInt(pid));
+  if (pid) openPdp(String(pid));
 });
 </script>
 

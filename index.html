@@ -5648,47 +5648,36 @@ const pdpProductData = {
   },
 };
 
-// Fill in default data for all products
-[1,2,3,4,5,6,7,8].forEach(id => {
-  if (!pdpProductData[id]) {
-    const p = products[id-1] || products[0];
-    pdpProductData[id] = {
-      ...pdpProductData[1],
-      name: p ? p.name : 'Sản phẩm',
-      brand: p ? p.brand.toUpperCase() : 'BRAND',
-      emoji: p ? p.emoji : '👟',
-      price: p ? p.price : 2000000,
-      origPrice: p ? Math.round(p.price * 1.2) : 2400000,
-      badge: p ? p.badge : null,
-      sku: 'SKU-00' + id,
-      // FIX: buildSizeList tạo dải đầy đủ đúng cho từng sản phẩm
-      allSizes: p && p.sizes && p.sizes.length > 0
-        ? buildSizeList(p.sizes.join(','))
-        : [],
-      sizes: p ? p.sizes : [],
-    };
-  }
-});
+// pdpProductData chỉ chứa dữ liệu demo cho sản phẩm id=1 (Nike AF1).
+// Mọi sản phẩm khác đều được load trực tiếp từ DB trong openPdp().
 
-function openPdp(productId) {
+async function openPdp(productId) {
+  // Nếu products[] chưa load, fetch trực tiếp từ API để tránh race condition
+  if (products.length === 0) {
+    try {
+      const r = await fetch('/api/sanpham?limit=200');
+      const j = await r.json();
+      const raw = j.data || j.products || j || [];
+      if (Array.isArray(raw)) products = raw.map(dbProdToHomeProd);
+    } catch(_) {}
+  }
+
   // Ưu tiên pdpProductData (sản phẩm demo có đầy đủ thông tin)
   // Nếu không có thì dùng sản phẩm từ DB (mảng products toàn cục)
   let p = pdpProductData[productId];
 
-  // FIX: Luôn kiểm tra DB để lấy sizes thật, bất kể pdpProductData có sẵn hay không
+  // Luôn dùng dữ liệu từ DB (mảng products) để lấy sizes/allSizes thật
   const dbProd = products.find(x => String(x.id) === String(productId));
   if (dbProd) {
     const totalStock = dbProd.stock || 0;
-    // FIX: buildSizeList tạo dải đầy đủ với avail=true/false
-    const sizeStr = (dbProd.sizes || []).join(',');
-    const dbAllSizes = buildSizeList(sizeStr);
-    // avail cho mỗi size: nếu còn hàng tổng thể thì các size trong DB = avail
-    const dbSizes = dbAllSizes.length > 0 ? dbAllSizes : [];
+    // allSizes đã được buildSizeList() tính sẵn trong dbProdToHomeProd
+    // Chỉ rebuild nếu vì lý do nào đó allSizes chưa có
+    const dbAllSizes = dbProd.allSizes && dbProd.allSizes.length > 0
+      ? dbProd.allSizes
+      : buildSizeList((dbProd.sizes || []).join(','));
     if (p) {
-      // Sản phẩm có trong pdpProductData (demo) — override allSizes từ DB
-      if (dbSizes.length > 0) {
-        p = { ...p, allSizes: dbSizes, sizes: dbSizes.filter(s=>s.avail).map(s=>s.s), stock: totalStock };
-      }
+      // Sản phẩm có trong pdpProductData (demo AF1) — override sizes bằng dữ liệu DB thật
+      p = { ...p, allSizes: dbAllSizes, sizes: dbProd.sizes || [], stock: totalStock };
     } else {
       // Sản phẩm chỉ có trong DB
       const colorMap = {'Trắng':'#f5f5f5','Đen':'#111','Đỏ':'#e62020','Xanh':'#1976d2','Vàng':'#fdd835','Xám':'#888','Xanh lá':'#388e3c','Cam':'#f57c00','Hồng':'#e91e63','Tím':'#7b1fa2','Nâu':'#795548','Kem':'#fdf5e6'};
@@ -5703,8 +5692,8 @@ function openPdp(productId) {
         price:     dbProd.price,
         origPrice: dbProd.old || dbProd.price,
         colors:    dbColors,
-        allSizes:  dbSizes,
-        sizes:     dbSizes.filter(s=>s.avail).map(s=>s.s),
+        allSizes:  dbAllSizes,
+        sizes:     dbProd.sizes || [],
         desc:      dbProd.desc || '',
         features:  [],
         specs:     [],
@@ -5715,7 +5704,7 @@ function openPdp(productId) {
   }
 
   if (!p) {
-    p = pdpProductData[1]; // ultimate fallback
+    p = pdpProductData[1]; // ultimate fallback nếu products[] chưa load
   }
   pdpProduct = {...p, id: productId};
   pdpQty = 1; pdpSelectedSize = null; pdpWished = false;

@@ -322,7 +322,7 @@ app.get("/api/sanpham", async (req, res) => {
   try {
     const { search, danhmuc, thuonghieu, page = 1, limit = 50 } = req.query;
     let query =
-      "SELECT masanpham,tensanpham,thuonghieu,madanhmuc,danhmuc,giaban,size,mausac,motasanpham,soluongton,sku,tinhtrang,hinhanh FROM sanpham WHERE tinhtrang != 'Ẩn'";
+      "SELECT masanpham,tensanpham,thuonghieu,madanhmuc,danhmuc,giaban,size,mausac,motasanpham,chinhsachdoitra,chinhsachbaohanh,soluongton,sku,tinhtrang,hinhanh FROM sanpham WHERE tinhtrang != 'Ẩn'";
     const params = [];
 
     if (search) {

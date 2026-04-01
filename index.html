@@ -4952,15 +4952,20 @@ window.checkout = function() {
 .pdp-badge-overlay span.hot { background:#e65c00; }
 .pdp-thumbs {
   display:flex; gap:8px; overflow-x:auto;
+  scroll-snap-type:x mandatory; padding-bottom:4px;
+  scrollbar-width:thin; scrollbar-color:rgba(230,32,32,.4) transparent;
 }
+.pdp-thumbs::-webkit-scrollbar { height:4px; }
+.pdp-thumbs::-webkit-scrollbar-thumb { background:rgba(230,32,32,.4); border-radius:2px; }
 .pdp-thumb {
   width:80px; height:80px; flex-shrink:0;
   background:linear-gradient(135deg,#181818,#222);
   display:flex; align-items:center; justify-content:center;
-  font-size:32px; cursor:pointer;
-  border:2px solid transparent; transition:border-color .2s;
+  font-size:32px; cursor:pointer; overflow:hidden; border-radius:6px;
+  border:2px solid transparent; transition:border-color .2s, box-shadow .2s;
+  scroll-snap-align:start;
 }
-.pdp-thumb.active { border-color:var(--red); }
+.pdp-thumb.active { border-color:var(--red); box-shadow:0 0 0 1px var(--red); }
 .pdp-thumb:hover { border-color:rgba(230,32,32,0.5); }
 
 /* ── RIGHT: INFO ── */
@@ -5701,181 +5706,222 @@ function openPdp(productId) {
   document.getElementById('pdpBadgeOverlay').innerHTML = badgeHtml;
   const thumbs = document.getElementById('pdpThumbs');
   // ── Biến toàn cục lưu ảnh sản phẩm cho pdpFilterByColor ──
+  // — lưu toàn bộ ảnh đầy đủ đẳ pdpFilterByColor dùng
   window._pdpAllImages = [];
 
-  // ── Helper tạo color swatch HTML ─────────────────────────────
-  function _makeColorSwatch(c, i, colorMapRef) {
-    var bg = colorMapRef[c] || '#666';
-    var border = i === 0 ? 'var(--white)' : 'rgba(255,255,255,0.2)';
-    var div = document.createElement('div');
-    div.className = 'pdp-color-btn' + (i === 0 ? ' active' : '');
-    div.dataset.name = c;
-    div.title = c;
-    div.style.cssText = 'background:' + bg + ';border:2px solid ' + border;
-    div.addEventListener('click', function() { pdpFilterByColor(this, c, window._pdpAllImages); });
-    return div;
+  const COLOR_MAP_PDP = {
+    'Trắng':'#f5f5f5','Đen':'#111','Đỏ':'#e62020',
+    'Xanh':'#1976d2','Vàng':'#fdd835','Xám':'#888',
+    'Xanh lá':'#388e3c','Cam':'#f57c00','Hồng':'#e91e63',
+    'Tím':'#7b1fa2','Nâu':'#795548','Kem':'#fdf5e6'
+  };
+
+  // — Hiện ảnh tạm từ hinhanh trong lúc chờ API
+  var mainImgEl = document.getElementById('pdpMainEmoji');
+  if (mainImgEl) {
+    if (p.imgUrl) {
+      var tmpImg = new Image();
+      tmpImg.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:8px';
+      tmpImg.onerror = function() { mainImgEl.innerHTML = '<span style="font-size:120px">👟</span>'; };
+      tmpImg.src = p.imgUrl;
+      mainImgEl.innerHTML = '';
+      mainImgEl.appendChild(tmpImg);
+    } else {
+      mainImgEl.textContent = '👟';
+    }
+  }
+  var thumbs = document.getElementById('pdpThumbs');
+  if (thumbs) thumbs.innerHTML = '';
+
+  // — Hàm render 1 ảnh lỏn
+  function _pdpSetMain(url) {
+    var el = document.getElementById('pdpMainEmoji');
+    if (!el) return;
+    var im = new Image();
+    im.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:8px';
+    im.onerror = function() { el.innerHTML = '<span style="font-size:120px">👟</span>'; };
+    im.src = url;
+    el.innerHTML = '';
+    el.appendChild(im);
   }
 
-  // ── Helper render thumbnails ──────────────────────────────────
-  function _renderThumbs(thumbsEl, imgArr) {
+  // — Hàm build thumbnail từ danh sách ảnh đã sắp xếp
+  // imgs: mảng { url, mausac, la_anh_chinh }
+  // activeColor: nếu có thì highlight ảnh thuộc màu đó
+  function _pdpBuildThumbs(imgs, activeColor) {
+    var thumbsEl = document.getElementById('pdpThumbs');
+    if (!thumbsEl) return;
     thumbsEl.innerHTML = '';
-    imgArr.forEach(function(img, i) {
+
+    // Phân loại ảnh:
+    // 1. Ảnh chính (la_anh_chinh = true và không có màu)
+    // 2. Ảnh phụ (không có màu, không phải ảnh chính)
+    // 3. Ảnh màu (có mausac)
+    var mainImg  = imgs.find(function(i){ return i.la_anh_chinh && !i.mausac; });
+    if (!mainImg) mainImg = imgs.find(function(i){ return i.la_anh_chinh; });
+    if (!mainImg) mainImg = imgs.find(function(i){ return !i.mausac; }) || imgs[0];
+
+    var subImgs  = imgs.filter(function(i){ return i !== mainImg && !i.mausac; });
+    var colorImgs= imgs.filter(function(i){ return !!i.mausac; });
+
+    var ordered = [];
+    if (mainImg) ordered.push(mainImg);
+    subImgs.forEach(function(i){ ordered.push(i); });
+    colorImgs.forEach(function(i){ ordered.push(i); });
+
+    // Hiện ảnh lớn đầu tiên
+    if (mainImg) _pdpSetMain(mainImg.url);
+
+    ordered.forEach(function(img, idx) {
+      var isColorImg = !!img.mausac;
+      var isActive   = idx === 0 || (activeColor && img.mausac === activeColor && idx === ordered.findIndex(function(x){ return x.mausac === activeColor; }));
+
       var wrap = document.createElement('div');
-      wrap.className = 'pdp-thumb' + (i === 0 ? ' active' : '');
-      wrap.style.cssText = 'position:relative;cursor:pointer';
-      wrap.addEventListener('click', function() { pdpSelectGalleryImg(wrap, img.url); });
-      var im = document.createElement('img');
-      im.src = img.url;
+      wrap.className = 'pdp-thumb' + (idx === 0 ? ' active' : '');
+      wrap.style.cssText = 'position:relative;cursor:pointer;overflow:hidden;';
+      wrap.dataset.color = img.mausac || '';
+
+      var im = new Image();
       im.style.cssText = 'width:100%;height:100%;object-fit:cover';
       im.onerror = function() { wrap.innerHTML = '<span style="font-size:24px">👟</span>'; };
+      im.src = img.url;
       wrap.appendChild(im);
-      if (img.mausac) {
+
+      // Badge màu
+      if (isColorImg) {
         var lbl = document.createElement('div');
-        lbl.style.cssText = 'position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.65);color:#fff;font-size:9px;text-align:center;padding:2px';
+        lbl.style.cssText = 'position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.72);color:#fff;font-size:9px;font-weight:600;text-align:center;padding:3px 2px;line-height:1.3;letter-spacing:.3px';
         lbl.textContent = img.mausac;
         wrap.appendChild(lbl);
+        // Đốt nến màu nhẹ cho ảnh màu
+        var dot = document.createElement('div');
+        var dotBg = COLOR_MAP_PDP[img.mausac] || '#888';
+        dot.style.cssText = 'position:absolute;top:4px;right:4px;width:10px;height:10px;border-radius:50%;background:' + dotBg + ';border:1.5px solid rgba(255,255,255,0.7)';
+        wrap.appendChild(dot);
       }
+
+      (function(w, imgUrl, imgColor) {
+        w.addEventListener('click', function() {
+          // Bỏ active của tất cả thumbs
+          document.querySelectorAll('.pdp-thumb').forEach(function(t){ t.classList.remove('active'); });
+          w.classList.add('active');
+          _pdpSetMain(imgUrl);
+          // Nếu ảnh có màu → tự động tick màu đó
+          if (imgColor) {
+            _pdpSelectColorByName(imgColor);
+          }
+        });
+      })(wrap, img.url, img.mausac || '');
+
       thumbsEl.appendChild(wrap);
     });
+
+    // Lưu ordered đẳ filter sau
+    thumbsEl._orderedImgs = ordered;
   }
 
-  // ── Helper render color grid ──────────────────────────────────
-  function _renderColorGrid(gridEl, labelEl, colors, colorMapRef) {
-    gridEl.innerHTML = '';
-    colors.forEach(function(c, i) {
-      gridEl.appendChild(_makeColorSwatch(c, i, colorMapRef));
-    });
-    if (labelEl && colors.length > 0) labelEl.textContent = colors[0];
-  }
-
-  // Load ảnh gallery từ API — phân loại: ảnh chính / ảnh phụ / ảnh theo màu
-  (async () => {
-    const COLOR_MAP = {'Trắng':'#f5f5f5','Đen':'#111','Đỏ':'#e62020','Xanh':'#1976d2','Vàng':'#fdd835','Xám':'#888','Xanh lá':'#388e3c','Cam':'#f57c00','Hồng':'#e91e63','Tím':'#7b1fa2','Nâu':'#795548','Kem':'#fdf5e6'};
-
-    function _buildThumbs(imgs, mainImgEl) {
-      // Phân loại
-      const mainImg  = imgs.find(function(i){ return i.la_anh_chinh; }) || imgs[0];
-      const subImgs  = imgs.filter(function(i){ return !i.la_anh_chinh && !i.mausac; });
-      const colorImgs= imgs.filter(function(i){ return !i.la_anh_chinh && !!i.mausac; });
-
-      // Hiện ảnh chính lên khung lớn
-      if (mainImgEl && mainImg) {
-        var im = document.createElement('img');
-        im.src = mainImg.url;
-        im.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:8px';
-        im.onerror = function() { mainImgEl.innerHTML = '<span style="font-size:120px">👟</span>'; };
-        mainImgEl.innerHTML = '';
-        mainImgEl.appendChild(im);
-      }
-
-      // Tạo thumbnail — thứ tự: ảnh chính → ảnh phụ → ảnh màu
-      const ordered = [mainImg].filter(Boolean)
-        .concat(subImgs)
-        .concat(colorImgs);
-
-      thumbs.innerHTML = '';
-      ordered.forEach(function(img, i) {
-        var wrap = document.createElement('div');
-        wrap.className = 'pdp-thumb' + (i === 0 ? ' active' : '');
-        wrap.style.cssText = 'position:relative;cursor:pointer';
-        wrap.addEventListener('click', function() { pdpSelectGalleryImg(wrap, img.url); });
-
-        var im2 = document.createElement('img');
-        im2.src = img.url;
-        im2.style.cssText = 'width:100%;height:100%;object-fit:cover';
-        im2.onerror = function() { wrap.innerHTML = '<span style="font-size:24px">👟</span>'; };
-        wrap.appendChild(im2);
-
-        // Badge nhỏ cho ảnh màu
-        if (img.mausac) {
-          var lbl = document.createElement('div');
-          lbl.style.cssText = 'position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.7);color:#fff;font-size:9px;text-align:center;padding:2px 1px;line-height:1.3';
-          lbl.textContent = img.mausac;
-          wrap.appendChild(lbl);
-        }
-        // Badge "CHÍNH" cho ảnh chính
-        if (img.la_anh_chinh && ordered.length > 1) {
-          var mainLbl = document.createElement('div');
-          mainLbl.style.cssText = 'position:absolute;top:2px;left:2px;background:var(--red);color:#fff;font-size:8px;font-weight:700;padding:1px 4px;border-radius:2px;letter-spacing:.5px';
-          mainLbl.textContent = 'CHÍNH';
-          wrap.appendChild(mainLbl);
-        }
-        thumbs.appendChild(wrap);
+  // — Hàm chọn màu và lọc ảnh theo màu
+  function _pdpSelectColorByName(colorName) {
+    var colorGrid  = document.getElementById('pdpColorGrid');
+    var colorLabel = document.getElementById('pdpColorName');
+    if (colorGrid) {
+      colorGrid.querySelectorAll('.pdp-color-btn').forEach(function(btn) {
+        var isMatch = btn.dataset.name === colorName;
+        btn.classList.toggle('active', isMatch);
+        btn.style.border = isMatch ? '2px solid #fff' : '2px solid rgba(255,255,255,0.2)';
       });
-
-      // Active ảnh đầu tiên
-      if (thumbs.firstElementChild) pdpSelectGalleryImg(thumbs.firstElementChild, ordered[0].url);
     }
+    if (colorLabel) colorLabel.textContent = colorName;
+    pdpSelectedColor = colorName;
+  }
 
+  // — Gắn lại pdpFilterByColor đẳ khi click swatch màu thì scroll ảnh màu đó ra
+  window._pdpSelectColorByName = _pdpSelectColorByName;
+  window._pdpSetMainImg = _pdpSetMain;
+
+  // — Hàm render color swatch grid
+  function _pdpRenderColorGrid(allColors) {
+    var colorGrid  = document.getElementById('pdpColorGrid');
+    var colorLabel = document.getElementById('pdpColorName');
+    if (!colorGrid) return;
+    colorGrid.innerHTML = '';
+    allColors.forEach(function(c, i) {
+      var btn = document.createElement('div');
+      btn.className = 'pdp-color-btn' + (i === 0 ? ' active' : '');
+      btn.dataset.name = c;
+      btn.title = c;
+      var bg = COLOR_MAP_PDP[c] || '#666';
+      btn.style.cssText = 'background:' + bg + ';border:2px solid ' + (i === 0 ? '#fff' : 'rgba(255,255,255,0.2)');
+      (function(colorName) {
+        btn.addEventListener('click', function() {
+          // 1. Tick màu
+          _pdpSelectColorByName(colorName);
+          // 2. Tìm ảnh thuộc màu đó trong thumbnail và scroll / show
+          var thumbsEl = document.getElementById('pdpThumbs');
+          if (!thumbsEl) return;
+          var allThumbs = Array.from(thumbsEl.children);
+          var firstMatch = allThumbs.find(function(t){ return t.dataset.color === colorName; });
+          if (firstMatch) {
+            // Active thumbnail ảnh màu đầu tiê n
+            allThumbs.forEach(function(t){ t.classList.remove('active'); });
+            firstMatch.classList.add('active');
+            firstMatch.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            // Hiện ảnh lớn
+            var imgs = window._pdpAllImages || [];
+            var colorImgMatch = imgs.find(function(img){ return img.mausac === colorName; });
+            if (colorImgMatch) _pdpSetMain(colorImgMatch.url);
+          }
+        });
+      })(c);
+      colorGrid.appendChild(btn);
+    });
+    if (colorLabel && allColors.length > 0) colorLabel.textContent = allColors[0];
+  }
+
+  // — Gọi API lấy ảnh và render
+  (async function() {
     try {
-      const res  = await fetch('/api/sanpham/' + productId + '/images');
-      const data = await res.json();
-      const imgs = data.images || [];
+      var res  = await fetch('/api/sanpham/' + productId + '/images');
+      var data = await res.json();
+      var imgs = data.images || [];
       window._pdpAllImages = imgs;
 
-      const colorGrid  = document.getElementById('pdpColorGrid');
-      const colorLabel = document.getElementById('pdpColorName');
-      const mainImgEl  = document.getElementById('pdpMainEmoji');
-
       if (imgs.length > 0) {
-        _buildThumbs(imgs, mainImgEl);
+        _pdpBuildThumbs(imgs, '');
 
-        // Render màu swatch — kết hợp ảnh màu + màu từ DB
-        const colorsFromImgs = [...new Set(imgs.filter(function(i){ return i.mausac; }).map(function(i){ return i.mausac; }))];
-        const dbColors = p._dbColors || [];
-        const allColors = [...new Set([...colorsFromImgs, ...dbColors])];
-        if (colorGrid && allColors.length > 0) {
-          _renderColorGrid(colorGrid, colorLabel, allColors, COLOR_MAP);
-        } else if (colorGrid) {
-          colorGrid.innerHTML = '';
-          if (colorLabel) colorLabel.textContent = '';
-        }
+        // Tạo danh sách màu: ưu tiên từ ảnh, sau đó bổ sung từ DB
+        var colorsFromImgs = [];
+        imgs.forEach(function(i){ if (i.mausac && !colorsFromImgs.includes(i.mausac)) colorsFromImgs.push(i.mausac); });
+        var dbColors = (p._dbColors || []).filter(function(c){ return !colorsFromImgs.includes(c); });
+        var allColors = colorsFromImgs.concat(dbColors);
+        _pdpRenderColorGrid(allColors);
 
       } else {
-        // Fallback: dùng hinhanh nếu sanpham_images trống
+        // Không có ảnh ở sanpham_images — dùng hinhanh fallback
         if (p.imgUrl) {
-          var fallbackImg = document.createElement('img');
-          fallbackImg.src = p.imgUrl;
-          fallbackImg.style.cssText = 'width:100%;height:100%;object-fit:cover';
-          fallbackImg.onerror = function() { thumbs.innerHTML = '<span style="font-size:36px">👟</span>'; };
-          var fallbackWrap = document.createElement('div');
-          fallbackWrap.className = 'pdp-thumb active';
-          fallbackWrap.style.cursor = 'pointer';
-          fallbackWrap.addEventListener('click', function() { pdpSelectGalleryImg(fallbackWrap, p.imgUrl); });
-          fallbackWrap.appendChild(fallbackImg);
-          thumbs.innerHTML = '';
-          thumbs.appendChild(fallbackWrap);
-          // Cũng hiện ảnh chính
-          var mainImgEl2 = document.getElementById('pdpMainEmoji');
-          if (mainImgEl2) {
-            var mim = document.createElement('img');
-            mim.src = p.imgUrl;
-            mim.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:8px';
-            mim.onerror = function() { mainImgEl2.innerHTML = '<span style="font-size:120px">👟</span>'; };
-            mainImgEl2.innerHTML = '';
-            mainImgEl2.appendChild(mim);
+          _pdpSetMain(p.imgUrl);
+          var thumbsEl = document.getElementById('pdpThumbs');
+          if (thumbsEl) {
+            thumbsEl.innerHTML = '';
+            var wrap = document.createElement('div');
+            wrap.className = 'pdp-thumb active';
+            wrap.style.cursor = 'pointer';
+            wrap.dataset.color = '';
+            var im = new Image();
+            im.style.cssText = 'width:100%;height:100%;object-fit:cover';
+            im.src = p.imgUrl;
+            wrap.addEventListener('click', function(){ _pdpSetMain(p.imgUrl); });
+            wrap.appendChild(im);
+            thumbsEl.appendChild(wrap);
           }
-        } else {
-          thumbs.innerHTML = '<div class="pdp-thumb active" style="display:flex;align-items:center;justify-content:center;font-size:36px">👟</div>';
         }
-        // Màu từ DB
-        const dbColors2 = p._dbColors || [];
-        if (colorGrid && dbColors2.length > 0) {
-          _renderColorGrid(colorGrid, colorLabel, dbColors2, COLOR_MAP);
-        }
+        // Render màu từ DB nếu có
+        var dbColors2 = p._dbColors || [];
+        if (dbColors2.length > 0) _pdpRenderColorGrid(dbColors2);
       }
     } catch(e) {
-      // Lỗi API — fallback emoji
-      if (p.imgUrl) {
-        var im3 = document.createElement('img');
-        im3.src = p.imgUrl;
-        im3.style.cssText = 'width:100%;height:100%;object-fit:cover';
-        var wrap3 = document.createElement('div');
-        wrap3.className = 'pdp-thumb active';
-        wrap3.appendChild(im3);
-        thumbs.innerHTML = '';
-        thumbs.appendChild(wrap3);
-      }
+      // Lỗi API — fallback hinhanh
+      if (p.imgUrl) _pdpSetMain(p.imgUrl);
     }
   })();
 
@@ -6002,11 +6048,31 @@ function selectPdpSize(btn, size) {
 }
 
 function selectPdpColor(el, name) {
-  document.querySelectorAll('.pdp-color-btn').forEach(b=>{ b.classList.remove('active'); b.style.border='2px solid rgba(255,255,255,0.2)'; });
-  el.classList.add('active');
-  el.style.border = '2px solid #fff';
-  pdpSelectedColor = name;
-  document.getElementById('pdpColorName').textContent = name;
+  // Dùng _pdpSelectColorByName nếu sẵn sàng (đủ kích hoạt scroll ảnh)
+  if (window._pdpSelectColorByName) {
+    window._pdpSelectColorByName(name);
+    // Cũng khích scroll ảnh màu
+    var thumbsEl = document.getElementById('pdpThumbs');
+    if (thumbsEl) {
+      var allThumbs = Array.from(thumbsEl.children);
+      var firstMatch = allThumbs.find(function(t){ return t.dataset.color === name; });
+      if (firstMatch) {
+        allThumbs.forEach(function(t){ t.classList.remove('active'); });
+        firstMatch.classList.add('active');
+        firstMatch.scrollIntoView({ behavior:'smooth', block:'nearest', inline:'center' });
+        var imgs = window._pdpAllImages || [];
+        var match = imgs.find(function(img){ return img.mausac === name; });
+        if (match && window._pdpSetMainImg) window._pdpSetMainImg(match.url);
+      }
+    }
+  } else {
+    document.querySelectorAll('.pdp-color-btn').forEach(function(b){ b.classList.remove('active'); b.style.border='2px solid rgba(255,255,255,0.2)'; });
+    el.classList.add('active');
+    el.style.border = '2px solid #fff';
+    pdpSelectedColor = name;
+    var lbl = document.getElementById('pdpColorName');
+    if (lbl) lbl.textContent = name;
+  }
 }
 
 function pdpChangeQty(delta) {
@@ -12845,37 +12911,17 @@ function pdpSelectGalleryImg(el, url) {
 }
 
 function pdpFilterByColor(el, color, allImgs) {
-  document.querySelectorAll('.pdp-color-btn').forEach(b => {
-    b.style.border = '2px solid rgba(255,255,255,0.2)';
-    b.classList.remove('active');
-  });
-  el.style.border = '2px solid var(--white)';
-  el.classList.add('active');
-
-  // Cập nhật label màu
-  const colorLabel = document.getElementById('pdpColorName');
-  if (colorLabel) colorLabel.textContent = color;
-
-  // Nếu allImgs rỗng, dùng window._pdpAllImages
-  const imgs = (allImgs && allImgs.length > 0) ? allImgs : (window._pdpAllImages || []);
-  const filtered = imgs.filter(i => i.mausac === color);
-  const thumbs = document.getElementById('pdpThumbs');
-  if (thumbs && filtered.length > 0) {
-    thumbs.innerHTML = filtered.map((img, i) =>
-      '<div class="pdp-thumb' + (i===0?' active':'') + '" onclick="pdpSelectGalleryImg(this,\'' + img.url + '\')" style="cursor:pointer">' +
-      '<img src="' + img.url + '" style="width:100%;height:100%;object-fit:cover" onerror="this.outerHTML=\'👟\'">' +
-      '</div>'
-    ).join('');
-    pdpSelectGalleryImg(thumbs.firstElementChild, filtered[0].url);
-  } else if (thumbs && imgs.length > 0) {
-    // Hiện tất cả ảnh nếu không có ảnh riêng cho màu đó
-    thumbs.innerHTML = imgs.map((img, i) =>
-      '<div class="pdp-thumb' + (i===0?' active':'') + '" onclick="pdpSelectGalleryImg(this,\'' + img.url + '\')" style="cursor:pointer;position:relative">' +
-      '<img src="' + img.url + '" style="width:100%;height:100%;object-fit:cover" onerror="this.outerHTML=\'👟\'">' +
-      (img.mausac ? '<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.65);color:#fff;font-size:9px;text-align:center;padding:2px">' + img.mausac + '</div>' : '') +
-      '</div>'
-    ).join('');
-    pdpSelectGalleryImg(thumbs.firstElementChild, imgs[0].url);
+  // Delegate to the new unified handler inside openPdp
+  if (window._pdpSelectColorByName) {
+    window._pdpSelectColorByName(color);
+  } else {
+    // Fallback cũ
+    document.querySelectorAll('.pdp-color-btn').forEach(function(b) {
+      b.style.border = '2px solid rgba(255,255,255,0.2)'; b.classList.remove('active');
+    });
+    if (el) { el.style.border = '2px solid var(--white)'; el.classList.add('active'); }
+    var colorLabel = document.getElementById('pdpColorName');
+    if (colorLabel) colorLabel.textContent = color;
   }
 }
 

@@ -1670,7 +1670,7 @@ function dbProdToHomeProd(p) {
     colors:     colors,
     sku:        p.sku || p.SKU || '',
     stock:      stock,
-  };
+      };
 }
 
 const stores = [
@@ -5016,15 +5016,33 @@ window.checkout = function() {
 .pdp-size-btn.unavailable::before { content:''; position:absolute; top:50%; left:0; right:0; height:1px; background:rgba(255,255,255,0.18); transform:rotate(-45deg) scaleX(1.6); pointer-events:none; }
 
 /* COLOR SELECTOR */
-.pdp-colors { display:flex; gap:10px; margin-bottom:20px; }
+.pdp-colors { display:flex; flex-wrap:wrap; gap:10px 12px; margin-bottom:20px; align-items:flex-start; }
 .pdp-color-btn {
-  width:40px; height:40px; border-radius:50%;
-  border:2px solid transparent; cursor:pointer; transition:all .2s;
+  display:inline-flex; flex-direction:column; align-items:center; gap:5px;
+  cursor:pointer; transition:all .2s; position:relative;
+  border:none; background:none; padding:0;
+}
+.pdp-color-swatch {
+  width:36px; height:36px; border-radius:6px;
+  border:2px solid rgba(255,255,255,0.2); transition:all .2s;
   position:relative;
 }
-.pdp-color-btn.active { border-color:var(--white); }
-.pdp-color-btn::after { content:attr(data-name); position:absolute; bottom:-20px; left:50%; transform:translateX(-50%); font-size:10px; white-space:nowrap; color:var(--gray-light); display:none; }
-.pdp-color-btn:hover::after { display:block; }
+.pdp-color-btn.active .pdp-color-swatch {
+  border-color:#fff;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.5);
+}
+.pdp-color-btn.active .pdp-color-swatch::after {
+  content:'✓';
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:16px; font-weight:900;
+}
+.pdp-color-label {
+  font-size:10px; white-space:nowrap; color:rgba(255,255,255,0.6);
+  font-weight:500; max-width:48px; overflow:hidden; text-overflow:ellipsis; text-align:center;
+}
+.pdp-color-btn.active .pdp-color-label { color:#fff; font-weight:700; }
+.pdp-color-btn:hover .pdp-color-swatch { border-color:rgba(255,255,255,0.6); }
 
 /* QTY + CTA */
 .pdp-qty-row { display:flex; gap:12px; margin-bottom:16px; align-items:center; }
@@ -5389,24 +5407,18 @@ window.checkout = function() {
     <!-- POLICY -->
     <div class="pdp-tab-panel" id="pdpPanelPolicy">
       <div class="pdp-policy-grid">
-        <div class="pdp-policy-card">
-          <span class="pdp-policy-card-icon">↩️</span>
-          <div class="pdp-policy-card-title">Đổi Trả Miễn Phí</div>
-          <div class="pdp-policy-card-text">
-            <strong>30 ngày đổi trả</strong> kể từ ngày nhận hàng.<br>
-            Sản phẩm còn nguyên tem, hộp, chưa sử dụng.<br>
-            Hỗ trợ đổi size <strong>miễn phí 1 lần</strong>.<br>
-            Hoàn tiền 100% nếu hàng lỗi từ nhà sản xuất.
+        <div class="pdp-policy-card" id="pdpPolicyDoitra">
+          <span class="pdp-policy-card-icon">🔄</span>
+          <div class="pdp-policy-card-title">Chính Sách Đổi Trả</div>
+          <div class="pdp-policy-card-text" id="pdpPolicyDoitraText" style="white-space:pre-line">
+            Đang tải...
           </div>
         </div>
-        <div class="pdp-policy-card">
+        <div class="pdp-policy-card" id="pdpPolicyBaohanh">
           <span class="pdp-policy-card-icon">🛡️</span>
-          <div class="pdp-policy-card-title">Bảo Hành Chính Hãng</div>
-          <div class="pdp-policy-card-text">
-            <strong>12 tháng bảo hành</strong> cho lỗi sản xuất.<br>
-            Đế giày: bảo hành <strong>6 tháng</strong>.<br>
-            Mang phiếu bảo hành đến bất kỳ cửa hàng SneakerVN nào.<br>
-            Không áp dụng cho hư hỏng do sử dụng sai cách.
+          <div class="pdp-policy-card-title">Chính Sách Bảo Hành</div>
+          <div class="pdp-policy-card-text" id="pdpPolicyBaohanhText" style="white-space:pre-line">
+            Đang tải...
           </div>
         </div>
         <div class="pdp-policy-card">
@@ -5691,6 +5703,16 @@ function openPdp(productId) {
   pdpProduct = {...p, id: productId};
   pdpQty = 1; pdpSelectedSize = null; pdpWished = false;
 
+  // Điền chính sách đổi trả + bảo hành từ DB
+  var doitraEl   = document.getElementById('pdpPolicyDoitraText');
+  var baohanhEl  = document.getElementById('pdpPolicyBaohanhText');
+  var DEFAULT_DOITRA  = 'Vui lòng liên hệ shop để biết thêm thông tin chính sách đổi trả.';
+  var DEFAULT_BAOHANH = 'Vui lòng liên hệ shop để biết thêm thông tin chính sách bảo hành.';
+  var _doitra  = (dbProd && dbProd.chinhsachdoitra)  ? dbProd.chinhsachdoitra  : DEFAULT_DOITRA;
+  var _baohanh = (dbProd && dbProd.chinhsachbaohanh) ? dbProd.chinhsachbaohanh : DEFAULT_BAOHANH;
+  if (doitraEl)  doitraEl.textContent  = _doitra;
+  if (baohanhEl) baohanhEl.textContent = _baohanh;
+
   // Fill header
   document.getElementById('pdpBreadBrand').textContent = p.brand;
   document.getElementById('pdpBreadName').textContent = p.name;
@@ -5818,9 +5840,7 @@ function openPdp(productId) {
     var colorLabel = document.getElementById('pdpColorName');
     if (colorGrid) {
       colorGrid.querySelectorAll('.pdp-color-btn').forEach(function(btn) {
-        var isMatch = btn.dataset.name === colorName;
-        btn.classList.toggle('active', isMatch);
-        btn.style.border = isMatch ? '2px solid #fff' : '2px solid rgba(255,255,255,0.2)';
+        btn.classList.toggle('active', btn.dataset.name === colorName);
       });
     }
     if (colorLabel) colorLabel.textContent = colorName;
@@ -5842,8 +5862,18 @@ function openPdp(productId) {
       btn.className = 'pdp-color-btn' + (i === 0 ? ' active' : '');
       btn.dataset.name = c;
       btn.title = c;
-      var bg = COLOR_MAP_PDP[c] || '#666';
-      btn.style.cssText = 'background:' + bg + ';border:2px solid ' + (i === 0 ? '#fff' : 'rgba(255,255,255,0.2)');
+      var bg = COLOR_MAP_PDP[c] || '#888';
+      // Màu chữ check: tối/sáng tuỳ nền
+      var lightColors = ['Trắng','Kem','Vàng'];
+      var checkColor = lightColors.includes(c) ? '#333' : '#fff';
+      var swatch = document.createElement('div');
+      swatch.className = 'pdp-color-swatch';
+      swatch.style.cssText = 'background:' + bg + ';color:' + checkColor;
+      var label = document.createElement('div');
+      label.className = 'pdp-color-label';
+      label.textContent = c;
+      btn.appendChild(swatch);
+      btn.appendChild(label);
       (function(colorName) {
         btn.addEventListener('click', function() {
           // 1. Tick màu
@@ -5939,8 +5969,11 @@ function openPdp(productId) {
   ).join('');
 
   // Colors — render ban đầu, async block sẽ override với ảnh thật
-  document.getElementById('pdpColorGrid').innerHTML = (p.colors||[]).map((c,i)=>
-    '<div class="pdp-color-btn' + (i===0?' active':'') + '" data-name="' + c.name + '" style="background:' + c.hex + ';border:2px solid ' + (i===0?'var(--white)':'rgba(255,255,255,0.2)') + '" onclick="selectPdpColor(this,\'' + c.name + '\')"></div>'
+  var lightColorsSet = ['Trắng','Kem','Vàng'];
+  document.getElementById('pdpColorGrid').innerHTML = (p.colors||[]).map((c,i)=> {
+    var chk = lightColorsSet.includes(c.name) ? '#333' : '#fff';
+    return '<div class="pdp-color-btn' + (i===0?' active':'') + '" data-name="' + c.name + '" title="' + c.name + '" onclick="selectPdpColor(this,\'' + c.name + '\')"><div class="pdp-color-swatch" style="background:' + c.hex + ';color:' + chk + '"></div><div class="pdp-color-label">' + c.name + '</div></div>';
+  }
   ).join('');
 
   // Description
@@ -6058,7 +6091,7 @@ function selectPdpColor(el, name) {
       }
     }
   } else {
-    document.querySelectorAll('.pdp-color-btn').forEach(function(b){ b.classList.remove('active'); b.style.border='2px solid rgba(255,255,255,0.2)'; });
+    document.querySelectorAll('.pdp-color-btn').forEach(function(b){ b.classList.remove('active'); });
     el.classList.add('active');
     el.style.border = '2px solid #fff';
     pdpSelectedColor = name;
@@ -8003,6 +8036,7 @@ select.mp-field-input option { background: #1a1a1a; }
         <div class="db-nav-section-title">Tài Chính</div>
         <div class="db-nav-item" onclick="switchDbPanel('shopDashboard','panel-admin-finance',this)"><span class="db-nav-icon">💰</span> Kế Toán</div>
         <div class="db-nav-item" onclick="switchDbPanel('shopDashboard','panel-admin-reports',this)"><span class="db-nav-icon">📈</span> Báo Cáo & Thống Kê</div>
+        <div class="db-nav-item" onclick="switchDbPanel('shopDashboard','panel-admin-settings',this)"><span class="db-nav-icon">⚙️</span> Cài Đặt & Hệ Thống</div>
       </div>
     </div>
     <div class="db-content">
@@ -8631,6 +8665,17 @@ select.mp-field-input option { background: #1a1a1a; }
               <div>
                 <div style="font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.5);font-weight:700;margin-bottom:6px">MÔ TẢ SẢN PHẨM</div>
                 <textarea class="db-input" id="shop-p-mota" rows="3" placeholder="Giày sneaker Nike chính hãng, thiết kế trẻ trung, phù hợp đi học, đi chơi..." style="width:100%;box-sizing:border-box;resize:vertical"></textarea>
+              </div>
+
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                <div>
+                  <div style="font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.5);font-weight:700;margin-bottom:6px">🔄 CHÍNH SÁCH ĐỔI TRẢ</div>
+                  <textarea class="db-input" id="shop-p-doitra" rows="3" placeholder="VD: Đổi trả trong 7 ngày nếu lỗi sản xuất. Sản phẩm còn nguyên tem, hộp..." style="width:100%;box-sizing:border-box;resize:vertical;font-size:12px"></textarea>
+                </div>
+                <div>
+                  <div style="font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.5);font-weight:700;margin-bottom:6px">🛡️ CHÍNH SÁCH BẢO HÀNH</div>
+                  <textarea class="db-input" id="shop-p-baohanh" rows="3" placeholder="VD: Bảo hành 6 tháng đối với lỗi kỹ thuật. Không bảo hành do va đập, ngấm nước..." style="width:100%;box-sizing:border-box;resize:vertical;font-size:12px"></textarea>
+                </div>
               </div>
 
               <!-- Lỗi + Nút lưu -->
@@ -10259,6 +10304,59 @@ select.mp-field-input option { background: #1a1a1a; }
           </div>
         </div>
 
+      </div>
+
+      <div class="db-panel" id="panel-admin-settings">
+        <div class="db-page-title">⚙️ Cài Đặt & Hệ Thống</div>
+
+        <!-- Supabase Storage -->
+        <div style="background:var(--surface);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:24px;margin-bottom:20px">
+          <div style="font-size:16px;font-weight:700;margin-bottom:6px">☁️ Supabase Storage (Lưu trữ ảnh)</div>
+          <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:16px">Ảnh lưu local sẽ mất khi server restart. Cấu hình Supabase để ảnh tồn tại vĩnh viễn.</div>
+
+          <div style="background:rgba(255,165,0,0.1);border:1px solid rgba(255,165,0,0.3);border-radius:6px;padding:14px;margin-bottom:16px;font-size:13px;line-height:1.8">
+            <strong style="color:orange">⚠️ Cách lấy Anon Key đúng:</strong><br>
+            1. Vào <a href="https://supabase.com/dashboard" target="_blank" style="color:#4fc3f7">supabase.com/dashboard</a><br>
+            2. Chọn project → <strong>Project Settings → API</strong><br>
+            3. Copy <strong>anon / public key</strong> (bắt đầu bằng <code style="background:rgba(255,255,255,0.1);padding:2px 5px;border-radius:3px">eyJhbGci...</code>)<br>
+            4. Điền vào file <code style="background:rgba(255,255,255,0.1);padding:2px 5px;border-radius:3px">.env</code>: <code style="background:rgba(255,255,255,0.1);padding:2px 5px;border-radius:3px">SUPABASE_ANON=eyJhbGci...</code><br>
+            5. Vào <strong>Storage → Buckets</strong> → tạo bucket tên <code style="background:rgba(255,255,255,0.1);padding:2px 5px;border-radius:3px">products</code> và bật <strong>Public</strong>
+          </div>
+
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="db-btn-sm" onclick="checkStorageStatus()" style="padding:8px 16px">🔍 Kiểm Tra Kết Nối</button>
+            <button class="db-btn-sm primary" onclick="migrateImagesToSupabase()" style="padding:8px 16px">☁️ Migrate Ảnh Local → Supabase</button>
+          </div>
+
+          <div id="storage-check-result" style="margin-top:14px;font-size:12px;font-family:monospace;background:rgba(0,0,0,0.3);padding:12px;border-radius:4px;display:none;white-space:pre-wrap;max-height:200px;overflow-y:auto"></div>
+        </div>
+
+        <!-- DB Info -->
+        <div style="background:var(--surface);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:24px">
+          <div style="font-size:16px;font-weight:700;margin-bottom:6px">🗄️ Cơ Sở Dữ Liệu</div>
+          <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:16px">Kiểm tra kết nối và trạng thái CSDL.</div>
+          <button class="db-btn-sm" onclick="checkDbStatus()" style="padding:8px 16px">🔍 Kiểm Tra DB</button>
+          <div id="db-check-result" style="margin-top:14px;font-size:12px;font-family:monospace;background:rgba(0,0,0,0.3);padding:12px;border-radius:4px;display:none;white-space:pre-wrap"></div>
+        </div>
+
+        <!-- Tài khoản mặc định -->
+        <div style="background:var(--surface);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:24px;margin-top:20px">
+          <div style="font-size:16px;font-weight:700;margin-bottom:6px">👤 Tài Khoản Nhân Viên Mặc Định</div>
+          <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:16px">Tạo hoặc reset mật khẩu các tài khoản về mặc định. Dùng khi lần đầu setup hoặc khi quên mật khẩu.</div>
+          <table style="width:100%;font-size:12px;border-collapse:collapse;margin-bottom:16px">
+            <thead><tr style="color:rgba(255,255,255,0.4);text-align:left;border-bottom:1px solid rgba(255,255,255,0.08)">
+              <th style="padding:6px 8px">Email</th><th style="padding:6px 8px">Mật Khẩu</th><th style="padding:6px 8px">Role</th>
+            </tr></thead>
+            <tbody style="color:#fff">
+              <tr><td style="padding:6px 8px;font-family:monospace">admin@sneakervn.com</td><td style="padding:6px 8px;font-family:monospace;color:#4fc3f7">admin123</td><td style="padding:6px 8px"><span style="background:rgba(230,32,32,0.2);color:#f44336;padding:2px 8px;border-radius:10px;font-size:11px">Admin</span></td></tr>
+              <tr><td style="padding:6px 8px;font-family:monospace">shopowner@sneakervn.com</td><td style="padding:6px 8px;font-family:monospace;color:#4fc3f7">shop123</td><td style="padding:6px 8px"><span style="background:rgba(33,150,243,0.2);color:#4fc3f7;padding:2px 8px;border-radius:10px;font-size:11px">Shop</span></td></tr>
+              <tr><td style="padding:6px 8px;font-family:monospace">shop@sneakervn.com</td><td style="padding:6px 8px;font-family:monospace;color:#4fc3f7">shop123</td><td style="padding:6px 8px"><span style="background:rgba(33,150,243,0.2);color:#4fc3f7;padding:2px 8px;border-radius:10px;font-size:11px">Shop</span></td></tr>
+              <tr><td style="padding:6px 8px;font-family:monospace">ketoan@sneakervn.com</td><td style="padding:6px 8px;font-family:monospace;color:#4fc3f7">ketoan123</td><td style="padding:6px 8px"><span style="background:rgba(76,175,80,0.2);color:#4caf50;padding:2px 8px;border-radius:10px;font-size:11px">Kế toán</span></td></tr>
+            </tbody>
+          </table>
+          <button class="db-btn-sm primary" onclick="initDefaultAccounts()" style="padding:8px 16px">⚡ Khởi Tạo / Reset Tài Khoản Mặc Định</button>
+          <div id="init-accounts-result" style="margin-top:14px;font-size:12px;font-family:monospace;background:rgba(0,0,0,0.3);padding:12px;border-radius:4px;display:none;white-space:pre-wrap"></div>
+        </div>
       </div>
 
     </div>
@@ -12456,6 +12554,24 @@ async function adminLoadProducts(page) {
     // Cập nhật sub-title
     const sub = document.getElementById('prod-sub-title');
     if (sub) sub.textContent = `${json.total || rows.length} sản phẩm trong cơ sở dữ liệu`;
+
+    // Load ảnh từ sanpham_images/batch để hiện ảnh thật trong bảng admin
+    try {
+      const ids = rows.map(p => p.masanpham ?? p.MaSanPham).filter(Boolean);
+      const imgRes = await fetch('/api/sanpham-images/batch', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ ids })
+      });
+      const imgData = await imgRes.json();
+      const imgMap = imgData.images || {};
+      ids.forEach(ma => {
+        const url = imgMap[ma];
+        if (!url) return;
+        const row = tbody.querySelector(`tr[data-ma="${ma}"] td:first-child`);
+        if (row) row.innerHTML = `<img src="${url}" style="width:48px;height:48px;object-fit:cover;border-radius:6px" onerror="this.outerHTML='<span style=\'font-size:24px\'>👟</span>'">`;
+      });
+    } catch(_) {}
+
   } catch(e) {
     tbody.innerHTML = `<tr><td colspan="9" style="color:#f44;text-align:center;padding:20px">Lỗi: ${e.message}</td></tr>`;
   }
@@ -12615,6 +12731,8 @@ function shopShowProdForm(p) {
   v('shop-p-mau',   p?.mausac      || p?.MauSac      || '');
   v('shop-p-sizes', p?.size        || p?.Size        || '');
   v('shop-p-mota',  p?.motasanpham || p?.MoTaSanPham || '');
+  v('shop-p-doitra',   p?.chinhsachdoitra  || '');
+  v('shop-p-baohanh',  p?.chinhsachbaohanh || '');
   v('shop-p-imgurl','');
 
   const ttEl = document.getElementById('shop-p-tt');
@@ -12979,8 +13097,10 @@ async function adminSaveProduct() {
     soluongton:  Number(document.getElementById('shop-p-sl')?.value)   || 0,
     mausac:      document.getElementById('shop-p-mau')?.value.trim()   || '',
     Size:        document.getElementById('shop-p-sizes')?.value.trim() || '',
-    motasanpham: document.getElementById('shop-p-mota')?.value.trim()  || '',
-    tinhtrang:   document.getElementById('shop-p-tt')?.value           || 'Đang bán',
+    motasanpham:       document.getElementById('shop-p-mota')?.value.trim()    || '',
+    chinhsachdoitra:   document.getElementById('shop-p-doitra')?.value.trim()  || '',
+    chinhsachbaohanh:  document.getElementById('shop-p-baohanh')?.value.trim() || '',
+    tinhtrang:         document.getElementById('shop-p-tt')?.value              || 'Đang bán',
   };
 
   // Nếu có ảnh URL nhập tay
@@ -18285,6 +18405,105 @@ function svcPollFn(){
 
 if(svcSid)document.addEventListener('DOMContentLoaded',function(){svcShowConv();});
 </script>
+
+// ── CÀI ĐẶT: KIỂM TRA STORAGE & DB ───────────────────────────
+async function initDefaultAccounts() {
+  const el = document.getElementById('init-accounts-result');
+  el.style.display = 'block';
+  el.style.color = '#fff';
+  el.textContent = '⏳ Đang khởi tạo tài khoản...';
+
+  const accounts = [
+    { hoten: 'Nguyễn Thị Admin',  email: 'admin@sneakervn.com',     matkhau: 'admin123',   vaitro: 'admin' },
+    { hoten: 'Trần Văn Shop',     email: 'shopowner@sneakervn.com', matkhau: 'shop123',    vaitro: 'shop' },
+    { hoten: 'Trần Văn Shop 2',   email: 'shop@sneakervn.com',      matkhau: 'shop123',    vaitro: 'shop' },
+    { hoten: 'Lê Thị Kế Toán',   email: 'ketoan@sneakervn.com',    matkhau: 'ketoan123',  vaitro: 'accountant' },
+  ];
+
+  const results = [];
+  for (const acc of accounts) {
+    try {
+      const r = await fetch('/api/admin/staff/upsert', {
+        method: 'POST',
+        headers: adminHeaders(),
+        body: JSON.stringify(acc)
+      });
+      const d = await r.json();
+      if (d.success) results.push('✅ ' + acc.email + ' [' + acc.vaitro + ']');
+      else results.push('❌ ' + acc.email + ': ' + (d.error || 'Lỗi'));
+    } catch(e) {
+      results.push('❌ ' + acc.email + ': ' + e.message);
+    }
+  }
+  el.style.color = '#4caf50';
+  el.textContent = results.join('\n') + '\n\nXong! Dùng mật khẩu trong bảng trên để đăng nhập.';
+}
+
+async function checkStorageStatus() {
+  const el = document.getElementById('storage-check-result');
+  el.style.display = 'block';
+  el.textContent = 'Đang kiểm tra...';
+  try {
+    const r = await fetch('/api/admin/storage-check', { headers: adminHeaders() });
+    const d = await r.json();
+    if (d.bucket_ok) {
+      el.style.color = '#4caf50';
+      el.textContent = '✅ Supabase Storage kết nối OK!\n' + JSON.stringify(d, null, 2);
+    } else {
+      el.style.color = '#f44336';
+      el.textContent = '❌ Lỗi kết nối Supabase:\n' + JSON.stringify(d, null, 2)
+        + '\n\n→ Kiểm tra SUPABASE_ANON trong .env (phải bắt đầu bằng eyJhbGci...)';
+    }
+  } catch(e) {
+    el.style.color = '#f44336';
+    el.textContent = '❌ ' + e.message;
+  }
+}
+
+async function migrateImagesToSupabase() {
+  const el = document.getElementById('storage-check-result');
+  el.style.display = 'block';
+  el.style.color = '#fff';
+  el.textContent = '⏳ Đang migrate ảnh local → Supabase...\nQuá trình này có thể mất vài phút nếu có nhiều ảnh.';
+  try {
+    const r = await fetch('/api/admin/migrate-images', { headers: adminHeaders() });
+    const d = await r.json();
+    if (d.error) {
+      el.style.color = '#f44336';
+      el.textContent = '❌ ' + d.error;
+      return;
+    }
+    el.style.color = '#4caf50';
+    el.textContent = '✅ Migrate hoàn tất!\n'
+      + '• Đã migrate: ' + d.migrated.length + ' ảnh\n'
+      + '• Thất bại: ' + d.failed.length + '\n'
+      + '• Bỏ qua: ' + d.skipped.length + '\n\n'
+      + JSON.stringify(d, null, 2);
+  } catch(e) {
+    el.style.color = '#f44336';
+    el.textContent = '❌ ' + e.message;
+  }
+}
+
+async function checkDbStatus() {
+  const el = document.getElementById('db-check-result');
+  el.style.display = 'block';
+  el.textContent = 'Đang kiểm tra...';
+  try {
+    const r = await fetch('/api/health');
+    const d = await r.json();
+    if (d.status === 'ok') {
+      el.style.color = '#4caf50';
+      el.textContent = '✅ Database kết nối OK!';
+    } else {
+      el.style.color = '#f44336';
+      el.textContent = '❌ ' + (d.message || 'Lỗi DB');
+    }
+  } catch(e) {
+    el.style.color = '#f44336';
+    el.textContent = '❌ ' + e.message;
+  }
+}
 </body>
 
 <script>

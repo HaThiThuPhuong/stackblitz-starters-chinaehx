@@ -979,25 +979,41 @@ const SUPABASE_URL  = process.env.SUPABASE_URL  || "https://mufxhkvktyiykcqnlpzx
 const SUPABASE_ANON = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON || "sb_publishable_rv6_3zvCyO0PsfwyNYZzNQ_NUp9m-qX";
 
 async function uploadToSupabase(buffer, filename, mimetype) {
-  const uploadUrl = `${SUPABASE_URL}/storage/v1/object/products/${filename}`;
-  console.log(`[Upload] → ${uploadUrl}`);
-  const res = await fetch(uploadUrl, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${SUPABASE_ANON}`,
-      "Content-Type": mimetype,
-      "x-upsert": "true",
-    },
-    body: buffer,
-  });
-  const responseText = await res.text();
-  if (!res.ok) {
-    console.error(`[Upload] Thất bại (${res.status}):`, responseText);
-    throw new Error(`Upload Supabase thất bại (${res.status}): ${responseText}`);
+  // Thử upload Supabase nếu key hợp lệ (không phải sb_publishable)
+  if (SUPABASE_URL && SUPABASE_ANON && !SUPABASE_ANON.startsWith("sb_publishable")) {
+    try {
+      const uploadUrl = `${SUPABASE_URL}/storage/v1/object/products/${filename}`;
+      console.log(`[Upload Supabase] → ${uploadUrl}`);
+      const r = await fetch(uploadUrl, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${SUPABASE_ANON}`,
+          "Content-Type": mimetype,
+          "x-upsert": "true",
+        },
+        body: buffer,
+      });
+      const txt = await r.text();
+      if (r.ok) {
+        const pub = `${SUPABASE_URL}/storage/v1/object/public/products/${filename}`;
+        console.log(`[Upload Supabase] Thanh cong → ${pub}`);
+        return pub;
+      }
+      console.warn(`[Upload Supabase] That bai (${r.status}): ${txt} — dung local`);
+    } catch(e) {
+      console.warn(`[Upload Supabase] Loi: ${e.message} — dung local`);
+    }
+  } else {
+    console.log("[Upload] Supabase chua cau hinh key hop le — luu local");
   }
-  const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/products/${filename}`;
-  console.log(`[Upload] Thành công → ${publicUrl}`);
-  return publicUrl;
+
+  // Fallback: luu file xuong disk local
+  if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+  const localPath = path.join(UPLOADS_DIR, filename);
+  fs.writeFileSync(localPath, buffer);
+  const localUrl = `/uploads/products/${filename}`;
+  console.log(`[Upload Local] Da luu → ${localUrl}`);
+  return localUrl;
 }
 
 // ── UPLOAD NHIỀU ẢNH SẢN PHẨM ────────────────────────────────

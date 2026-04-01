@@ -5016,33 +5016,15 @@ window.checkout = function() {
 .pdp-size-btn.unavailable::before { content:''; position:absolute; top:50%; left:0; right:0; height:1px; background:rgba(255,255,255,0.18); transform:rotate(-45deg) scaleX(1.6); pointer-events:none; }
 
 /* COLOR SELECTOR */
-.pdp-colors { display:flex; flex-wrap:wrap; gap:10px 12px; margin-bottom:20px; align-items:flex-start; }
+.pdp-colors { display:flex; gap:10px; margin-bottom:20px; }
 .pdp-color-btn {
-  display:inline-flex; flex-direction:column; align-items:center; gap:5px;
-  cursor:pointer; transition:all .2s; position:relative;
-  border:none; background:none; padding:0;
-}
-.pdp-color-swatch {
-  width:36px; height:36px; border-radius:6px;
-  border:2px solid rgba(255,255,255,0.2); transition:all .2s;
+  width:40px; height:40px; border-radius:50%;
+  border:2px solid transparent; cursor:pointer; transition:all .2s;
   position:relative;
 }
-.pdp-color-btn.active .pdp-color-swatch {
-  border-color:#fff;
-  box-shadow: 0 0 0 2px rgba(255,255,255,0.5);
-}
-.pdp-color-btn.active .pdp-color-swatch::after {
-  content:'✓';
-  position:absolute; inset:0;
-  display:flex; align-items:center; justify-content:center;
-  font-size:16px; font-weight:900;
-}
-.pdp-color-label {
-  font-size:10px; white-space:nowrap; color:rgba(255,255,255,0.6);
-  font-weight:500; max-width:48px; overflow:hidden; text-overflow:ellipsis; text-align:center;
-}
-.pdp-color-btn.active .pdp-color-label { color:#fff; font-weight:700; }
-.pdp-color-btn:hover .pdp-color-swatch { border-color:rgba(255,255,255,0.6); }
+.pdp-color-btn.active { border-color:var(--white); }
+.pdp-color-btn::after { content:attr(data-name); position:absolute; bottom:-20px; left:50%; transform:translateX(-50%); font-size:10px; white-space:nowrap; color:var(--gray-light); display:none; }
+.pdp-color-btn:hover::after { display:block; }
 
 /* QTY + CTA */
 .pdp-qty-row { display:flex; gap:12px; margin-bottom:16px; align-items:center; }
@@ -5836,7 +5818,9 @@ function openPdp(productId) {
     var colorLabel = document.getElementById('pdpColorName');
     if (colorGrid) {
       colorGrid.querySelectorAll('.pdp-color-btn').forEach(function(btn) {
-        btn.classList.toggle('active', btn.dataset.name === colorName);
+        var isMatch = btn.dataset.name === colorName;
+        btn.classList.toggle('active', isMatch);
+        btn.style.border = isMatch ? '2px solid #fff' : '2px solid rgba(255,255,255,0.2)';
       });
     }
     if (colorLabel) colorLabel.textContent = colorName;
@@ -5858,18 +5842,8 @@ function openPdp(productId) {
       btn.className = 'pdp-color-btn' + (i === 0 ? ' active' : '');
       btn.dataset.name = c;
       btn.title = c;
-      var bg = COLOR_MAP_PDP[c] || '#888';
-      // Màu chữ check: tối/sáng tuỳ nền
-      var lightColors = ['Trắng','Kem','Vàng'];
-      var checkColor = lightColors.includes(c) ? '#333' : '#fff';
-      var swatch = document.createElement('div');
-      swatch.className = 'pdp-color-swatch';
-      swatch.style.cssText = 'background:' + bg + ';color:' + checkColor;
-      var label = document.createElement('div');
-      label.className = 'pdp-color-label';
-      label.textContent = c;
-      btn.appendChild(swatch);
-      btn.appendChild(label);
+      var bg = COLOR_MAP_PDP[c] || '#666';
+      btn.style.cssText = 'background:' + bg + ';border:2px solid ' + (i === 0 ? '#fff' : 'rgba(255,255,255,0.2)');
       (function(colorName) {
         btn.addEventListener('click', function() {
           // 1. Tick màu
@@ -5965,11 +5939,8 @@ function openPdp(productId) {
   ).join('');
 
   // Colors — render ban đầu, async block sẽ override với ảnh thật
-  var lightColorsSet = ['Trắng','Kem','Vàng'];
-  document.getElementById('pdpColorGrid').innerHTML = (p.colors||[]).map((c,i)=> {
-    var chk = lightColorsSet.includes(c.name) ? '#333' : '#fff';
-    return '<div class="pdp-color-btn' + (i===0?' active':'') + '" data-name="' + c.name + '" title="' + c.name + '" onclick="selectPdpColor(this,\'' + c.name + '\')"><div class="pdp-color-swatch" style="background:' + c.hex + ';color:' + chk + '"></div><div class="pdp-color-label">' + c.name + '</div></div>';
-  }
+  document.getElementById('pdpColorGrid').innerHTML = (p.colors||[]).map((c,i)=>
+    '<div class="pdp-color-btn' + (i===0?' active':'') + '" data-name="' + c.name + '" style="background:' + c.hex + ';border:2px solid ' + (i===0?'var(--white)':'rgba(255,255,255,0.2)') + '" onclick="selectPdpColor(this,\'' + c.name + '\')"></div>'
   ).join('');
 
   // Description
@@ -6087,7 +6058,7 @@ function selectPdpColor(el, name) {
       }
     }
   } else {
-    document.querySelectorAll('.pdp-color-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.querySelectorAll('.pdp-color-btn').forEach(function(b){ b.classList.remove('active'); b.style.border='2px solid rgba(255,255,255,0.2)'; });
     el.classList.add('active');
     el.style.border = '2px solid #fff';
     pdpSelectedColor = name;

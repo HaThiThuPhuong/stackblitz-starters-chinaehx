@@ -11959,11 +11959,31 @@ async function confirmRole() {
     if (dashId && document.getElementById(dashId)) {
       document.getElementById(dashId).classList.add('open');
       document.body.style.overflow = 'hidden';
-      if (dashId === 'shopDashboard') { initAdminChart(); setTimeout(adminLoadDashboard, 300); setTimeout(adminLoadOrders, 400); setTimeout(adminLoadProducts, 500); }
+
+      const _name = data.user?.hoTen || data.user?.HoTen || data.user?.hoten || email;
+      const _initials = _name.trim().split(/\s+/).map(w=>w[0]).join('').slice(-2).toUpperCase();
+
+      if (dashId === 'shopDashboard') {
+        const shopAvatar = document.getElementById('shop-db-avatar');
+        const shopName   = document.getElementById('shop-db-name');
+        if (shopAvatar) shopAvatar.textContent = _initials;
+        if (shopName)   shopName.textContent   = _name;
+        initAdminChart();
+        setTimeout(adminLoadDashboard, 300);
+        setTimeout(adminLoadOrders, 400);
+        setTimeout(adminLoadProducts, 500);
+      } else if (dashId === 'accountantDashboard') {
+        const accAvatar = document.getElementById('acc-db-avatar');
+        const accName   = document.getElementById('acc-db-name');
+        if (accAvatar) accAvatar.textContent = _initials;
+        if (accName)   accName.textContent   = _name;
+        setTimeout(function() { if (typeof accLoadOverview === 'function') accLoadOverview(); }, 300);
+        setTimeout(function() { if (typeof accLoadOrders   === 'function') accLoadOrders();   }, 400);
+      }
       updateChatVisibility();
     }
 
-    showToast('Đăng Nhập Thành Công 👋', 'Chào mừng -- ' + (roleLabels[actualRole] || actualRole));
+    showToast('Đăng Nhập Thành Công 👋', 'Chào mừng ' + (data.user?.hoTen || data.user?.HoTen || data.user?.hoten || email) + '!');
     btn.textContent = 'Vào Dashboard →';
     btn.disabled = false;
 

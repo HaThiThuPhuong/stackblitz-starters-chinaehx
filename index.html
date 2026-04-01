@@ -521,7 +521,9 @@ nav {
   cursor: pointer;
   transition: all .2s;
 }
-.size-btn:hover { border-color: var(--red); color: var(--white); }
+.size-btn:hover:not(.unavailable) { border-color: var(--red); color: var(--white); }
+.size-btn.unavailable { opacity:.4; cursor:not-allowed; color:rgba(255,255,255,0.3); border-color:rgba(255,255,255,0.06); position:relative; overflow:hidden; }
+.size-btn.unavailable::after { content:''; position:absolute; top:50%; left:50%; width:130%; height:1px; background:rgba(255,255,255,0.25); transform:translate(-50%,-50%) rotate(-45deg); pointer-events:none; }
 .add-cart-btn {
   width: 100%;
   background: var(--red);
@@ -1621,6 +1623,28 @@ const SVN = {
 // Giữ mảng rỗng để các hàm tham chiếu không bị lỗi
 let products = [];
 
+// ── HELPER: Xây danh sách size chuẩn cho 1 sản phẩm ──────────
+// Trả về mảng { s: '39', avail: true/false }
+// avail = size có trong cột `size` của DB (còn hàng)
+// unavail = size thuộc dải chuẩn nhưng không có trong DB
+const SIZE_RANGE_SNEAKER = ['35','36','37','38','39','40','41','42','43','44','45','46'];
+const SIZE_RANGE_MLB     = ['220','225','230','235','240','245','250','255','260','265','270','275','280'];
+
+function buildSizeList(sizeStr) {
+  const available = (sizeStr || '').split(',').map(s => s.trim()).filter(Boolean);
+  if (!available.length) return [];
+  // Detect nếu là size MLB (số mm) hay size giày thường
+  const isMLB = available.some(s => parseInt(s) >= 200);
+  const range = isMLB ? SIZE_RANGE_MLB : SIZE_RANGE_SNEAKER;
+  // Lấy dải từ size nhỏ nhất đến lớn nhất trong available
+  const nums = available.map(Number).filter(n => !isNaN(n));
+  const min = Math.min(...nums);
+  const max = Math.max(...nums);
+  return range
+    .filter(s => { const n = Number(s); return n >= min && n <= max; })
+    .map(s => ({ s, avail: available.includes(s) }));
+}
+
 // Chuyển đổi sản phẩm từ DB sang format trang chủ
 function dbProdToHomeProd(p) {
   const brand = p.thuonghieu || '';
@@ -1630,21 +1654,25 @@ function dbProdToHomeProd(p) {
   const sizes = (p.size || p.Size || '').split(',').map(s => s.trim()).filter(Boolean);
   const colors = (p.mausac || p.MauSac || '').split(',').map(s => s.trim()).filter(Boolean);
   const stock = p.soluongton || p.SoLuongTon || 0;
+  const sizeStr = p.size || p.Size || '';
+  const availSizes = sizeStr.split(',').map(s => s.trim()).filter(Boolean); // size còn hàng
+  const allSizes   = buildSizeList(sizeStr); // dải đầy đủ có avail flag
   return {
-    id:     p.masanpham || p.MaSanPham,
-    brand:  brand,
-    name:   p.tensanpham || p.TenSanPham || '',
-    desc:   p.motasanpham || p.MoTaSanPham || '',
-    price:  p.giaban || p.GiaBan || 0,
-    old:    null,
-    emoji:  '👟',
-    imgUrl: p.hinhanh || p.HinhAnh || null,   // sẽ được override bởi sanpham_images
-    badge:  stock === 0 ? 'het' : null,
-    cat:    cat,
-    sizes:  sizes,
-    colors: colors,
-    sku:    p.sku || p.SKU || '',
-    stock:  stock,
+    id:         p.masanpham || p.MaSanPham,
+    brand:      brand,
+    name:       p.tensanpham || p.TenSanPham || '',
+    desc:       p.motasanpham || p.MoTaSanPham || '',
+    price:      p.giaban || p.GiaBan || 0,
+    old:        null,
+    emoji:      '👟',
+    imgUrl:     p.hinhanh || p.HinhAnh || null,
+    badge:      stock === 0 ? 'het' : null,
+    cat:        cat,
+    sizes:      availSizes,    // mảng string, dùng cho addToCart / logic cũ
+    allSizes:   allSizes,      // mảng {s, avail}, dùng cho render UI
+    colors:     colors,
+    sku:        p.sku || p.SKU || '',
+    stock:      stock,
   };
 }
 
@@ -1707,7 +1735,7 @@ function renderProducts(filter) {
           }).join('')}
         </div>` : ''}
         <div class="product-sizes">
-          ${(p.sizes||[]).slice(0,5).map(s => `<button class="size-btn" onclick="selectSize(this,'${s}','${p.id}')">${s}</button>`).join('')}
+          ${(p.allSizes||p.sizes.map(s=>({s,avail:true}))).slice(0,6).map(s => `<button class="size-btn${s.avail?'':' unavailable'}" ${s.avail?`onclick="selectSize(this,'${s.s}','${p.id}')"`:' disabled title="Hết size"'}>${s.s}</button>`).join('')}
         </div>
         ${p.stock > 0
           ? `<button class="add-cart-btn" onclick="addToCart('${p.id}')">+ Thêm Vào Giỏ</button>`
@@ -2005,7 +2033,7 @@ function renderBrandPageGrid() {
         <div class="product-price-row">
           <div class="product-price">${formatPrice(p.price)}</div>
         </div>
-        <div class="product-sizes">${(p.sizes||[]).slice(0,4).map(s=>`<button class="size-btn">${s}</button>`).join('')}</div>
+        <div class="product-sizes">${(p.allSizes||p.sizes.map(s=>({s,avail:true}))).slice(0,5).map(s=>`<button class="size-btn${s.avail?'':' unavailable'}" ${s.avail?'':'disabled'}>${s.s}</button>`).join('')}</div>
         <button class="add-cart-btn" onclick="event.stopPropagation();addToCart('${p.id}')">+ Thêm Vào Giỏ</button>
       </div>
     </div>
@@ -4981,7 +5009,8 @@ window.checkout = function() {
 }
 .pdp-size-btn:hover { border-color:var(--red); color:var(--red); }
 .pdp-size-btn.active { background:var(--red); border-color:var(--red); color:#fff; }
-.pdp-size-btn.unavailable { opacity:.35; cursor:not-allowed; text-decoration:line-through; }
+.pdp-size-btn.unavailable { opacity:.4; cursor:not-allowed; color:var(--gray-light); border-color:rgba(255,255,255,0.08); position:relative; overflow:hidden; }
+.pdp-size-btn.unavailable::after { content:''; position:absolute; top:50%; left:50%; width:130%; height:1px; background:rgba(255,255,255,0.3); transform:translate(-50%,-50%) rotate(-45deg); pointer-events:none; }
 
 /* COLOR SELECTOR */
 .pdp-colors { display:flex; gap:10px; margin-bottom:20px; }
@@ -5632,10 +5661,11 @@ const pdpProductData = {
       origPrice: p ? Math.round(p.price * 1.2) : 2400000,
       badge: p ? p.badge : null,
       sku: 'SKU-00' + id,
-      // FIX: luôn dùng sizes từ DB, không copy hardcode từ AF1
-      sizes: p && p.sizes && p.sizes.length > 0
-        ? p.sizes.map(s => ({ s, avail: (p.stock || 0) > 0 }))
+      // FIX: buildSizeList tạo dải đầy đủ đúng cho từng sản phẩm
+      allSizes: p && p.sizes && p.sizes.length > 0
+        ? buildSizeList(p.sizes.join(','))
         : [],
+      sizes: p ? p.sizes : [],
     };
   }
 });
@@ -5649,11 +5679,15 @@ function openPdp(productId) {
   const dbProd = products.find(x => String(x.id) === String(productId));
   if (dbProd) {
     const totalStock = dbProd.stock || 0;
-    const dbSizes = (dbProd.sizes || []).map(s => ({ s, avail: totalStock > 0 }));
+    // FIX: buildSizeList tạo dải đầy đủ với avail=true/false
+    const sizeStr = (dbProd.sizes || []).join(',');
+    const dbAllSizes = buildSizeList(sizeStr);
+    // avail cho mỗi size: nếu còn hàng tổng thể thì các size trong DB = avail
+    const dbSizes = dbAllSizes.length > 0 ? dbAllSizes : [];
     if (p) {
-      // Sản phẩm có trong pdpProductData (demo) — chỉ override sizes nếu DB có dữ liệu
+      // Sản phẩm có trong pdpProductData (demo) — override allSizes từ DB
       if (dbSizes.length > 0) {
-        p = { ...p, sizes: dbSizes, stock: totalStock };
+        p = { ...p, allSizes: dbSizes, sizes: dbSizes.filter(s=>s.avail).map(s=>s.s), stock: totalStock };
       }
     } else {
       // Sản phẩm chỉ có trong DB
@@ -5669,7 +5703,8 @@ function openPdp(productId) {
         price:     dbProd.price,
         origPrice: dbProd.old || dbProd.price,
         colors:    dbColors,
-        sizes:     dbSizes,
+        allSizes:  dbSizes,
+        sizes:     dbSizes.filter(s=>s.avail).map(s=>s.s),
         desc:      dbProd.desc || '',
         features:  [],
         specs:     [],
@@ -5747,9 +5782,65 @@ function openPdp(productId) {
     if (labelEl && colors.length > 0) labelEl.textContent = colors[0];
   }
 
-  // Load ảnh gallery từ API
+  // Load ảnh gallery từ API — phân loại: ảnh chính / ảnh phụ / ảnh theo màu
   (async () => {
     const COLOR_MAP = {'Trắng':'#f5f5f5','Đen':'#111','Đỏ':'#e62020','Xanh':'#1976d2','Vàng':'#fdd835','Xám':'#888','Xanh lá':'#388e3c','Cam':'#f57c00','Hồng':'#e91e63','Tím':'#7b1fa2','Nâu':'#795548','Kem':'#fdf5e6'};
+
+    function _buildThumbs(imgs, mainImgEl) {
+      // Phân loại
+      const mainImg  = imgs.find(function(i){ return i.la_anh_chinh; }) || imgs[0];
+      const subImgs  = imgs.filter(function(i){ return !i.la_anh_chinh && !i.mausac; });
+      const colorImgs= imgs.filter(function(i){ return !i.la_anh_chinh && !!i.mausac; });
+
+      // Hiện ảnh chính lên khung lớn
+      if (mainImgEl && mainImg) {
+        var im = document.createElement('img');
+        im.src = mainImg.url;
+        im.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:8px';
+        im.onerror = function() { mainImgEl.innerHTML = '<span style="font-size:120px">👟</span>'; };
+        mainImgEl.innerHTML = '';
+        mainImgEl.appendChild(im);
+      }
+
+      // Tạo thumbnail — thứ tự: ảnh chính → ảnh phụ → ảnh màu
+      const ordered = [mainImg].filter(Boolean)
+        .concat(subImgs)
+        .concat(colorImgs);
+
+      thumbs.innerHTML = '';
+      ordered.forEach(function(img, i) {
+        var wrap = document.createElement('div');
+        wrap.className = 'pdp-thumb' + (i === 0 ? ' active' : '');
+        wrap.style.cssText = 'position:relative;cursor:pointer';
+        wrap.addEventListener('click', function() { pdpSelectGalleryImg(wrap, img.url); });
+
+        var im2 = document.createElement('img');
+        im2.src = img.url;
+        im2.style.cssText = 'width:100%;height:100%;object-fit:cover';
+        im2.onerror = function() { wrap.innerHTML = '<span style="font-size:24px">👟</span>'; };
+        wrap.appendChild(im2);
+
+        // Badge nhỏ cho ảnh màu
+        if (img.mausac) {
+          var lbl = document.createElement('div');
+          lbl.style.cssText = 'position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.7);color:#fff;font-size:9px;text-align:center;padding:2px 1px;line-height:1.3';
+          lbl.textContent = img.mausac;
+          wrap.appendChild(lbl);
+        }
+        // Badge "CHÍNH" cho ảnh chính
+        if (img.la_anh_chinh && ordered.length > 1) {
+          var mainLbl = document.createElement('div');
+          mainLbl.style.cssText = 'position:absolute;top:2px;left:2px;background:var(--red);color:#fff;font-size:8px;font-weight:700;padding:1px 4px;border-radius:2px;letter-spacing:.5px';
+          mainLbl.textContent = 'CHÍNH';
+          wrap.appendChild(mainLbl);
+        }
+        thumbs.appendChild(wrap);
+      });
+
+      // Active ảnh đầu tiên
+      if (thumbs.firstElementChild) pdpSelectGalleryImg(thumbs.firstElementChild, ordered[0].url);
+    }
+
     try {
       const res  = await fetch('/api/sanpham/' + productId + '/images');
       const data = await res.json();
@@ -5758,25 +5849,12 @@ function openPdp(productId) {
 
       const colorGrid  = document.getElementById('pdpColorGrid');
       const colorLabel = document.getElementById('pdpColorName');
+      const mainImgEl  = document.getElementById('pdpMainEmoji');
 
       if (imgs.length > 0) {
-        // Cập nhật ảnh chính
-        const mainImg   = imgs.find(function(i){ return i.la_anh_chinh; }) || imgs[0];
-        const mainImgEl = document.getElementById('pdpMainEmoji');
-        if (mainImgEl) {
-          var im = document.createElement('img');
-          im.src = mainImg.url;
-          im.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:8px';
-          im.onerror = function() { mainImgEl.innerHTML = '<span style="font-size:120px">👟</span>'; };
-          mainImgEl.innerHTML = '';
-          mainImgEl.appendChild(im);
-        }
+        _buildThumbs(imgs, mainImgEl);
 
-        // Render thumbnails
-        _renderThumbs(thumbs, imgs);
-        if (thumbs.firstElementChild) pdpSelectGalleryImg(thumbs.firstElementChild, imgs[0].url);
-
-        // Render màu — kết hợp ảnh + DB
+        // Render màu swatch — kết hợp ảnh màu + màu từ DB
         const colorsFromImgs = [...new Set(imgs.filter(function(i){ return i.mausac; }).map(function(i){ return i.mausac; }))];
         const dbColors = p._dbColors || [];
         const allColors = [...new Set([...colorsFromImgs, ...dbColors])];
@@ -5788,23 +5866,32 @@ function openPdp(productId) {
         }
 
       } else {
-        // Fallback: hinhanh
+        // Fallback: dùng hinhanh nếu sanpham_images trống
         if (p.imgUrl) {
-          var im2 = document.createElement('img');
-          im2.src = p.imgUrl;
-          im2.style.cssText = 'width:100%;height:100%;object-fit:cover';
-          im2.onerror = function() { thumbs.innerHTML = '<span style="font-size:36px">👟</span>'; };
-          var wrap2 = document.createElement('div');
-          wrap2.className = 'pdp-thumb active';
-          wrap2.style.cursor = 'pointer';
-          wrap2.addEventListener('click', function() { pdpSelectGalleryImg(wrap2, p.imgUrl); });
-          wrap2.appendChild(im2);
+          var fallbackImg = document.createElement('img');
+          fallbackImg.src = p.imgUrl;
+          fallbackImg.style.cssText = 'width:100%;height:100%;object-fit:cover';
+          fallbackImg.onerror = function() { thumbs.innerHTML = '<span style="font-size:36px">👟</span>'; };
+          var fallbackWrap = document.createElement('div');
+          fallbackWrap.className = 'pdp-thumb active';
+          fallbackWrap.style.cursor = 'pointer';
+          fallbackWrap.addEventListener('click', function() { pdpSelectGalleryImg(fallbackWrap, p.imgUrl); });
+          fallbackWrap.appendChild(fallbackImg);
           thumbs.innerHTML = '';
-          thumbs.appendChild(wrap2);
+          thumbs.appendChild(fallbackWrap);
+          // Cũng hiện ảnh chính
+          var mainImgEl2 = document.getElementById('pdpMainEmoji');
+          if (mainImgEl2) {
+            var mim = document.createElement('img');
+            mim.src = p.imgUrl;
+            mim.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:8px';
+            mim.onerror = function() { mainImgEl2.innerHTML = '<span style="font-size:120px">👟</span>'; };
+            mainImgEl2.innerHTML = '';
+            mainImgEl2.appendChild(mim);
+          }
         } else {
           thumbs.innerHTML = '<div class="pdp-thumb active" style="display:flex;align-items:center;justify-content:center;font-size:36px">👟</div>';
         }
-
         // Màu từ DB
         const dbColors2 = p._dbColors || [];
         if (colorGrid && dbColors2.length > 0) {
@@ -5812,14 +5899,15 @@ function openPdp(productId) {
         }
       }
     } catch(e) {
+      // Lỗi API — fallback emoji
       if (p.imgUrl) {
-        thumbs.innerHTML = '';
         var im3 = document.createElement('img');
         im3.src = p.imgUrl;
         im3.style.cssText = 'width:100%;height:100%;object-fit:cover';
         var wrap3 = document.createElement('div');
         wrap3.className = 'pdp-thumb active';
         wrap3.appendChild(im3);
+        thumbs.innerHTML = '';
         thumbs.appendChild(wrap3);
       }
     }
@@ -5836,9 +5924,14 @@ function openPdp(productId) {
   document.getElementById('pdpSaveNote').textContent = `💰 Tiết kiệm ${formatPrice(p.origPrice - p.price)} so với giá gốc`;
   document.getElementById('pdpQtyVal').textContent = 1;
 
-  // Sizes — gạch chéo nếu hết hàng
-  document.getElementById('pdpSizeGrid').innerHTML = (p.sizes||[]).map(s=>
-    '<button class="pdp-size-btn' + (s.avail?'':' unavailable') + '" ' + (s.avail ? 'onclick="selectPdpSize(this,\'' + s.s + '\')"' : 'title="Hết hàng"') + '>' + s.s + '</button>'
+  // Sizes — dùng allSizes (dải đầy đủ, avail=true nếu có trong DB)
+  const pdpSizeArr = p.allSizes && p.allSizes.length > 0
+    ? p.allSizes
+    : (p.sizes||[]).map(s => (typeof s === 'object' ? s : {s, avail: true}));
+  document.getElementById('pdpSizeGrid').innerHTML = pdpSizeArr.map(s=>
+    '<button class="pdp-size-btn' + (s.avail?'':' unavailable') + '" ' +
+    (s.avail ? 'onclick="selectPdpSize(this,\'' + s.s + '\')"' : 'disabled title="Hết size"') +
+    '>' + s.s + '</button>'
   ).join('');
 
   // Colors — render ban đầu, async block sẽ override với ảnh thật
@@ -12419,7 +12512,7 @@ function renderProductList(list) {
           }).join('')}
         </div>` : ''}
         <div class="product-sizes">
-          ${(p.sizes||[]).slice(0,5).map(s => `<button class="size-btn" onclick="selectSize(this,'${s}','${p.id}')">${s}</button>`).join('')}
+          ${(p.allSizes||p.sizes.map(s=>({s,avail:true}))).slice(0,6).map(s => `<button class="size-btn${s.avail?'':' unavailable'}" ${s.avail?`onclick="selectSize(this,'${s.s}','${p.id}')"`:' disabled title="Hết size"'}>${s.s}</button>`).join('')}
         </div>
         ${p.stock > 0
           ? `<button class="add-cart-btn" onclick="addToCart('${p.id}')">+ Thêm Vào Giỏ</button>`
@@ -12512,6 +12605,43 @@ function shopShowProdForm(p) {
 
   formEl.style.display = 'block';
   formEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // Load ảnh hiện có từ DB khi edit sản phẩm
+  if (isEdit) {
+    fetch(`/api/sanpham/${_shopProdEditMa}/images`, { headers: adminHeaders() })
+      .then(r => r.json())
+      .then(data => {
+        const imgs = data.images || [];
+        if (!imgs.length) return;
+
+        const mainImg   = imgs.find(i => i.la_anh_chinh) || imgs[0];
+        const subImgs   = imgs.filter(i => !i.la_anh_chinh && !i.mausac);
+        const colorImgs = imgs.filter(i => !i.la_anh_chinh && !!i.mausac);
+
+        // Hiện ảnh chính
+        const previewEl = document.getElementById('shop-p-img-preview');
+        const phEl = document.getElementById('shop-p-img-placeholder');
+        const rmEl = document.getElementById('shop-p-img-remove');
+        if (previewEl && mainImg) {
+          previewEl.src = mainImg.url;
+          previewEl.style.display = 'block';
+          if (phEl) phEl.style.display = 'none';
+          if (rmEl) rmEl.style.display = 'block';
+        }
+
+        // Điền ảnh phụ vào _shopGalleryFiles (dạng URL — đánh dấu là existing)
+        _shopGalleryFiles = subImgs.map(i => ({ dataUrl: i.url, file: null, existingId: i.id }));
+        shopRenderGalleryPreview();
+
+        // Điền ảnh màu vào _shopColorImages
+        _shopColorImages = {};
+        colorImgs.forEach(i => {
+          _shopColorImages[i.mausac] = { dataUrl: i.url, file: null, existingId: i.id };
+        });
+        shopRenderColorImgList();
+      })
+      .catch(() => {});
+  }
 }
 
 function shopHideProdForm() {
@@ -12675,7 +12805,8 @@ function shopRenderGalleryPreview() {
   grid.innerHTML = _shopGalleryFiles.map((g,i) => `
     <div style="position:relative;aspect-ratio:1;border-radius:4px;overflow:hidden;background:#1a1a1a;border:1px solid rgba(255,255,255,0.1)">
       <img src="${g.dataUrl}" style="width:100%;height:100%;object-fit:cover">
-      <button onclick="shopRemoveGalleryImg(${i})" style="position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;background:rgba(244,67,54,0.9);border:none;color:#fff;font-size:11px;cursor:pointer;line-height:1">-</button>
+      ${g.existingId ? '<div style="position:absolute;top:2px;left:2px;background:rgba(33,150,243,0.85);color:#fff;font-size:8px;font-weight:700;padding:1px 4px;border-radius:2px">ĐÃ LƯU</div>' : ''}
+      <button onclick="shopRemoveGalleryImg(${i})" style="position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;background:rgba(244,67,54,0.9);border:none;color:#fff;font-size:11px;cursor:pointer;line-height:1">✕</button>
     </div>
   `).join('');
 }
@@ -12704,14 +12835,16 @@ function shopRenderColorImgList() {
   if (!list) return;
   list.innerHTML = Object.keys(_shopColorImages).map(color => {
     const img = _shopColorImages[color];
+    const isSaved = img && img.existingId;
     return `
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;padding:6px;background:rgba(255,255,255,0.04);border-radius:4px;border:1px solid rgba(255,255,255,0.08)">
-        <div style="width:36px;height:36px;border-radius:4px;overflow:hidden;background:#1a1a1a;border:1px solid rgba(255,255,255,0.1);flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer" onclick="shopChooseColorImg('${color}')">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;padding:6px;background:rgba(255,255,255,0.04);border-radius:4px;border:1px solid ${isSaved?'rgba(33,150,243,0.3)':'rgba(255,255,255,0.08)'}">
+        <div style="position:relative;width:36px;height:36px;border-radius:4px;overflow:hidden;background:#1a1a1a;border:1px solid rgba(255,255,255,0.1);flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer" onclick="shopChooseColorImg('${color}')">
           ${img ? `<img src="${img.dataUrl}" style="width:100%;height:100%;object-fit:cover">` : '<span style="font-size:18px">📷</span>'}
+          ${isSaved ? '<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(33,150,243,0.85);color:#fff;font-size:7px;text-align:center;font-weight:700">ĐÃ LƯU</div>' : ''}
         </div>
         <span style="flex:1;font-size:12px;font-weight:600;color:#fff">${color}</span>
-        <button onclick="shopChooseColorImg('${color}')" style="font-size:10px;padding:3px 8px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#ccc;border-radius:3px;cursor:pointer">Chọn Ảnh</button>
-        <button onclick="shopRemoveColorSlot('${color}')" style="width:20px;height:20px;border-radius:50%;background:rgba(244,67,54,0.7);border:none;color:#fff;font-size:11px;cursor:pointer">-</button>
+        <button onclick="shopChooseColorImg('${color}')" style="font-size:10px;padding:3px 8px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#ccc;border-radius:3px;cursor:pointer">Đổi Ảnh</button>
+        <button onclick="shopRemoveColorSlot('${color}')" style="width:20px;height:20px;border-radius:50%;background:rgba(244,67,54,0.7);border:none;color:#fff;font-size:11px;cursor:pointer">✕</button>
       </div>
     `;
   }).join('');
@@ -12856,6 +12989,7 @@ async function adminSaveProduct() {
     }
 
     // Upload tất cả ảnh: ảnh chính + gallery + ảnh theo màu
+    // Bỏ qua ảnh đã có existingId (đã lưu trong DB — không upload lại)
     const savedMa = isEdit ? _shopProdEditMa : ma;
     const allFiles = [];
 
@@ -12866,10 +13000,14 @@ async function adminSaveProduct() {
       } catch(_) {}
     }
     _shopGalleryFiles.forEach(g => {
+      if (g.existingId) return; // ảnh phụ đã lưu — bỏ qua
+      if (!g.file) return;
       allFiles.push({ file: g.file, mausac: '', isMain: false });
     });
     for (const [color, img] of Object.entries(_shopColorImages)) {
       if (!img) continue;
+      if (img.existingId) continue; // ảnh màu đã lưu — bỏ qua
+      if (!img.file) continue;
       try {
         const blob = await (await fetch(img.dataUrl)).blob();
         allFiles.push({ file: new File([blob], 'color_'+color+'.jpg', { type: 'image/jpeg' }), mausac: color, isMain: false });
@@ -14328,7 +14466,7 @@ function searchProducts(q) {
             ${p.old ? `<div style="background:rgba(230,32,32,0.15);padding:4px 8px;font-size:12px;font-weight:900;color:var(--red)">-${Math.round((1-p.price/p.old)*100)}%</div>` : ''}
           </div>
           <div class="product-sizes">
-            ${p.sizes.slice(0,5).map(s => `<button class="size-btn" onclick="selectSize(this,'${s}',${p.id})">${s}</button>`).join('')}
+            ${(p.allSizes||p.sizes.map(s=>({s,avail:true}))).slice(0,6).map(s => `<button class="size-btn${s.avail?'':' unavailable'}" ${s.avail?`onclick="selectSize(this,'${s.s}',${p.id})"`:' disabled title="Hết size"'}>${s.s}</button>`).join('')}
           </div>
           <button class="add-cart-btn" onclick="addToCart('${p.id}')">+ Thêm Vào Giỏ</button>
         </div>

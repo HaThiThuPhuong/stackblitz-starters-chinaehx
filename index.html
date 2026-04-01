@@ -522,8 +522,8 @@ nav {
   transition: all .2s;
 }
 .size-btn:hover:not(.unavailable) { border-color: var(--red); color: var(--white); }
-.size-btn.unavailable { opacity:.4; cursor:not-allowed; color:rgba(255,255,255,0.3); border-color:rgba(255,255,255,0.06); position:relative; overflow:hidden; }
-.size-btn.unavailable::after { content:''; position:absolute; top:50%; left:50%; width:130%; height:1px; background:rgba(255,255,255,0.25); transform:translate(-50%,-50%) rotate(-45deg); pointer-events:none; }
+.size-btn.unavailable { cursor:not-allowed; color:rgba(255,255,255,0.2); border-color:rgba(255,255,255,0.08); background:rgba(255,255,255,0.03); position:relative; overflow:hidden; pointer-events:none; }
+.size-btn.unavailable::before { content:''; position:absolute; top:50%; left:0; right:0; height:1px; background:rgba(255,255,255,0.18); transform:rotate(-45deg) scaleX(1.6); pointer-events:none; }
 .add-cart-btn {
   width: 100%;
   background: var(--red);
@@ -1627,22 +1627,19 @@ let products = [];
 // Trả về mảng { s: '39', avail: true/false }
 // avail = size có trong cột `size` của DB (còn hàng)
 // unavail = size thuộc dải chuẩn nhưng không có trong DB
-const SIZE_RANGE_SNEAKER = ['35','36','37','38','39','40','41','42','43','44','45','46'];
+const SIZE_RANGE_SNEAKER = ['36','37','38','38.5','39','39.5','40','40.5','41','41.5','42','42.5','43','44','45'];
 const SIZE_RANGE_MLB     = ['220','225','230','235','240','245','250','255','260','265','270','275','280'];
 
 function buildSizeList(sizeStr) {
+  // Chuẩn hóa available: trim, bỏ rỗng, chuẩn số (ví dụ '38.5' → '38.5', '38,5' → '38.5')
+  const normalize = s => String(parseFloat(s.replace(',','.')));
   const available = (sizeStr || '').split(',').map(s => s.trim()).filter(Boolean);
+  const availNorm = new Set(available.map(normalize));
   if (!available.length) return [];
-  // Detect nếu là size MLB (số mm) hay size giày thường
   const isMLB = available.some(s => parseInt(s) >= 200);
   const range = isMLB ? SIZE_RANGE_MLB : SIZE_RANGE_SNEAKER;
-  // Lấy dải từ size nhỏ nhất đến lớn nhất trong available
-  const nums = available.map(Number).filter(n => !isNaN(n));
-  const min = Math.min(...nums);
-  const max = Math.max(...nums);
-  return range
-    .filter(s => { const n = Number(s); return n >= min && n <= max; })
-    .map(s => ({ s, avail: available.includes(s) }));
+  // Luôn hiển thị toàn bộ dải SIZE_RANGE_SNEAKER cố định (36—45)
+  return range.map(s => ({ s, avail: availNorm.has(normalize(s)) }));
 }
 
 // Chuyển đổi sản phẩm từ DB sang format trang chủ
@@ -5009,8 +5006,9 @@ window.checkout = function() {
 }
 .pdp-size-btn:hover { border-color:var(--red); color:var(--red); }
 .pdp-size-btn.active { background:var(--red); border-color:var(--red); color:#fff; }
-.pdp-size-btn.unavailable { opacity:.4; cursor:not-allowed; color:var(--gray-light); border-color:rgba(255,255,255,0.08); position:relative; overflow:hidden; }
-.pdp-size-btn.unavailable::after { content:''; position:absolute; top:50%; left:50%; width:130%; height:1px; background:rgba(255,255,255,0.3); transform:translate(-50%,-50%) rotate(-45deg); pointer-events:none; }
+.pdp-size-btn.unavailable { cursor:not-allowed; color:rgba(255,255,255,0.25); border-color:rgba(255,255,255,0.1); background:rgba(255,255,255,0.04); position:relative; overflow:hidden; pointer-events:none; }
+.pdp-size-btn.unavailable::after { content:''; position:absolute; inset:0; background:rgba(255,255,255,0.06); pointer-events:none; }
+.pdp-size-btn.unavailable::before { content:''; position:absolute; top:50%; left:0; right:0; height:1px; background:rgba(255,255,255,0.18); transform:rotate(-45deg) scaleX(1.6); pointer-events:none; }
 
 /* COLOR SELECTOR */
 .pdp-colors { display:flex; gap:10px; margin-bottom:20px; }

@@ -1650,6 +1650,23 @@ app.put(
 );
 
 // ── KẾ TOÁN: HÓA ĐƠN VAT ────────────────────────────────────
+app.get("/api/ketoan/hoadon-vat/list", requireRole("accountant","admin","shop"), async (req, res) => {
+  try {
+    const { month } = req.query;
+    let q, params = [];
+    if (month) {
+      q = "SELECT sohd as so_hd, tenkhach as ten_khach, mst, diachi, gia_truoc_vat, vat_rate, tien_vat, tong_tt, ghichu, mahoadon, ngaytao, COALESCE(trangthai,'Cho ky') as trangthai FROM hoadon_vat WHERE TO_CHAR(ngaytao,'YYYY-MM')=$1 ORDER BY ngaytao DESC";
+      params.push(month);
+    } else {
+      q = "SELECT sohd as so_hd, tenkhach as ten_khach, mst, diachi, gia_truoc_vat, vat_rate, tien_vat, tong_tt, ghichu, mahoadon, ngaytao, COALESCE(trangthai,'Cho ky') as trangthai FROM hoadon_vat ORDER BY ngaytao DESC LIMIT 200";
+    }
+    const result = await pool.query(q, params);
+    res.json(result.rows);
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get("/api/ketoan/hoadon-vat", requireRole("accountant","admin","shop"), async (req,res) => {
   try {
     const { month } = req.query;

@@ -2889,7 +2889,311 @@ function saFilterOrderTab(btn, key) {
 
 // -- SA PROFILE FUNCTIONS --
 // -- SA PROFILE — load + save thực ----------------------------
-async function saLoadProfile() {
+async // ============================================================
+// ADMIN LOAD PROFILE — Unified dashboard (shop / accountant / admin)
+// Đọc JWT hiện tại, fetch thông tin từ server, render đúng theo role
+// ============================================================
+async function adminLoadProfile() {
+  const token = sessionStorage.getItem('admin_token') || localStorage.getItem('admin_token') || '';
+  let myEmail = '', myId = '', myRole = 'shop', myName = '';
+
+  // Decode JWT payload
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+      myEmail = payload.email || '';
+      myId    = String(payload.id || '');
+      myRole  = payload.role  || (currentUser && currentUser.role) || 'shop';
+      myName  = payload.name  || payload.hoten || '';
+    } catch(e) {}
+  }
+  // Fallback to currentUser
+  if (!myName && currentUser) myName = currentUser.name || '';
+  if (!myRole && currentUser) myRole = currentUser.role || 'shop';
+
+  const cfg = ROLE_CONFIG[myRole] || ROLE_CONFIG.shop;
+
+  // Avatar element
+  const avatarEl = document.getElementById('sa-avatar-display');
+  if (avatarEl && !avatarEl.querySelector('img')) {
+    const initials = (myName||myRole).trim().split(/\s+/).filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase();
+    avatarEl.textContent = initials || '??';
+    avatarEl.style.background   = cfg.avatarBg;
+    avatarEl.style.borderColor  = cfg.tagColor;
+    avatarEl.style.color        = cfg.avatarColor;
+  }
+
+  // Display name
+  const nameEl = document.getElementById('sa-display-name');
+  if (nameEl) nameEl.textContent = myName || myRole;
+
+  // Role badge & subtitle
+  const roleBadge = document.getElementById('admin-profile-role-badge');
+  if (roleBadge) {
+    roleBadge.textContent = cfg.label;
+    roleBadge.style.color = cfg.tagColor;
+  }
+  const subEl = document.getElementById('admin-profile-sub');
+  if (subEl) subEl.textContent = 'Quản lý thông tin tài khoản ' + cfg.subtitle;
+
+  // Permission box
+  const permBox = document.getElementById('admin-profile-perm-box');
+  const permMap = {
+    admin:      { icon:'🛡️', text:'Tài khoản có toàn quyền hệ thống', color:'#9c27b0', bg:'rgba(156,39,176,0.08)', border:'rgba(156,39,176,0.2)' },
+    shop:       { icon:'👑', text:'Quản lý cửa hàng, sản phẩm & đơn hàng', color:'var(--red)', bg:'rgba(230,32,32,0.08)', border:'rgba(230,32,32,0.2)' },
+    accountant: { icon:'📒', text:'Xem báo cáo tài chính & xuất hóa đơn VAT', color:'#2196f3', bg:'rgba(33,150,243,0.08)', border:'rgba(33,150,243,0.2)' },
+  };
+  const p = permMap[myRole] || permMap.shop;
+  if (permBox) {
+    permBox.innerHTML = p.icon + ' ' + p.text;
+    permBox.style.color       = p.color;
+    permBox.style.background  = p.bg;
+    permBox.style.borderColor = p.border;
+  }
+
+  // Fetch thông tin thật từ server
+  try {
+    const res = await accFetch('/api/admin/users');
+    const users = (res.ok && Array.isArray(res.data)) ? res.data
+                : (res.ok && Array.isArray(res.data && res.data.data)) ? res.data.data : [];
+    const me = users.find(u => (u.email||'').toLowerCase() === myEmail.toLowerCase())
+            || users.find(u => String(u.idnguoiquanly||u.id) === myId)
+            || {};
+
+    const fullName = me.hoten || me.HoTen || myName || cfg.subtitle;
+    const sdt      = me.sodienthoai || me.SoDienThoai || '';
+    const ngayTao  = me.ngaytao || me.NgayTao;
+    const ngayStr  = ngayTao ? new Date(ngayTao).toLocaleDateString('vi-VN') : '--';
+    const metaId   = me.idnguoiquanly || myId || '--';
+
+    // Điền form
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+    set('sa-pf-name',        fullName);
+    set('sa-pf-displayname', fullName);
+    set('sa-pf-email',       myEmail);
+    set('sa-pf-phone',       sdt);
+
+    // Update avatar initials with real name
+    if (avatarEl && !avatarEl.querySelector('img')) {
+      const initials = fullName.trim().split(/\s+/).filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase();
+      avatarEl.textContent = initials || '??';
+    }
+    if (nameEl) nameEl.textContent = fullName;
+
+    // Update meta
+    const metaEl = document.getElementById('admin-profile-meta');
+    if (metaEl) metaEl.textContent = 'ID: #' + metaId + '\u00a0·\u00a0Từ ' + ngayStr;
+
+    // Last login time
+    const now = new Date();
+    const nowStr = now.toLocaleDateString('vi-VN') + ' ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+    const loginSpans = document.querySelectorAll('#panel-admin-profile span');
+    loginSpans.forEach(s => {
+      if (s.textContent.match(/\d{2}\/\d{2}\/20\d{2}/)) s.textContent = nowStr;
+    });
+  } catch(e) {
+    console.warn('adminLoadProfile fetch:', e.message);
+    // Even on error, fill from JWT
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+    set('sa-pf-name',        myName);
+    set('sa-pf-displayname', myName);
+    set('sa-pf-email',       myEmail);
+    if (nameEl) nameEl.textContent = myName || cfg.subtitle;
+  }
+}
+
+// ============================================================
+// PRINT VAT INVOICE — Mở popup in hóa đơn VAT chuẩn
+// ============================================================
+function printVATInvoiceFromOrder(order) {
+  // order: { soHD, tenKH, sdt, sanpham, size, soluong, donGia, vatRate, mst, diachi }
+  const vatRate   = order.vatRate || 10;
+  const donGia    = order.donGia  || 0;
+  const tienVAT   = Math.round(donGia * vatRate / 100);
+  const tongTT    = donGia + tienVAT;
+  const today     = new Date().toLocaleDateString('vi-VN');
+  const soHD      = order.soHD || ('VAT' + Date.now());
+  const fmtN      = n => n.toLocaleString('vi-VN') + 'đ';
+
+  const html = `
+  <div id="vat-print-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto" onclick="if(event.target===this)this.remove()">
+    <div style="background:#fff;color:#111;width:100%;max-width:620px;padding:0;border-radius:4px;font-family:'Times New Roman',serif">
+
+      <!-- Header hóa đơn -->
+      <div style="background:#1a1a1a;color:#fff;padding:20px 28px;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:22px;font-weight:900;letter-spacing:1px">SNEAKERVN</div>
+          <div style="font-size:11px;opacity:0.7;margin-top:2px">MST: 0312 456 789 — sneakervn.com</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:13px;font-weight:700;color:#f44336">HÓA ĐƠN GIÁ TRỊ GIA TĂNG</div>
+          <div style="font-size:11px;opacity:0.7">VAT Invoice · Mẫu 01/GTGT</div>
+        </div>
+      </div>
+
+      <div style="padding:24px 28px">
+
+        <!-- Số HĐ + ngày -->
+        <div style="display:flex;justify-content:space-between;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid #e0e0e0">
+          <div>
+            <div style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:.5px">Số Hóa Đơn</div>
+            <div style="font-size:18px;font-weight:900;color:#f44336;letter-spacing:1px">${soHD}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:11px;color:#666">Ngày xuất hóa đơn</div>
+            <div style="font-size:14px;font-weight:700">${today}</div>
+            <div style="font-size:11px;color:#666;margin-top:2px">Ký hiệu: SNV/26E</div>
+          </div>
+        </div>
+
+        <!-- Thông tin bên mua -->
+        <div style="margin-bottom:18px;padding:14px;background:#f8f8f8;border-left:3px solid #f44336">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#666;margin-bottom:8px">Đơn Vị Mua Hàng</div>
+          <div style="display:grid;grid-template-columns:120px 1fr;gap:5px;font-size:13px">
+            <span style="color:#666">Tên KH/Công ty:</span><strong>${order.tenKH || '—'}</strong>
+            <span style="color:#666">Mã số thuế:</span><span>${order.mst || '—'}</span>
+            <span style="color:#666">Địa chỉ:</span><span>${order.diachi || '—'}</span>
+            <span style="color:#666">Điện thoại:</span><span>${order.sdt || '—'}</span>
+          </div>
+        </div>
+
+        <!-- Bảng hàng hóa -->
+        <table style="width:100%;border-collapse:collapse;margin-bottom:16px;font-size:13px">
+          <thead>
+            <tr style="background:#1a1a1a;color:#fff">
+              <th style="padding:9px 10px;text-align:left;font-weight:700">STT</th>
+              <th style="padding:9px 10px;text-align:left;font-weight:700">Tên Hàng Hóa / Dịch Vụ</th>
+              <th style="padding:9px 10px;text-align:center;font-weight:700">SL</th>
+              <th style="padding:9px 10px;text-align:right;font-weight:700">Đơn Giá</th>
+              <th style="padding:9px 10px;text-align:right;font-weight:700">Thành Tiền</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #eee">
+              <td style="padding:10px">1</td>
+              <td style="padding:10px">
+                <div style="font-weight:600">${order.sanpham || 'Giày thể thao'}</div>
+                <div style="font-size:11px;color:#666">Size: ${order.size||'—'} · Số lượng: ${order.soluong||1}</div>
+              </td>
+              <td style="padding:10px;text-align:center">${order.soluong||1}</td>
+              <td style="padding:10px;text-align:right">${fmtN(donGia)}</td>
+              <td style="padding:10px;text-align:right;font-weight:600">${fmtN(donGia)}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Totals -->
+        <div style="display:flex;justify-content:flex-end">
+          <div style="min-width:280px">
+            <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #eee;font-size:13px">
+              <span style="color:#666">Cộng tiền hàng (chưa VAT):</span>
+              <strong>${fmtN(donGia)}</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #eee;font-size:13px">
+              <span style="color:#666">Thuế VAT (${vatRate}%):</span>
+              <strong>${fmtN(tienVAT)}</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:10px 0;font-size:16px;font-weight:900;color:#f44336">
+              <span>TỔNG CỘNG THANH TOÁN:</span>
+              <span>${fmtN(tongTT)}</span>
+            </div>
+            <div style="font-size:12px;color:#666;text-align:right;font-style:italic">
+              Bằng chữ: ${soTienBangChu(tongTT)}
+            </div>
+          </div>
+        </div>
+
+        <!-- Chữ ký -->
+        <div style="display:flex;justify-content:space-between;margin-top:32px;text-align:center;font-size:12px">
+          <div style="flex:1">
+            <div style="font-weight:700;margin-bottom:4px">NGƯỜI MUA HÀNG</div>
+            <div style="color:#999;font-size:11px">(Ký, ghi rõ họ tên)</div>
+            <div style="margin-top:50px;border-top:1px dashed #ccc;padding-top:4px;color:#999">Chữ ký</div>
+          </div>
+          <div style="flex:1">
+            <div style="font-weight:700;margin-bottom:4px">KẾ TOÁN</div>
+            <div style="color:#999;font-size:11px">(Ký, ghi rõ họ tên)</div>
+            <div style="margin-top:50px;border-top:1px dashed #ccc;padding-top:4px;color:#999">Chữ ký</div>
+          </div>
+          <div style="flex:1">
+            <div style="font-weight:700;margin-bottom:4px">GIÁM ĐỐC</div>
+            <div style="color:#999;font-size:11px">(Ký, đóng dấu)</div>
+            <div style="margin-top:50px;border-top:1px dashed #ccc;padding-top:4px;color:#999">Chữ ký & Dấu</div>
+          </div>
+        </div>
+
+        <!-- Footer note -->
+        <div style="margin-top:20px;padding:10px;background:#fff3e0;border:1px solid #ffe0b2;border-radius:3px;font-size:11px;color:#e65100;text-align:center">
+          ⚠️ Hóa đơn này có giá trị pháp lý. Vui lòng giữ lại để đối chiếu khi cần.
+        </div>
+
+      </div>
+
+      <!-- Actions -->
+      <div style="padding:16px 28px;background:#f5f5f5;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid #e0e0e0">
+        <button onclick="document.getElementById('vat-print-modal').remove()" style="padding:9px 18px;border:1px solid #ccc;background:#fff;cursor:pointer;font-size:13px;border-radius:3px">✕ Đóng</button>
+        <button onclick="accSaveVATFromOrder(${JSON.stringify(order).replace(/"/g,'&quot;')})" style="padding:9px 18px;border:none;background:#2196f3;color:#fff;cursor:pointer;font-size:13px;font-weight:700;border-radius:3px">💾 Lưu Hóa Đơn</button>
+        <button onclick="window.print()" style="padding:9px 18px;border:none;background:#f44336;color:#fff;cursor:pointer;font-size:13px;font-weight:700;border-radius:3px">🖨 In Ngay</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+// Chuyển số thành chữ (VND)
+function soTienBangChu(n) {
+  if (!n || n === 0) return 'Không đồng';
+  const units = ['', 'nghìn', 'triệu', 'tỷ'];
+  const digits = ['không','một','hai','ba','bốn','năm','sáu','bảy','tám','chín'];
+  function readHundreds(num) {
+    const h = Math.floor(num/100), t = Math.floor((num%100)/10), u = num%10;
+    let s = '';
+    if (h > 0) s += digits[h] + ' trăm ';
+    if (t > 1) s += digits[t] + ' mươi ';
+    else if (t === 1) s += 'mười ';
+    else if (h > 0 && u > 0) s += 'lẻ ';
+    if (u > 0) { if (t > 1 && u === 1) s += 'mốt'; else if (t >= 1 && u === 5) s += 'lăm'; else s += digits[u]; }
+    return s.trim();
+  }
+  let result = '', i = 0;
+  while (n > 0) {
+    const chunk = n % 1000;
+    if (chunk > 0) result = readHundreds(chunk) + (units[i] ? ' ' + units[i] : '') + (result ? ' ' : '') + result;
+    n = Math.floor(n / 1000); i++;
+  }
+  return result.charAt(0).toUpperCase() + result.slice(1) + ' đồng';
+}
+
+// Lưu hóa đơn VAT từ đơn hàng lên server
+async function accSaveVATFromOrder(order) {
+  const donGia = order.donGia || 0;
+  const vatRate = order.vatRate || 10;
+  try {
+    const r = await accFetch('/api/ketoan/hoadon-vat', {
+      method: 'POST',
+      body: JSON.stringify({
+        tenkhach:    order.tenKH   || '',
+        mst:         order.mst     || '',
+        diachi:      order.diachi  || '',
+        giaTruocVAT: donGia,
+        vatRate:     vatRate,
+        ghichu:      order.sanpham || '',
+        mahoadon:    order.soHD    || null,
+      })
+    });
+    if (r.ok) {
+      showToast('✅ Đã Lưu', 'Hóa đơn VAT đã được lưu vào hệ thống');
+      document.getElementById('vat-print-modal')?.remove();
+      if (typeof accLoadVAT === 'function') accLoadVAT();
+    } else {
+      showToast('❌ Lỗi Lưu', r.error || 'Không lưu được hóa đơn');
+    }
+  } catch(e) {
+    showToast('❌ Lỗi', e.message);
+  }
+}
+
+function saLoadProfile() {
   try {
     // Lấy thông tin từ /api/admin/users (tìm chính mình qua email trong token)
     const list = await SA.sf('/api/admin/users');
@@ -8369,7 +8673,7 @@ select.mp-field-input option { background: #1a1a1a; }
                 <td><span class="db-status status-done">✅ Hoàn Thành</span></td>
                 <td>
                   <div style="display:flex;gap:4px">
-                    <button class="db-btn-sm" onclick="showToast('In Hóa Đơn','Đang tạo hóa đơn VAT...')">🖨 In HĐ</button>
+                    <button class="db-btn-sm" onclick="printVATInvoiceFromOrder({soHD:'#SVN-2026-0397',tenKH:'Nguyễn Văn A',sdt:'0912 345 678',sanpham:'Nike Air Max 270',size:'42',soluong:1,donGia:3200000,vatRate:10})">🖨 In HĐ</button>
                     <button class="db-btn-sm" onclick="viewOrderDetail('#SVN-2026-0397')">👁</button>
                   </div>
                 </td>
@@ -8385,7 +8689,7 @@ select.mp-field-input option { background: #1a1a1a; }
                 <td><span class="db-status status-done">✅ Hoàn Thành</span></td>
                 <td>
                   <div style="display:flex;gap:4px">
-                    <button class="db-btn-sm" onclick="showToast('In Hóa Đơn','Đang tạo hóa đơn VAT...')">🖨 In HĐ</button>
+                    <button class="db-btn-sm" onclick="accShowCreateVAT()">🧾 Tạo VAT</button>
                     <button class="db-btn-sm" onclick="viewOrderDetail('#SVN-2026-0396')">👁</button>
                   </div>
                 </td>
@@ -8470,7 +8774,7 @@ select.mp-field-input option { background: #1a1a1a; }
           </div>
           <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
             <button class="db-btn-sm" onclick="document.getElementById('modal-order-detail').style.display='none'">Đóng</button>
-            <button class="db-btn-sm" onclick="showToast('In Hóa Đơn','Đang tạo hóa đơn VAT...')">🖨 In HĐ</button>
+            <button class="db-btn-sm" onclick="accShowCreateVAT()">🧾 Tạo VAT</button>
             <button class="db-btn-sm primary" onclick="showToast('Đã Duyệt ✓','Đơn hàng đang được xác nhận và tạo vận đơn');document.getElementById('modal-order-detail').style.display='none'">✓ Duyệt Đơn</button>
           </div>
           <button onclick="document.getElementById('modal-order-detail').style.display='none'" style="position:absolute;top:12px;right:14px;background:none;border:none;color:var(--gray-light);font-size:18px;cursor:pointer">✕</button>
@@ -9928,7 +10232,8 @@ select.mp-field-input option { background: #1a1a1a; }
             <select style="background:var(--surface);border:1px solid rgba(255,255,255,0.1);color:var(--white);padding:6px 10px;font-size:12px;cursor:pointer">
               <option>Tháng 03/2026</option><option>Tháng 02/2026</option><option>Tháng 01/2026</option><option>Quý 1/2026</option>
             </select>
-            <button class="db-btn-sm" onclick="showToast('Xuất Excel','File kế toán đang được tạo...')">📥 Xuất Excel</button>
+            <button class="db-btn-sm primary" onclick="accShowCreateVAT()">🧾 Tạo HĐ VAT</button>
+            <button class="db-btn-sm" onclick="adminExportFinanceExcel()">📥 Xuất Excel</button>
             <button class="db-btn-sm" onclick="showToast('Xuất PDF','Báo cáo tài chính PDF đang tạo...')">📄 PDF</button>
           </div>
         </div>
@@ -10604,7 +10909,7 @@ select.mp-field-input option { background: #1a1a1a; }
 
       <div class="db-panel" id="panel-admin-profile">
         <div class="db-page-title">Hồ Sơ Cá Nhân</div>
-        <div class="db-page-sub">Quản lý thông tin tài khoản Super Admin</div>
+        <div class="db-page-sub" id="admin-profile-sub">Quản lý thông tin tài khoản của bạn</div>
 
         <div class="db-grid-2" style="gap:24px;align-items:start">
 
@@ -10613,15 +10918,15 @@ select.mp-field-input option { background: #1a1a1a; }
             <!-- Avatar card -->
             <div class="db-widget" style="text-align:center;padding:32px 24px;margin-bottom:16px">
               <div style="position:relative;display:inline-block;margin-bottom:16px">
-                <div id="sa-avatar-display" style="width:100px;height:100px;border-radius:50%;background:rgba(156,39,176,0.2);border:3px solid #9c27b0;color:#9c27b0;font-size:32px;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto;overflow:hidden">SA</div>
+                <div id="sa-avatar-display" style="width:100px;height:100px;border-radius:50%;background:rgba(33,150,243,0.2);border:3px solid #2196f3;color:#2196f3;font-size:32px;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto;overflow:hidden">??</div>
                 <button onclick="document.getElementById('sa-avatar-upload').click()" style="position:absolute;bottom:4px;right:4px;width:28px;height:28px;border-radius:50%;background:#9c27b0;border:2px solid #141414;color:#fff;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center" title="Đổi ảnh">📷</button>
                 <input type="file" id="sa-avatar-upload" accept="image/*" style="display:none" onchange="saHandleAvatar(event)">
               </div>
-              <div style="font-size:18px;font-weight:800;margin-bottom:4px" id="sa-display-name">Nguyễn Admin</div>
-              <div style="font-size:12px;color:#9c27b0;margin-bottom:4px">🛡️ Super Admin · Root</div>
-              <div style="font-size:11px;color:var(--gray-light)">ID: #SA-001 &nbsp;·&nbsp; Từ 01/2023</div>
-              <div style="margin-top:16px;padding:10px 16px;background:rgba(156,39,176,0.08);border:1px solid rgba(156,39,176,0.2);font-size:12px;color:#9c27b0">
-                🛡️ Tài khoản có toàn quyền hệ thống
+              <div style="font-size:18px;font-weight:800;margin-bottom:4px" id="sa-display-name">—</div>
+              <div style="font-size:12px;margin-bottom:4px" id="admin-profile-role-badge">⏳ Đang tải...</div>
+              <div style="font-size:11px;color:var(--gray-light)" id="admin-profile-meta">ID: — &nbsp;·&nbsp; —</div>
+              <div id="admin-profile-perm-box" style="margin-top:16px;padding:10px 16px;background:rgba(33,150,243,0.08);border:1px solid rgba(33,150,243,0.2);font-size:12px;color:#2196f3">
+                ⏳ Đang tải phân quyền...
               </div>
             </div>
 
@@ -12566,7 +12871,7 @@ function switchDbPanel(dashId, panelId, navItem) {
   // Admin-only panels (from superAdmin)
   if (panelId === 'panel-admin-users')      { if (typeof SA !== 'undefined' && SA.loadUsers)     SA.loadUsers();      }
   if (panelId === 'panel-admin-categories') { if (typeof SA !== 'undefined' && SA.loadCategories) SA.loadCategories(); }
-  if (panelId === 'panel-admin-profile')    { if (typeof saLoadProfile === 'function')            saLoadProfile();     }
+  if (panelId === 'panel-admin-profile')    { adminLoadProfile(); }
 }
 
 function initAdminChart() {

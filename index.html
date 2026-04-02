@@ -33,10 +33,8 @@ body {
 
 /* ─── HEADER ─── */
 header {
-  position: fixed; top:0; left:0; right:0; z-index:1000;
-  background: rgba(10,10,10,0.95);
-  backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  position: sticky; top:0; left:0; right:0; z-index:1000;
+  background: #fff;
 }
 .header-top {
   background: var(--red);
@@ -127,16 +125,8 @@ nav {
 }
 .btn-login:hover { background: var(--accent) !important; }
 
-/* ─── HERO ─── */
-#hero {
-  height: 100vh;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  padding-top: 90px;
-}
+/* ─── HERO (overridden by .hero-new) ─── */
+#hero { position: relative; overflow: hidden; }
 .hero-bg {
   position: absolute; inset:0;
   background: linear-gradient(135deg, #0a0a0a 0%, #1a0505 50%, #0d0d0d 100%);
@@ -1229,40 +1219,1068 @@ footer {
 </head>
 <body>
 
+
+<!-- ═══════════════════════════════════════════════════════════
+     HEADER — Navigation với mega dropdown Giày
+════════════════════════════════════════════════════════════════ -->
+<style>
+/* ── RESET HEADER CŨ & THÊM STYLES MỚI ── */
+.header-announce {
+  background: #222;
+  text-align: center;
+  padding: 8px 16px;
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  color: #ccc;
+  border-bottom: 1px solid #333;
+}
+.header-announce strong { color: #fff; }
+.header-announce a { color: var(--red); text-decoration: none; }
+
+.header-main {
+  background: #fff;
+  border-bottom: 1px solid #e8e8e8;
+  padding: 0 48px;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  height: 68px;
+  position: relative;
+  z-index: 100;
+}
+.logo-new {
+  font-family: 'Bebas Neue', cursive;
+  font-size: 28px;
+  letter-spacing: 2px;
+  color: #111;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.logo-new span { color: var(--red); }
+
+.nav-main {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  list-style: none;
+  flex: 1;
+}
+.nav-main > li {
+  position: relative;
+}
+.nav-main > li > a, .nav-main > li > button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 16px;
+  height: 68px;
+  color: #333;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  background: none;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+.nav-main > li > a:hover,
+.nav-main > li > button:hover,
+.nav-main > li.active > a,
+.nav-main > li.active > button {
+  color: var(--red);
+  border-bottom-color: var(--red);
+}
+.nav-caret { font-size: 9px; opacity: 0.5; transition: transform 0.2s; }
+.nav-main > li:hover .nav-caret { transform: rotate(180deg); }
+
+/* MEGA DROPDOWN */
+.mega-drop {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-top: 2px solid var(--red);
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+  min-width: 640px;
+  padding: 28px 32px;
+  display: none;
+  z-index: 999;
+}
+.nav-main > li:hover .mega-drop { display: flex; gap: 32px; }
+.mega-col { flex: 1; min-width: 140px; }
+.mega-col-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #999;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.mega-col a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 0;
+  color: #333;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.mega-col a:hover { color: var(--red); }
+.mega-col a .mc-icon { width: 28px; height: 28px; border-radius: 6px; background: #f5f5f5; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+.mega-banner {
+  width: 180px;
+  background: linear-gradient(135deg,#0a0a0a,#2a0000);
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.mega-banner-tag { font-size: 10px; color: var(--red); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+.mega-banner-title { font-size: 18px; font-weight: 900; color: #fff; line-height: 1.3; margin: 8px 0; }
+.mega-banner-btn { background: var(--red); color: #fff; border: none; padding: 8px 14px; font-size: 11px; font-weight: 700; border-radius: 4px; cursor: pointer; text-align: center; display: block; text-decoration: none; letter-spacing: 0.5px; }
+
+/* Simple dropdown */
+.simple-drop {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-top: 2px solid var(--red);
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  min-width: 200px;
+  padding: 8px 0;
+  display: none;
+  z-index: 999;
+}
+.nav-main > li:hover .simple-drop { display: block; }
+.simple-drop a {
+  display: block;
+  padding: 10px 20px;
+  color: #333;
+  font-size: 13px;
+  text-decoration: none;
+  transition: background 0.1s;
+}
+.simple-drop a:hover { background: #fafafa; color: var(--red); }
+
+/* Header right actions */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.hdr-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.15s;
+  color: #333;
+  font-size: 18px;
+  position: relative;
+}
+.hdr-icon-btn:hover { background: #f5f5f5; }
+.hdr-cart-badge {
+  position: absolute;
+  top: 3px; right: 3px;
+  background: var(--red);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+}
+.hdr-search-wrap {
+  position: relative;
+  flex: 1;
+  max-width: 360px;
+}
+.hdr-search-input {
+  width: 100%;
+  padding: 9px 16px 9px 40px;
+  border: 1.5px solid #e8e8e8;
+  border-radius: 24px;
+  font-size: 13px;
+  color: #333;
+  background: #f8f8f8;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s;
+}
+.hdr-search-input:focus {
+  border-color: var(--red);
+  background: #fff;
+}
+.hdr-search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #aaa;
+  font-size: 14px;
+  pointer-events: none;
+}
+.hdr-login-btn {
+  padding: 8px 20px;
+  background: var(--red);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+  letter-spacing: 0.3px;
+}
+.hdr-login-btn:hover { background: #c00; }
+
+/* ── NEW HOMEPAGE SECTIONS ── */
+
+/* HERO SLIDER */
+.hero-new {
+  margin-top: 0;
+  position: relative;
+  overflow: hidden;
+  background: #111;
+  height: 520px;
+}
+.hero-slides { display: flex; height: 100%; transition: transform 0.6s cubic-bezier(0.77,0,0.175,1); }
+.hero-slide {
+  min-width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.hero-slide-bg {
+  position: absolute; inset: 0;
+  background-size: cover; background-position: center;
+}
+.hero-slide-1 .hero-slide-bg { background: linear-gradient(120deg, #0a0a0a 0%, #1a0505 40%, #2a0808 100%); }
+.hero-slide-2 .hero-slide-bg { background: linear-gradient(120deg, #050a1a 0%, #0a1530 40%, #0d1c40 100%); }
+.hero-slide-3 .hero-slide-bg { background: linear-gradient(120deg, #0a0a05 0%, #151a05 40%, #1c2208 100%); }
+.hero-slide::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.2) 60%, transparent 100%);
+  z-index: 1;
+}
+.hero-content-new {
+  position: relative; z-index: 2;
+  padding: 0 80px;
+  max-width: 600px;
+}
+.hero-slide-tag {
+  display: inline-block;
+  background: var(--red);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: 3px;
+  margin-bottom: 16px;
+}
+.hero-slide-title {
+  font-family: 'Bebas Neue', cursive;
+  font-size: 72px;
+  line-height: 0.95;
+  color: #fff;
+  letter-spacing: 1px;
+  margin-bottom: 16px;
+}
+.hero-slide-desc {
+  color: rgba(255,255,255,0.7);
+  font-size: 14px;
+  line-height: 1.7;
+  margin-bottom: 28px;
+  max-width: 420px;
+}
+.hero-slide-price {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.hero-price-new { font-size: 32px; font-weight: 900; color: var(--red); }
+.hero-price-old { font-size: 18px; color: rgba(255,255,255,0.4); text-decoration: line-through; }
+.hero-price-badge { background: rgba(230,32,32,0.2); color: var(--red); padding: 4px 10px; border-radius: 4px; font-size: 13px; font-weight: 700; border: 1px solid rgba(230,32,32,0.3); }
+.hero-cta-new {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.btn-hero-primary {
+  padding: 13px 28px;
+  background: var(--red);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: background 0.2s, transform 0.1s;
+}
+.btn-hero-primary:hover { background: #c00; transform: translateY(-1px); }
+.btn-hero-secondary {
+  padding: 13px 28px;
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-hero-secondary:hover { background: rgba(255,255,255,0.18); }
+.hero-emoji-right {
+  position: absolute;
+  right: 10%;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 200px;
+  opacity: 0.15;
+  z-index: 1;
+  filter: blur(0px);
+  animation: floatShoe 3s ease-in-out infinite;
+}
+.hero-img-right {
+  position: absolute;
+  right: 8%;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 360px;
+  height: 300px;
+  object-fit: contain;
+  z-index: 2;
+  filter: drop-shadow(0 20px 40px rgba(0,0,0,0.5));
+  animation: floatShoe 3s ease-in-out infinite;
+}
+@keyframes floatShoe {
+  0%,100% { transform: translateY(-50%) translateY(0); }
+  50%      { transform: translateY(-50%) translateY(-12px); }
+}
+.hero-dots {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 10;
+}
+.hero-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.3);
+  cursor: pointer;
+  transition: background 0.2s, width 0.3s;
+  border: none;
+}
+.hero-dot.active { background: var(--red); width: 24px; border-radius: 4px; }
+.hero-prev, .hero-next {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #fff;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s;
+}
+.hero-prev:hover, .hero-next:hover { background: rgba(255,255,255,0.2); }
+.hero-prev { left: 24px; }
+.hero-next { right: 24px; }
+
+/* TRUST BAR */
+.trust-bar {
+  background: #fff;
+  border-bottom: 1px solid #f0f0f0;
+  padding: 16px 48px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+}
+.trust-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 24px;
+  border-right: 1px solid #f0f0f0;
+}
+.trust-item:first-child { padding-left: 0; }
+.trust-item:last-child { border-right: none; }
+.trust-icon { font-size: 28px; }
+.trust-text strong { display: block; font-size: 13px; font-weight: 700; color: #111; }
+.trust-text span { font-size: 12px; color: #888; }
+
+/* CATEGORIES STRIP */
+.cat-strip {
+  background: #fff;
+  padding: 36px 48px;
+}
+.cat-strip-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #999;
+  margin-bottom: 20px;
+}
+.cat-grid {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.cat-grid::-webkit-scrollbar { display: none; }
+.cat-chip {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 20px;
+  background: #f8f8f8;
+  border: 1.5px solid transparent;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 90px;
+  text-align: center;
+}
+.cat-chip:hover, .cat-chip.active {
+  border-color: var(--red);
+  background: #fff5f5;
+}
+.cat-chip-icon { font-size: 28px; }
+.cat-chip-name { font-size: 12px; font-weight: 600; color: #333; }
+.cat-chip-count { font-size: 10px; color: #aaa; }
+
+/* SECTION HEADER */
+.sec-hdr {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+.sec-hdr-left {}
+.sec-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--red);
+  margin-bottom: 6px;
+}
+.sec-title-new {
+  font-family: 'Bebas Neue', cursive;
+  font-size: 36px;
+  letter-spacing: 1px;
+  color: #111;
+  line-height: 1;
+}
+.sec-view-all {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--red);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s;
+  cursor: pointer;
+}
+.sec-view-all:hover { border-bottom-color: var(--red); }
+
+/* VOUCHER SECTION */
+.voucher-section {
+  background: #f8f8f8;
+  padding: 48px 48px;
+}
+.voucher-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+.voucher-card {
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  border: 1px solid #e8e8e8;
+  transition: box-shadow 0.2s, transform 0.2s;
+  cursor: pointer;
+}
+.voucher-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.1); transform: translateY(-2px); }
+.voucher-left {
+  width: 120px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 16px;
+  position: relative;
+}
+.voucher-left::after {
+  content: '';
+  position: absolute;
+  right: -8px;
+  top: 0; bottom: 0;
+  width: 16px;
+  background: radial-gradient(circle at 0% 50%, transparent 8px, #f8f8f8 9px);
+  background-size: 16px 24px;
+  background-repeat: repeat-y;
+}
+.voucher-discount { font-size: 28px; font-weight: 900; color: #fff; line-height: 1; }
+.voucher-unit { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.8); }
+.voucher-type { font-size: 10px; color: rgba(255,255,255,0.7); margin-top: 4px; letter-spacing: 0.5px; text-transform: uppercase; }
+.voucher-right { flex: 1; padding: 16px 20px 16px 24px; }
+.voucher-name { font-size: 14px; font-weight: 700; color: #111; margin-bottom: 4px; }
+.voucher-code-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+.voucher-code {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--red);
+  background: #fff5f5;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px dashed var(--red);
+  letter-spacing: 1px;
+}
+.voucher-copy-btn {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--red);
+  background: none;
+  border: 1px solid var(--red);
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.voucher-copy-btn:hover { background: var(--red); color: #fff; }
+.voucher-cond { font-size: 11px; color: #888; }
+.voucher-exp { font-size: 10px; color: #aaa; margin-top: 6px; }
+
+/* FLASH SALE */
+.flash-section {
+  background: #fff;
+  padding: 48px 48px;
+}
+.flash-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+.flash-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.flash-icon { font-size: 28px; }
+.flash-label { font-family: 'Bebas Neue', cursive; font-size: 36px; color: #111; letter-spacing: 1px; }
+.flash-countdown {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #111;
+  padding: 8px 16px;
+  border-radius: 8px;
+}
+.flash-cd-item { text-align: center; }
+.flash-cd-num {
+  display: block;
+  font-size: 20px;
+  font-weight: 900;
+  color: #fff;
+  font-family: 'Bebas Neue', cursive;
+  letter-spacing: 1px;
+  line-height: 1;
+  min-width: 28px;
+}
+.flash-cd-sep { font-size: 18px; font-weight: 900; color: var(--red); padding: 0 2px; margin-bottom: 8px; }
+.flash-cd-label { font-size: 9px; color: #666; letter-spacing: 0.5px; }
+.flash-progress {
+  height: 4px;
+  background: #f0f0f0;
+  border-radius: 2px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+.flash-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--red), #ff6b6b);
+  border-radius: 2px;
+  transition: width 0.3s;
+}
+
+/* PRODUCT CARDS (new light theme) */
+.products-section {
+  padding: 48px 48px;
+  background: #fff;
+}
+.products-filter-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.filter-pill {
+  padding: 7px 18px;
+  border: 1.5px solid #e8e8e8;
+  border-radius: 24px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #555;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.filter-pill:hover { border-color: #333; color: #111; }
+.filter-pill.active { border-color: var(--red); background: var(--red); color: #fff; }
+.products-grid-new {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
+}
+.product-card-new {
+  background: #fff;
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: box-shadow 0.2s, transform 0.2s;
+  cursor: pointer;
+  position: relative;
+}
+.product-card-new:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.1); transform: translateY(-3px); }
+.pcard-img {
+  width: 100%;
+  height: 220px;
+  background: #f8f8f8;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pcard-img img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s; }
+.product-card-new:hover .pcard-img img { transform: scale(1.05); }
+.pcard-badges { position: absolute; top: 10px; left: 10px; display: flex; flex-direction: column; gap: 4px; }
+.pcard-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.pcard-badge.sale { background: var(--red); color: #fff; }
+.pcard-badge.new { background: #111; color: #fff; }
+.pcard-badge.hot { background: #ff6b00; color: #fff; }
+.pcard-wishlist {
+  position: absolute;
+  top: 10px; right: 10px;
+  width: 32px; height: 32px;
+  background: rgba(255,255,255,0.9);
+  border: none; border-radius: 50%;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s, transform 0.15s;
+}
+.pcard-wishlist:hover { background: #fff; transform: scale(1.1); }
+.pcard-body { padding: 14px 16px 16px; }
+.pcard-brand { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #aaa; margin-bottom: 4px; }
+.pcard-name { font-size: 13.5px; font-weight: 600; color: #111; line-height: 1.4; margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.pcard-price-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.pcard-price { font-size: 16px; font-weight: 800; color: var(--red); }
+.pcard-old { font-size: 12px; color: #bbb; text-decoration: line-through; }
+.pcard-sizes { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 12px; }
+.pcard-size {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 7px;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  color: #555;
+}
+.pcard-add-btn {
+  width: 100%;
+  padding: 9px;
+  background: #111;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: background 0.15s;
+}
+.pcard-add-btn:hover { background: var(--red); }
+.pcard-emoji-fallback { font-size: 72px; opacity: 0.4; }
+
+/* BRAND LOGOS SECTION */
+.brands-section {
+  padding: 48px 48px;
+  background: #f8f8f8;
+}
+.brands-logo-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+}
+.brand-logo-card {
+  background: #fff;
+  border: 1.5px solid #e8e8e8;
+  border-radius: 12px;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.brand-logo-card:hover { border-color: var(--red); box-shadow: 0 4px 16px rgba(230,32,32,0.1); }
+.brand-logo-text { font-family: 'Bebas Neue', cursive; font-size: 20px; letter-spacing: 1px; color: #111; }
+.brand-logo-count { font-size: 11px; color: #aaa; }
+
+/* BLOG SECTION */
+.blog-section {
+  padding: 48px 48px;
+  background: #fff;
+}
+.blog-grid-new {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr;
+  gap: 24px;
+}
+.blog-card-new {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #f0f0f0;
+  background: #fff;
+  cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.blog-card-new:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.08); transform: translateY(-2px); }
+.blog-card-main .blog-img-new { height: 280px; }
+.blog-img-new {
+  height: 180px;
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 56px;
+  overflow: hidden;
+  position: relative;
+}
+.blog-img-new img { width: 100%; height: 100%; object-fit: cover; }
+.blog-cat-tag {
+  position: absolute;
+  top: 12px; left: 12px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 4px;
+  color: #fff;
+  background: var(--red);
+}
+.blog-body-new { padding: 16px 20px 20px; }
+.blog-title-new { font-size: 15px; font-weight: 700; color: #111; line-height: 1.5; margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.blog-card-main .blog-title-new { font-size: 18px; -webkit-line-clamp: 2; }
+.blog-meta-new { font-size: 11px; color: #aaa; display: flex; gap: 12px; }
+
+/* PROMO BANNERS */
+.promo-section {
+  padding: 48px 48px;
+  background: #f8f8f8;
+}
+.promo-grid-new {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 20px;
+}
+.promo-banner-new {
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+  height: 240px;
+  display: flex;
+  align-items: flex-end;
+}
+.promo-banner-new.small { height: 180px; }
+.promo-banner-bg {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 120px;
+  transition: transform 0.4s;
+}
+.promo-banner-new:hover .promo-banner-bg { transform: scale(1.05); }
+.promo-banner-content {
+  position: relative; z-index: 2;
+  padding: 20px 24px;
+  background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%);
+  width: 100%;
+}
+.promo-brand-tag { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.6); margin-bottom: 4px; }
+.promo-banner-title { font-size: 22px; font-weight: 900; color: #fff; margin-bottom: 8px; line-height: 1.2; }
+.promo-banner-new.small .promo-banner-title { font-size: 18px; }
+.promo-cta-btn { font-size: 11px; font-weight: 700; color: var(--red); letter-spacing: 0.5px; }
+.promo-right-col { display: grid; grid-template-rows: 1fr 1fr; gap: 20px; }
+
+/* FOOTER NEW */
+.footer-new {
+  background: #111;
+  padding: 56px 48px 0;
+}
+.footer-top {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 48px;
+  padding-bottom: 48px;
+  border-bottom: 1px solid #222;
+}
+.footer-brand-new {}
+.footer-logo-new {
+  font-family: 'Bebas Neue', cursive;
+  font-size: 32px;
+  letter-spacing: 3px;
+  color: #fff;
+  margin-bottom: 12px;
+  display: block;
+}
+.footer-logo-new span { color: var(--red); }
+.footer-desc { font-size: 13px; color: #666; line-height: 1.7; max-width: 280px; margin-bottom: 20px; }
+.footer-social { display: flex; gap: 8px; }
+.footer-social-btn {
+  width: 36px; height: 36px;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  color: #888;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s;
+}
+.footer-social-btn:hover { background: var(--red); border-color: var(--red); color: #fff; }
+.footer-col-new h4 {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #fff;
+  margin-bottom: 16px;
+}
+.footer-col-new ul { list-style: none; }
+.footer-col-new ul li { margin-bottom: 10px; }
+.footer-col-new ul li a { color: #666; font-size: 13px; text-decoration: none; transition: color 0.15s; }
+.footer-col-new ul li a:hover { color: #fff; }
+.footer-bottom-new {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 0;
+  border-top: 1px solid #1a1a1a;
+}
+.footer-copy { font-size: 12px; color: #555; }
+.footer-payments { display: flex; gap: 6px; }
+.fpay { padding: 4px 10px; background: #1a1a1a; border: 1px solid #333; border-radius: 4px; font-size: 10px; font-weight: 700; color: #666; }
+
+/* BRAND PAGE HEADER (update for light nav) */
+#brandPage .pdp-logo { color: #f5f3ef !important; }
+
+/* LOADING SKELETON */
+.skel {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: skelShimmer 1.5s infinite;
+  border-radius: 8px;
+}
+@keyframes skelShimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* NOTIFICATION TOAST (update) */
+.toast-new {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .header-main { padding: 0 24px; }
+  .trust-bar, .cat-strip, .voucher-section, .flash-section,
+  .products-section, .brands-section, .blog-section, .promo-section, .footer-new { padding-left: 24px; padding-right: 24px; }
+  .brands-logo-grid { grid-template-columns: repeat(3, 1fr); }
+  .blog-grid-new { grid-template-columns: 1fr 1fr; }
+  .blog-card-new:first-child { grid-column: 1 / -1; }
+  .footer-top { grid-template-columns: 1fr 1fr; gap: 32px; }
+}
+@media (max-width: 768px) {
+  .header-main { flex-wrap: wrap; height: auto; padding: 12px 16px; gap: 12px; }
+  .nav-main { display: none; }
+  .hero-new { height: 360px; }
+  .hero-slide-title { font-size: 48px; }
+  .hero-img-right { display: none; }
+  .trust-bar { grid-template-columns: 1fr 1fr; }
+  .promo-grid-new { grid-template-columns: 1fr; }
+  .products-grid-new { grid-template-columns: repeat(2, 1fr); }
+  .blog-grid-new { grid-template-columns: 1fr; }
+  .brands-logo-grid { grid-template-columns: repeat(3, 1fr); }
+  .footer-top { grid-template-columns: 1fr; }
+}
+</style>
+
 <!-- HEADER -->
-<header>
-  <div class="header-top">🔥 MIỄN PHÍ VẬN CHUYỂN CHO ĐƠN HÀNG TỪ 1.500.000Đ — MÃ: FREESHIP24</div>
-  <nav>
-    <div class="logo" onclick="scrollTo({top:0,behavior:'smooth'})">SNEAKER<span>VN</span></div>
-    <ul class="nav-links">
-      <li><a href="#products">Sản Phẩm</a></li>
-      <li><a href="#brands">Thương Hiệu</a></li>
-      <li><a href="#promo">Khuyến Mãi</a></li>
-      <li><a href="#blog">Blog</a></li>
+<header style="position:sticky;top:0;z-index:1000;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+  <div class="header-announce">
+    🔥 <strong>FREESHIP24</strong> — Miễn phí vận chuyển cho đơn từ 1.500.000đ &nbsp;|&nbsp;
+    ⚡ Flash Sale mỗi ngày 12h–14h &nbsp;|&nbsp;
+    📞 Hotline: <a href="tel:1900xxxx">1900 xxxx</a>
+  </div>
+  <div class="header-main">
+    <a class="logo-new" href="#" onclick="scrollTo({top:0,behavior:'smooth'});return false;">SNEAKER<span>VN</span></a>
+
+    <ul class="nav-main">
+      <!-- GIÀY — mega dropdown -->
+      <li>
+        <button>Giày <span class="nav-caret">▼</span></button>
+        <div class="mega-drop">
+          <div class="mega-col">
+            <div class="mega-col-title">Theo Loại</div>
+            <a href="#" onclick="filterByType('Running');return false;"><span class="mc-icon">🏃</span> Giày Chạy Bộ</a>
+            <a href="#" onclick="filterByType('Lifestyle');return false;"><span class="mc-icon">👟</span> Giày Lifestyle</a>
+            <a href="#" onclick="filterByType('Basketball');return false;"><span class="mc-icon">🏀</span> Giày Bóng Rổ</a>
+            <a href="#" onclick="filterByType('Training');return false;"><span class="mc-icon">💪</span> Giày Training</a>
+            <a href="#" onclick="filterByType('Casual');return false;"><span class="mc-icon">😎</span> Giày Casual</a>
+            <a href="#" onclick="filterByType('Chunky');return false;"><span class="mc-icon">👞</span> Giày Chunky</a>
+          </div>
+          <div class="mega-col">
+            <div class="mega-col-title">Theo Thương Hiệu</div>
+            <a href="#" onclick="openBrandPage('Nike');return false;"><span class="mc-icon">✔</span> Nike</a>
+            <a href="#" onclick="openBrandPage('Adidas');return false;"><span class="mc-icon">✔</span> Adidas</a>
+            <a href="#" onclick="openBrandPage('MLB');return false;"><span class="mc-icon">✔</span> MLB</a>
+            <a href="#" onclick="openBrandPage('Puma');return false;"><span class="mc-icon">✔</span> Puma</a>
+            <a href="#" onclick="openBrandPage('New Balance');return false;"><span class="mc-icon">✔</span> New Balance</a>
+            <a href="#" onclick="openBrandPage('Fila');return false;"><span class="mc-icon">✔</span> Fila</a>
+          </div>
+          <div class="mega-col">
+            <div class="mega-col-title">Theo Size</div>
+            <a href="#" onclick="filterBySize('36-38');return false;"><span class="mc-icon">📏</span> Size 36–38</a>
+            <a href="#" onclick="filterBySize('39-41');return false;"><span class="mc-icon">📏</span> Size 39–41</a>
+            <a href="#" onclick="filterBySize('42-44');return false;"><span class="mc-icon">📏</span> Size 42–44</a>
+            <a href="#" onclick="filterBySize('220-250');return false;"><span class="mc-icon">📏</span> MLB 220–250</a>
+          </div>
+          <div class="mega-banner">
+            <div>
+              <div class="mega-banner-tag">Flash Sale</div>
+              <div class="mega-banner-title">Siêu Giảm Giá Hôm Nay</div>
+            </div>
+            <a class="mega-banner-btn" onclick="scrollToFlash();return false;">Xem Ngay →</a>
+          </div>
+        </div>
+      </li>
+
+      <!-- THƯƠNG HIỆU -->
+      <li>
+        <button>Thương Hiệu <span class="nav-caret">▼</span></button>
+        <div class="simple-drop">
+          <a href="#" onclick="openBrandPage('Nike');return false;">Nike</a>
+          <a href="#" onclick="openBrandPage('Adidas');return false;">Adidas</a>
+          <a href="#" onclick="openBrandPage('MLB');return false;">MLB</a>
+          <a href="#" onclick="openBrandPage('Puma');return false;">Puma</a>
+          <a href="#" onclick="openBrandPage('New Balance');return false;">New Balance</a>
+          <a href="#" onclick="openBrandPage('Fila');return false;">Fila</a>
+        </div>
+      </li>
+
+      <li><a href="#" onclick="scrollToSection('promo-section');return false;">Khuyến Mãi</a></li>
+      <li><a href="#" onclick="scrollToSection('blog-section');return false;">Blog</a></li>
       <li><a href="#stores">Cửa Hàng</a></li>
     </ul>
-    <div class="nav-actions">
-      <button onclick="toggleSearch()" title="Tìm kiếm">🔍</button>
-      <button onclick="toggleCart()" title="Giỏ hàng" style="position:relative;">
+
+    <div class="hdr-search-wrap">
+      <span class="hdr-search-icon">🔍</span>
+      <input class="hdr-search-input" id="hdrSearch" placeholder="Tìm giày, thương hiệu..." oninput="onHdrSearch(this.value)">
+    </div>
+
+    <div class="header-right">
+      <button class="hdr-icon-btn" onclick="toggleCart()" title="Giỏ hàng">
         🛒
-        <span class="cart-count" id="cartCount">0</span>
+        <span class="hdr-cart-badge" id="cartCount">0</span>
       </button>
       <!-- Nút đăng nhập (ẩn khi đã login) -->
-      <button class="btn-login" id="navLoginBtn" onclick="openModal()">Đăng Nhập</button>
+      <button class="hdr-login-btn" id="navLoginBtn" onclick="openModal()">Đăng Nhập</button>
       <!-- User dropdown (hiện khi đã login là member) -->
-      <div class="user-nav-wrap" id="userNavWrap" onclick="toggleUserDropdown()">
+      <div class="user-nav-wrap" id="userNavWrap" onclick="toggleUserDropdown()" style="display:none;">
         <div class="user-nav-avatar" id="userNavAvatar">NH</div>
-        <span class="user-nav-name" id="userNavName">Nguyễn Hoàng</span>
+        <span class="user-nav-name" id="userNavName"></span>
         <span class="user-nav-caret">▼</span>
         <div class="user-dropdown" id="userDropdown">
           <div class="user-dropdown-header">
-            <div class="user-dropdown-name" id="ddName">Nguyễn Hoàng</div>
+            <div class="user-dropdown-name" id="ddName"></div>
             <div class="user-dropdown-badge">⭐ Thành Viên &nbsp;·&nbsp; <span id="ddPoints">0</span> điểm</div>
           </div>
           <div class="user-dropdown-menu">
             <button class="user-dropdown-item" onclick="openMemberPanel('orders');event.stopPropagation()">📦 Đơn Hàng Của Tôi</button>
             <button class="user-dropdown-item" onclick="openMemberPanel('wishlist');event.stopPropagation()">❤️ Danh Sách Yêu Thích</button>
-            <button class="user-dropdown-item" onclick="openMemberPanel('points');event.stopPropagation()">🏆 Điểm Thưởng</button>
             <button class="user-dropdown-item" onclick="openMemberPanel('profile');event.stopPropagation()">⚙️ Hồ Sơ Cá Nhân</button>
             <div class="user-dropdown-divider"></div>
             <button class="user-dropdown-item danger" onclick="logoutMember();event.stopPropagation()">🚪 Đăng Xuất</button>
@@ -1270,281 +2288,317 @@ footer {
         </div>
       </div>
     </div>
-  </nav>
+  </div>
 </header>
 
-<!-- HERO -->
-<section id="hero">
-  <div class="hero-bg"></div>
-  <div class="hero-noise"></div>
-  <div class="hero-lines"></div>
-  <div class="hero-content">
-    <div class="hero-left">
-      <div class="hero-badge">Drop Mới 2025</div>
-      <h1 class="hero-title">
-        Không Chỉ
-        <span class="line2">Là Đôi Giày</span>
-        <span class="line3">Sneaker & Streetwear Chính Hãng</span>
-      </h1>
-      <p class="hero-desc">Hàng trăm mẫu giày từ Nike, Adidas, MLB, Puma, Fila và hơn 20 thương hiệu hàng đầu thế giới. Cam kết 100% chính hãng, đổi trả trong 30 ngày.</p>
-      <div class="hero-cta">
-        <button class="btn-primary" onclick="document.getElementById('products').scrollIntoView({behavior:'smooth'})">Mua Ngay →</button>
-        <button class="btn-secondary" onclick="document.getElementById('brands').scrollIntoView({behavior:'smooth'})">Xem Thương Hiệu</button>
+<!-- HERO SLIDER -->
+<section class="hero-new" id="hero">
+  <div class="hero-slides" id="heroSlides">
+    <!-- Slide 1 -->
+    <div class="hero-slide hero-slide-1">
+      <div class="hero-slide-bg"></div>
+      <div class="hero-content-new">
+        <span class="hero-slide-tag">Drop Mới 2025</span>
+        <div class="hero-slide-title">SNEAKER<br>CHÍNH HÃNG</div>
+        <p class="hero-slide-desc">Hàng trăm mẫu giày từ Nike, Adidas, MLB và hơn 20 thương hiệu hàng đầu. Cam kết 100% chính hãng, đổi trả 30 ngày.</p>
+        <div class="hero-cta-new">
+          <button class="btn-hero-primary" onclick="document.getElementById('products-section').scrollIntoView({behavior:'smooth'})">Mua Ngay →</button>
+          <button class="btn-hero-secondary" onclick="scrollToFlash()">Xem Flash Sale ⚡</button>
+        </div>
       </div>
-      <div class="hero-stats">
-        <div class="stat-item"><span class="stat-number">500+</span><span class="stat-label">Sản Phẩm</span></div>
-        <div class="stat-item"><span class="stat-number">25K+</span><span class="stat-label">Khách Hàng</span></div>
-        <div class="stat-item"><span class="stat-number">12</span><span class="stat-label">Cửa Hàng</span></div>
-        <div class="stat-item"><span class="stat-number">100%</span><span class="stat-label">Chính Hãng</span></div>
-      </div>
+      <div class="hero-emoji-right">👟</div>
     </div>
-    <div class="hero-right">
-      <div class="hero-shoe-card">
-        <div class="hero-shoe-img">
-          <span class="hero-shoe-emoji">👟</span>
-        </div>
-        <div class="hero-shoe-name">Nike Air Max 270</div>
-        <div class="hero-shoe-meta">
-          <div>
-            <div class="hero-shoe-price">3.200.000đ</div>
-            <div class="hero-shoe-old">4.500.000đ</div>
-          </div>
-          <div style="background:rgba(230,32,32,0.15);padding:8px 14px;font-size:18px;font-weight:900;color:var(--red)">-29%</div>
-        </div>
-        <div class="countdown">
-          <div class="cd-item"><span class="cd-num" id="cd-h">02</span><div class="cd-label">Giờ</div></div>
-          <div class="cd-sep">:</div>
-          <div class="cd-item"><span class="cd-num" id="cd-m">45</span><div class="cd-label">Phút</div></div>
-          <div class="cd-sep">:</div>
-          <div class="cd-item"><span class="cd-num" id="cd-s">30</span><div class="cd-label">Giây</div></div>
+    <!-- Slide 2 -->
+    <div class="hero-slide hero-slide-2">
+      <div class="hero-slide-bg"></div>
+      <div class="hero-content-new">
+        <span class="hero-slide-tag">Nike Collection</span>
+        <div class="hero-slide-title">JUST<br>DO IT</div>
+        <p class="hero-slide-desc">Khám phá bộ sưu tập Nike mới nhất — Air Max, Air Force, Jordan và nhiều hơn nữa.</p>
+        <div class="hero-cta-new">
+          <button class="btn-hero-primary" onclick="openBrandPage('Nike')">Xem Nike →</button>
+          <button class="btn-hero-secondary" onclick="openBrandPage('Adidas')">Xem Adidas</button>
         </div>
       </div>
+      <div class="hero-emoji-right">✔</div>
     </div>
+    <!-- Slide 3 -->
+    <div class="hero-slide hero-slide-3">
+      <div class="hero-slide-bg"></div>
+      <div class="hero-content-new">
+        <span class="hero-slide-tag">MLB Style</span>
+        <div class="hero-slide-title">BIG BALL<br>CHUNKY</div>
+        <p class="hero-slide-desc">Phong cách streetwear Hàn Quốc đang làm mưa làm gió — MLB Big Ball Chunky và Curved Cap.</p>
+        <div class="hero-cta-new">
+          <button class="btn-hero-primary" onclick="openBrandPage('MLB')">Khám Phá MLB →</button>
+        </div>
+      </div>
+      <div class="hero-emoji-right">👞</div>
+    </div>
+  </div>
+  <button class="hero-prev" onclick="slideHero(-1)">‹</button>
+  <button class="hero-next" onclick="slideHero(1)">›</button>
+  <div class="hero-dots" id="heroDots">
+    <button class="hero-dot active" onclick="goHero(0)"></button>
+    <button class="hero-dot" onclick="goHero(1)"></button>
+    <button class="hero-dot" onclick="goHero(2)"></button>
   </div>
 </section>
 
-<!-- TICKER -->
-<div class="ticker">
-  <div class="ticker-inner" id="ticker">
-    <span class="ticker-item">Nike Air Max</span><span class="ticker-sep">★</span>
-    <span class="ticker-item">Adidas Ultraboost</span><span class="ticker-sep">★</span>
-    <span class="ticker-item">Puma RS-X</span><span class="ticker-sep">★</span>
-    <span class="ticker-item">MLB Big Ball Chunky</span><span class="ticker-sep">★</span>
-    <span class="ticker-item">New Balance 550</span><span class="ticker-sep">★</span>
-    <span class="ticker-item">Fila Disruptor</span><span class="ticker-sep">★</span>
-    <span class="ticker-item">Jordan 1 Retro</span><span class="ticker-sep">★</span>
-    <span class="ticker-item">Vans Old Skool</span><span class="ticker-sep">★</span>
-    <span class="ticker-item">Converse Chuck 70</span><span class="ticker-sep">★</span>
-    <span class="ticker-item">Nike Air Max</span><span class="ticker-sep">★</span>
-    <span class="ticker-item">Adidas Ultraboost</span><span class="ticker-sep">★</span>
-    <span class="ticker-item">Puma RS-X</span><span class="ticker-sep">★</span>
-    <span class="ticker-item">MLB Big Ball Chunky</span><span class="ticker-sep">★</span>
-    <span class="ticker-item">New Balance 550</span><span class="ticker-sep">★</span>
-    <span class="ticker-item">Fila Disruptor</span><span class="ticker-sep">★</span>
-    <span class="ticker-item">Jordan 1 Retro</span><span class="ticker-sep">★</span>
-    <span class="ticker-item">Vans Old Skool</span><span class="ticker-sep">★</span>
-    <span class="ticker-item">Converse Chuck 70</span><span class="ticker-sep">★</span>
+<!-- TRUST BAR -->
+<div class="trust-bar">
+  <div class="trust-item"><span class="trust-icon">✅</span><div class="trust-text"><strong>100% Chính Hãng</strong><span>Cam kết hàng auth</span></div></div>
+  <div class="trust-item"><span class="trust-icon">🚚</span><div class="trust-text"><strong>Miễn Phí Vận Chuyển</strong><span>Đơn từ 1.500.000đ</span></div></div>
+  <div class="trust-item"><span class="trust-icon">🔄</span><div class="trust-text"><strong>Đổi Trả 30 Ngày</strong><span>Không cần lý do</span></div></div>
+  <div class="trust-item"><span class="trust-icon">💳</span><div class="trust-text"><strong>Thanh Toán An Toàn</strong><span>MoMo, VNPay, COD</span></div></div>
+</div>
+
+<!-- CATEGORIES STRIP -->
+<div class="cat-strip">
+  <div class="cat-strip-title">Khám Phá Theo Danh Mục</div>
+  <div class="cat-grid" id="catGrid">
+    <div class="cat-chip active" onclick="setCatFilter('all',this)">
+      <span class="cat-chip-icon">🔥</span>
+      <span class="cat-chip-name">Tất Cả</span>
+      <span class="cat-chip-count" id="catCount-all">-- sp</span>
+    </div>
+    <div class="cat-chip" onclick="setCatFilter('Nike',this)">
+      <span class="cat-chip-icon">✔</span>
+      <span class="cat-chip-name">Nike</span>
+      <span class="cat-chip-count" id="catCount-Nike">-- sp</span>
+    </div>
+    <div class="cat-chip" onclick="setCatFilter('Adidas',this)">
+      <span class="cat-chip-icon">🟢</span>
+      <span class="cat-chip-name">Adidas</span>
+      <span class="cat-chip-count" id="catCount-Adidas">-- sp</span>
+    </div>
+    <div class="cat-chip" onclick="setCatFilter('MLB',this)">
+      <span class="cat-chip-icon">⚾</span>
+      <span class="cat-chip-name">MLB</span>
+      <span class="cat-chip-count" id="catCount-MLB">-- sp</span>
+    </div>
+    <div class="cat-chip" onclick="setCatFilter('Puma',this)">
+      <span class="cat-chip-icon">🐆</span>
+      <span class="cat-chip-name">Puma</span>
+      <span class="cat-chip-count" id="catCount-Puma">-- sp</span>
+    </div>
+    <div class="cat-chip" onclick="setCatFilter('New Balance',this)">
+      <span class="cat-chip-icon">🔵</span>
+      <span class="cat-chip-name">New Balance</span>
+      <span class="cat-chip-count" id="catCount-NB">-- sp</span>
+    </div>
+    <div class="cat-chip" onclick="setCatFilter('Fila',this)">
+      <span class="cat-chip-icon">🎾</span>
+      <span class="cat-chip-name">Fila</span>
+      <span class="cat-chip-count" id="catCount-Fila">-- sp</span>
+    </div>
   </div>
 </div>
 
+<!-- FLASH SALE SECTION -->
+<section class="flash-section" id="flash-section">
+  <div class="flash-header">
+    <div class="flash-title-wrap">
+      <span class="flash-icon">⚡</span>
+      <span class="flash-label">SIÊU KHUYẾN MẠI</span>
+    </div>
+    <div class="flash-countdown">
+      <div class="flash-cd-item"><span class="flash-cd-num" id="fs-h">08</span><div class="flash-cd-label">Giờ</div></div>
+      <span class="flash-cd-sep">:</span>
+      <div class="flash-cd-item"><span class="flash-cd-num" id="fs-m">45</span><div class="flash-cd-label">Phút</div></div>
+      <span class="flash-cd-sep">:</span>
+      <div class="flash-cd-item"><span class="flash-cd-num" id="fs-s">30</span><div class="flash-cd-label">Giây</div></div>
+    </div>
+  </div>
+  <div class="products-grid-new" id="flashSaleGrid">
+    <!-- Loaded by JS -->
+  </div>
+  <div style="text-align:center;margin-top:28px;">
+    <button class="btn-hero-primary" style="background:#111;" onclick="document.getElementById('products-section').scrollIntoView({behavior:'smooth'})">Xem Tất Cả Sản Phẩm →</button>
+  </div>
+</section>
+
+<!-- MÃ GIẢM GIÁ -->
+<section class="voucher-section" id="voucher-section">
+  <div class="sec-hdr">
+    <div class="sec-hdr-left">
+      <div class="sec-label">Ưu Đãi Hôm Nay</div>
+      <div class="sec-title-new">MÃ GIẢM GIÁ</div>
+    </div>
+    <a class="sec-view-all" onclick="return false;">Xem Tất Cả →</a>
+  </div>
+  <div class="voucher-grid" id="voucherGrid">
+    <!-- Static vouchers + dynamic from DB -->
+  </div>
+</section>
+
+<!-- PROMO BANNERS -->
+<section class="promo-section" id="promo-section">
+  <div class="sec-hdr">
+    <div class="sec-hdr-left">
+      <div class="sec-label">Bộ Sưu Tập</div>
+      <div class="sec-title-new">SIÊU KHUYẾN MẠI</div>
+    </div>
+  </div>
+  <div class="promo-grid-new">
+    <div class="promo-banner-new" style="background:linear-gradient(135deg,#0a0a1a 0%,#1a0a2a 50%,#2a1535 100%);" onclick="openBrandPage('Nike')">
+      <div class="promo-banner-bg">👟</div>
+      <div class="promo-banner-content">
+        <div class="promo-brand-tag">Flash Sale · Chỉ Hôm Nay</div>
+        <div class="promo-banner-title">Nike Running<br>Collection 2025</div>
+        <div class="promo-cta-btn">GIẢM ĐẾN 40% — Mua Ngay →</div>
+      </div>
+    </div>
+    <div class="promo-right-col">
+      <div class="promo-banner-new small" style="background:linear-gradient(135deg,#0a1a0a,#1a3020);" onclick="openBrandPage('Adidas')">
+        <div class="promo-banner-bg" style="font-size:80px;">🟢</div>
+        <div class="promo-banner-content">
+          <div class="promo-brand-tag">New Arrival</div>
+          <div class="promo-banner-title">Adidas Originals</div>
+          <div class="promo-cta-btn">Khám Phá →</div>
+        </div>
+      </div>
+      <div class="promo-banner-new small" style="background:linear-gradient(135deg,#1a0808,#2a1010);" onclick="openBrandPage('MLB')">
+        <div class="promo-banner-bg" style="font-size:80px;">⚾</div>
+        <div class="promo-banner-content">
+          <div class="promo-brand-tag">MLB Style</div>
+          <div class="promo-banner-title">Big Ball Chunky</div>
+          <div class="promo-cta-btn">Xem Ngay →</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRODUCTS SECTION -->
+<section class="products-section" id="products-section">
+  <div class="sec-hdr">
+    <div class="sec-hdr-left">
+      <div class="sec-label">Bộ Sưu Tập</div>
+      <div class="sec-title-new">SẢN PHẨM NỔI BẬT</div>
+    </div>
+    <a class="sec-view-all" onclick="return false;">Xem Tất Cả →</a>
+  </div>
+  <div class="products-filter-bar" id="productsFilterBar">
+    <button class="filter-pill active" onclick="newFilterProducts('all',this)">🔥 Tất Cả</button>
+    <button class="filter-pill" onclick="newFilterProducts('Nike',this)">Nike</button>
+    <button class="filter-pill" onclick="newFilterProducts('Adidas',this)">Adidas</button>
+    <button class="filter-pill" onclick="newFilterProducts('MLB',this)">MLB</button>
+    <button class="filter-pill" onclick="newFilterProducts('Puma',this)">Puma</button>
+    <button class="filter-pill" onclick="newFilterProducts('New Balance',this)">New Balance</button>
+    <button class="filter-pill" onclick="newFilterProducts('sale',this)">🏷️ Sale</button>
+  </div>
+
+  <!-- Search bar (hidden, controlled by header search) -->
+  <div id="productSearchWrap" style="display:none;">
+    <input id="productSearchInput" type="text" placeholder="Tìm kiếm..." style="display:none;">
+  </div>
+
+  <div class="products-grid-new" id="productsGridNew">
+    <!-- skeleton placeholders -->
+    <div style="height:340px;" class="skel"></div>
+    <div style="height:340px;" class="skel"></div>
+    <div style="height:340px;" class="skel"></div>
+    <div style="height:340px;" class="skel"></div>
+    <div style="height:340px;" class="skel"></div>
+  </div>
+  <div style="text-align:center;margin-top:32px;" id="loadMoreWrap">
+    <button class="filter-pill" id="loadMoreBtn" onclick="loadMoreProducts()" style="padding:12px 32px;">Xem Thêm Sản Phẩm ↓</button>
+  </div>
+</section>
+
 <!-- BRANDS -->
-<section id="brands" class="reveal">
-  <div class="section-tag">Thương Hiệu Nổi Bật</div>
-  <h2 class="section-title">Chọn Theo Hãng Yêu Thích</h2>
-  <p class="section-sub">Hơn 20 thương hiệu sneaker hàng đầu thế giới</p>
-  <div class="brands-grid">
-    <div class="brand-card" onclick="openBrandPage('Nike')">
-      <div class="brand-logo">NIKE</div>
-      <div class="brand-count" id="count-Nike">-- sản phẩm</div>
-    </div>
-    <div class="brand-card" onclick="openBrandPage('Adidas')">
-      <div class="brand-logo">ADIDAS</div>
-      <div class="brand-count" id="count-Adidas">-- sản phẩm</div>
-    </div>
-    <div class="brand-card" onclick="openBrandPage('MLB')">
-      <div class="brand-logo">MLB</div>
-      <div class="brand-count" id="count-MLB">-- sản phẩm</div>
-    </div>
-    <div class="brand-card" onclick="openBrandPage('Puma')">
-      <div class="brand-logo">PUMA</div>
-      <div class="brand-count" id="count-Puma">-- sản phẩm</div>
-    </div>
-    <div class="brand-card" onclick="openBrandPage('New Balance')">
-      <div class="brand-logo">NEW BALANCE</div>
-      <div class="brand-count" id="count-New Balance">-- sản phẩm</div>
-    </div>
-    <div class="brand-card" onclick="openBrandPage('Fila')">
-      <div class="brand-logo">FILA</div>
-      <div class="brand-count" id="count-Fila">-- sản phẩm</div>
+<section class="brands-section" id="brands">
+  <div class="sec-hdr">
+    <div class="sec-hdr-left">
+      <div class="sec-label">Chọn Theo Hãng</div>
+      <div class="sec-title-new">THƯƠNG HIỆU</div>
     </div>
   </div>
-</section>
-
-<!-- PRODUCTS -->
-<section id="products" class="reveal">
-  <div class="products-header">
-    <div>
-      <div class="section-tag">Bộ Sưu Tập</div>
-      <h2 class="section-title">Sản Phẩm Nổi Bật</h2>
+  <div class="brands-logo-grid" id="brandsLogoGrid">
+    <div class="brand-logo-card" onclick="openBrandPage('Nike')">
+      <span style="font-size:32px;">✔</span>
+      <span class="brand-logo-text">NIKE</span>
+      <span class="brand-logo-count" id="count-Nike">-- sp</span>
     </div>
-    <div class="filter-tabs">
-      <button class="filter-tab active" onclick="filterProducts('all',this)">Tất Cả</button>
-      <button class="filter-tab" onclick="filterProducts('nike',this)">Nike</button>
-      <button class="filter-tab" onclick="filterProducts('adidas',this)">Adidas</button>
-      <button class="filter-tab" onclick="filterProducts('hot',this)">Bán Chạy</button>
-      <button class="filter-tab" onclick="filterProducts('sale',this)">Sale</button>
+    <div class="brand-logo-card" onclick="openBrandPage('Adidas')">
+      <span style="font-size:32px;">🟢</span>
+      <span class="brand-logo-text">ADIDAS</span>
+      <span class="brand-logo-count" id="count-Adidas">-- sp</span>
     </div>
-  </div>
-  <!-- Search bar -->
-  <div style="margin-bottom:24px;position:relative;">
-    <input id="productSearchInput" type="text" placeholder="🔍 Tìm tên sản phẩm, thương hiệu..."
-      oninput="searchProducts(this.value)"
-      style="width:100%;padding:12px 90px 12px 16px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);color:#fff;font-size:14px;border-radius:4px;outline:none;box-sizing:border-box;transition:border-color .2s"
-      onfocus="this.style.borderColor='rgba(230,32,32,0.6)'" onblur="this.style.borderColor='rgba(255,255,255,0.12)'">
-    <!-- Nút tìm bằng ảnh -->
-    <button onclick="imgSearchOpen()" title="Tìm kiếm bằng hình ảnh"
-      style="position:absolute;right:40px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(255,255,255,0.6);font-size:18px;cursor:pointer;transition:color .2s;padding:4px"
-      onmouseover="this.style.color='#e62020'" onmouseout="this.style.color='rgba(255,255,255,0.6)'">📷</button>
-    <button onclick="document.getElementById('productSearchInput').value='';searchProducts('')"
-      style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(255,255,255,0.4);font-size:16px;cursor:pointer">✕</button>
-  </div>
-
-  <!-- Modal tìm kiếm bằng ảnh -->
-  <div id="img-search-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:99999;align-items:center;justify-content:center;padding:20px">
-    <div style="background:#1a1a1a;border:1px solid rgba(255,255,255,0.12);border-radius:12px;width:100%;max-width:480px;padding:28px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-        <div style="font-size:16px;font-weight:700">📷 Tìm Kiếm Bằng Hình Ảnh</div>
-        <button onclick="imgSearchClose()" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer">✕</button>
-      </div>
-      <p style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:16px">Upload ảnh giày hoặc chụp ảnh — AI sẽ nhận diện và tìm sản phẩm tương tự</p>
-
-      <!-- Drop zone -->
-      <div id="img-search-drop" onclick="document.getElementById('img-search-file').click()"
-        style="border:2px dashed rgba(255,255,255,0.15);border-radius:8px;padding:32px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:14px"
-        ondragover="event.preventDefault();this.style.borderColor='#e62020'" ondragleave="this.style.borderColor='rgba(255,255,255,0.15)'"
-        ondrop="imgSearchHandleDrop(event)">
-        <div id="img-search-preview-wrap" style="display:none;margin-bottom:12px">
-          <img id="img-search-preview" style="max-height:160px;max-width:100%;border-radius:6px;object-fit:contain">
-        </div>
-        <div id="img-search-placeholder">
-          <div style="font-size:36px;margin-bottom:8px">🖼️</div>
-          <div style="font-size:13px;color:rgba(255,255,255,0.5)">Click hoặc kéo thả ảnh vào đây</div>
-          <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:4px">JPG, PNG, WEBP</div>
-        </div>
-      </div>
-      <input type="file" id="img-search-file" accept="image/*" style="display:none" onchange="imgSearchHandleFile(this)">
-
-      <div style="display:flex;gap:10px">
-        <button onclick="document.getElementById('img-search-file').click()"
-          class="db-btn-sm" style="flex:1">📁 Chọn Ảnh</button>
-        <button onclick="imgSearchCamera()"
-          class="db-btn-sm" style="flex:1">📸 Chụp Ảnh</button>
-        <button onclick="imgSearchSubmit()" id="img-search-btn"
-          class="db-btn-sm primary" style="flex:1;opacity:0.5" disabled>🔍 Tìm Kiếm</button>
-      </div>
-      <div id="img-search-status" style="margin-top:14px;font-size:13px;text-align:center;color:rgba(255,255,255,0.5);min-height:20px"></div>
+    <div class="brand-logo-card" onclick="openBrandPage('MLB')">
+      <span style="font-size:32px;">⚾</span>
+      <span class="brand-logo-text">MLB</span>
+      <span class="brand-logo-count" id="count-MLB">-- sp</span>
     </div>
-  </div>
-  <div id="searchNoResult" style="display:none;text-align:center;padding:40px 0;color:var(--gray-light)">
-    <div style="font-size:32px;margin-bottom:10px">🔍</div>
-    <div id="searchNoResultMsg" style="font-size:14px"></div>
-  </div>
-  <div class="products-grid" id="productsGrid"></div>
-  <div style="text-align:center;margin-top:40px;">
-    <button class="btn-secondary" onclick="loadMore()">Xem Thêm Sản Phẩm →</button>
-  </div>
-</section>
-
-<!-- PROMO BANNER -->
-<section id="promo" class="reveal">
-  <div class="promo-grid">
-    <div class="promo-card promo-card-1" style="cursor:pointer" onclick="promoFilter('Nike')">
-      <div class="promo-card-bg">🏃</div>
-      <div class="promo-overlay">
-        <div class="promo-tag">Flash Sale</div>
-        <div class="promo-title">Nike Running<br>Collection 2025</div>
-        <div class="promo-desc">Giảm đến 40% — Chỉ hôm nay!</div>
-        <button class="promo-btn" onclick="event.stopPropagation();promoFilter('Nike')">Shop Now →</button>
-      </div>
+    <div class="brand-logo-card" onclick="openBrandPage('Puma')">
+      <span style="font-size:32px;">🐆</span>
+      <span class="brand-logo-text">PUMA</span>
+      <span class="brand-logo-count" id="count-Puma">-- sp</span>
     </div>
-    <div class="promo-card promo-card-2" style="cursor:pointer" onclick="promoFilter('Adidas')">
-      <div class="promo-card-bg">👟</div>
-      <div class="promo-overlay">
-        <div class="promo-tag">New Arrival</div>
-        <div class="promo-title">Adidas<br>Originals</div>
-        <div class="promo-desc">Bộ sưu tập mới nhất</div>
-        <button class="promo-btn" onclick="event.stopPropagation();promoFilter('Adidas')">Khám Phá →</button>
-      </div>
+    <div class="brand-logo-card" onclick="openBrandPage('New Balance')">
+      <span style="font-size:32px;">🔵</span>
+      <span class="brand-logo-text">NEW BALANCE</span>
+      <span class="brand-logo-count" id="count-New Balance">-- sp</span>
     </div>
-  </div>
-  <div class="promo-row2">
-    <div class="promo-card promo-card-sm" style="background:linear-gradient(135deg,#0a1a0a,#1a3a1a);cursor:pointer" onclick="promoFilter('MLB')">
-      <div class="promo-card-bg" style="background:linear-gradient(135deg,#0a1a0a,#1a3a1a);font-size:70px;">👞</div>
-      <div class="promo-overlay">
-        <div class="promo-tag">MLB</div>
-        <div class="promo-title">Big Ball Chunky</div>
-        <button class="promo-btn" onclick="event.stopPropagation();promoFilter('MLB')">Xem Ngay</button>
-      </div>
-    </div>
-    <div class="promo-card promo-card-sm" style="background:linear-gradient(135deg,#1a1a0a,#3a3a15);cursor:pointer" onclick="promoFilter('Puma')">
-      <div class="promo-card-bg" style="background:linear-gradient(135deg,#1a1a0a,#3a3a15);font-size:70px;">👠</div>
-      <div class="promo-overlay">
-        <div class="promo-tag">Puma</div>
-        <div class="promo-title">RS-X Series</div>
-        <button class="promo-btn" onclick="event.stopPropagation();promoFilter('Puma')">Xem Ngay</button>
-      </div>
-    </div>
-    <div class="promo-card promo-card-sm" style="background:linear-gradient(135deg,#0a0a1a,#15153a);cursor:pointer" onclick="promoFilter('New Balance')">
-      <div class="promo-card-bg" style="background:linear-gradient(135deg,#0a0a1a,#15153a);font-size:70px;">🥾</div>
-      <div class="promo-overlay">
-        <div class="promo-tag">New Balance</div>
-        <div class="promo-title">550 Classic</div>
-        <button class="promo-btn" onclick="event.stopPropagation();promoFilter('New Balance')">Xem Ngay</button>
-      </div>
+    <div class="brand-logo-card" onclick="openBrandPage('Fila')">
+      <span style="font-size:32px;">🎾</span>
+      <span class="brand-logo-text">FILA</span>
+      <span class="brand-logo-count" id="count-Fila">-- sp</span>
     </div>
   </div>
 </section>
 
 <!-- BLOG -->
-<section id="blog" class="reveal">
-  <div class="section-tag">Kiến Thức & Xu Hướng</div>
-  <h2 class="section-title">Blog Sneaker</h2>
-  <p class="section-sub">Tin tức, review, hướng dẫn phối đồ mới nhất</p>
-  <div class="blog-grid">
-    <div class="blog-card blog-card-main">
-      <div class="blog-img">📰</div>
-      <div class="blog-info">
-        <div class="blog-cat">Review</div>
-        <div class="blog-title">Nike Air Max 270 2025 — Có gì mới so với phiên bản cũ?</div>
-        <div class="blog-meta"><span>👤 Admin</span><span>📅 20 tháng 1, 2025</span><span>👁 12.3K lượt xem</span></div>
+<section class="blog-section" id="blog">
+  <div class="sec-hdr">
+    <div class="sec-hdr-left">
+      <div class="sec-label">Kiến Thức & Xu Hướng</div>
+      <div class="sec-title-new">BLOG SNEAKER</div>
+    </div>
+    <a class="sec-view-all" onclick="return false;">Xem Tất Cả →</a>
+  </div>
+  <div class="blog-grid-new">
+    <div class="blog-card-new blog-card-main">
+      <div class="blog-img-new" style="height:280px;background:linear-gradient(135deg,#1a0a0a,#2a1010);font-size:80px;">
+        👟
+        <span class="blog-cat-tag">Review</span>
+      </div>
+      <div class="blog-body-new">
+        <div class="blog-title-new">Nike Air Max 270 2025 — Có gì mới so với phiên bản cũ? Đánh giá chi tiết từ A đến Z</div>
+        <div class="blog-meta-new"><span>👤 Admin</span><span>📅 20/01/2025</span><span>👁 12.3K</span></div>
       </div>
     </div>
-    <div class="blog-card">
-      <div class="blog-img" style="height:160px;font-size:48px;">👟</div>
-      <div class="blog-info">
-        <div class="blog-cat">Xu Hướng</div>
-        <div class="blog-title">Top 10 mẫu giày hot nhất 2025</div>
-        <div class="blog-meta"><span>📅 15/01/2025</span><span>👁 8.1K</span></div>
+    <div class="blog-card-new">
+      <div class="blog-img-new" style="background:linear-gradient(135deg,#0a1a0a,#1a3020);">
+        🏆
+        <span class="blog-cat-tag">Xu Hướng</span>
+      </div>
+      <div class="blog-body-new">
+        <div class="blog-title-new">Top 10 mẫu giày sneaker hot nhất 2025 — Xu hướng không thể bỏ lỡ</div>
+        <div class="blog-meta-new"><span>📅 15/01/2025</span><span>👁 8.1K</span></div>
       </div>
     </div>
-    <div class="blog-card">
-      <div class="blog-img" style="height:160px;font-size:48px;">🎨</div>
-      <div class="blog-info">
-        <div class="blog-cat">Phối Đồ</div>
-        <div class="blog-title">Cách phối đồ với sneaker trắng cực chất</div>
-        <div class="blog-meta"><span>📅 10/01/2025</span><span>👁 6.5K</span></div>
+    <div class="blog-card-new">
+      <div class="blog-img-new" style="background:linear-gradient(135deg,#0a0a1a,#15153a);">
+        🎨
+        <span class="blog-cat-tag" style="background:#1976d2;">Phối Đồ</span>
+      </div>
+      <div class="blog-body-new">
+        <div class="blog-title-new">Cách phối đồ với sneaker trắng cực chất — 7 cách mix & match bạn cần biết</div>
+        <div class="blog-meta-new"><span>📅 10/01/2025</span><span>👁 6.5K</span></div>
       </div>
     </div>
   </div>
 </section>
 
 <!-- STORES -->
-<section id="stores" class="reveal">
+<section id="stores" style="padding:48px;background:#fff;">
   <div class="stores-inner">
     <div>
-      <div class="section-tag">Tìm Cửa Hàng</div>
-      <h2 class="section-title">12 Cửa Hàng Toàn Quốc</h2>
-      <p class="section-sub" style="margin-bottom:24px;">Ghé thăm trực tiếp hoặc gọi đặt hàng</p>
+      <div class="sec-label">Tìm Cửa Hàng</div>
+      <div class="sec-title-new" style="color:#111;margin-bottom:8px;">12 CỬA HÀNG TOÀN QUỐC</div>
+      <p class="section-sub" style="margin-bottom:24px;color:#888;">Ghé thăm trực tiếp hoặc gọi đặt hàng</p>
       <select class="filter-select" onchange="filterStores(this.value)">
         <option value="all">— Chọn Tỉnh/Thành Phố —</option>
         <option value="hn">Hà Nội</option>
@@ -1556,39 +2610,35 @@ footer {
     <div class="store-map-placeholder">
       <div class="map-grid"></div>
       <span class="map-icon">🗺️</span>
-      <div class="map-label">Google Maps Integration</div>
-      <div style="font-size:12px;color:var(--gray-light);text-align:center;padding:0 32px;margin-top:8px;">
-        Trong production, bản đồ Google Maps sẽ hiển thị<br>vị trí các cửa hàng tại đây
-      </div>
+      <div class="map-label">Google Maps</div>
     </div>
   </div>
 </section>
 
 <!-- FOOTER -->
-<footer>
-  <div class="footer-grid">
-    <div class="footer-brand">
-      <div class="logo-footer">SNEAKER<span>VN</span></div>
-      <p>Hệ thống cửa hàng sneaker & streetwear chính hãng lớn nhất Việt Nam. Cam kết 100% hàng thật, đổi trả trong 30 ngày, vận chuyển toàn quốc.</p>
-      <div class="social-links">
-        <a class="social-link" href="#">f</a>
-        <a class="social-link" href="#">ig</a>
-        <a class="social-link" href="#">tk</a>
-        <a class="social-link" href="#">yt</a>
+<footer class="footer-new">
+  <div class="footer-top">
+    <div class="footer-brand-new">
+      <span class="footer-logo-new">SNEAKER<span>VN</span></span>
+      <p class="footer-desc">Hệ thống cửa hàng sneaker & streetwear chính hãng lớn nhất Việt Nam. Cam kết 100% hàng thật, đổi trả trong 30 ngày.</p>
+      <div class="footer-social">
+        <a class="footer-social-btn" href="#">f</a>
+        <a class="footer-social-btn" href="#">ig</a>
+        <a class="footer-social-btn" href="#">tt</a>
+        <a class="footer-social-btn" href="#">yt</a>
       </div>
     </div>
-    <div class="footer-col">
+    <div class="footer-col-new">
       <h4>Sản Phẩm</h4>
       <ul>
-        <li><a href="#">Giày Nike</a></li>
-        <li><a href="#">Giày Adidas</a></li>
-        <li><a href="#">Giày MLB</a></li>
-        <li><a href="#">Quần Áo</a></li>
-        <li><a href="#">Phụ Kiện</a></li>
-        <li><a href="#">Nước Hoa</a></li>
+        <li><a href="#" onclick="openBrandPage('Nike');return false;">Giày Nike</a></li>
+        <li><a href="#" onclick="openBrandPage('Adidas');return false;">Giày Adidas</a></li>
+        <li><a href="#" onclick="openBrandPage('MLB');return false;">Giày MLB</a></li>
+        <li><a href="#" onclick="openBrandPage('Puma');return false;">Giày Puma</a></li>
+        <li><a href="#" onclick="openBrandPage('New Balance');return false;">New Balance</a></li>
       </ul>
     </div>
-    <div class="footer-col">
+    <div class="footer-col-new">
       <h4>Hỗ Trợ</h4>
       <ul>
         <li><a href="#">Chính sách đổi trả</a></li>
@@ -1598,28 +2648,318 @@ footer {
         <li><a href="#">Liên hệ</a></li>
       </ul>
     </div>
-    <div class="footer-col">
+    <div class="footer-col-new">
       <h4>Về Chúng Tôi</h4>
       <ul>
         <li><a href="#">Câu chuyện thương hiệu</a></li>
-        <li><a href="#">Hệ thống cửa hàng</a></li>
+        <li><a href="#stores">Cửa hàng</a></li>
         <li><a href="#">Tuyển dụng</a></li>
-        <li><a href="#">Blog</a></li>
-        <li><a href="#">Chương trình thành viên</a></li>
+        <li><a href="#blog">Blog</a></li>
       </ul>
     </div>
   </div>
-  <div class="footer-bottom">
-    <div>© 2025 SneakerVN. Được xây dựng bởi nhóm CMC University.</div>
-    <div class="payment-icons">
-      <span class="payment-icon">VISA</span>
-      <span class="payment-icon">MC</span>
-      <span class="payment-icon">COD</span>
-      <span class="payment-icon">MOMO</span>
-      <span class="payment-icon">VNPAY</span>
+  <div class="footer-bottom-new">
+    <span class="footer-copy">© 2025 SneakerVN — CMC University</span>
+    <div class="footer-payments">
+      <span class="fpay">VISA</span>
+      <span class="fpay">MC</span>
+      <span class="fpay">COD</span>
+      <span class="fpay">MOMO</span>
+      <span class="fpay">VNPAY</span>
     </div>
   </div>
 </footer>
+
+<!-- NEW HOMEPAGE JS -->
+<script>
+// ── HERO SLIDER ────────────────────────────────────────────
+let _heroIdx = 0;
+const _heroTotal = 3;
+function slideHero(dir) { goHero((_heroIdx + dir + _heroTotal) % _heroTotal); }
+function goHero(idx) {
+  _heroIdx = idx;
+  document.getElementById('heroSlides').style.transform = `translateX(-${idx * 100}%)`;
+  document.querySelectorAll('.hero-dot').forEach((d,i) => d.classList.toggle('active', i === idx));
+}
+setInterval(() => slideHero(1), 5000);
+
+// ── FLASH SALE COUNTDOWN ──────────────────────────────────
+(function() {
+  const end = new Date();
+  end.setHours(14, 0, 0, 0);
+  if (end < new Date()) end.setDate(end.getDate() + 1);
+  function tick() {
+    const diff = Math.max(0, end - new Date());
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    const pad = n => String(n).padStart(2,'0');
+    const fh = document.getElementById('fs-h');
+    const fm = document.getElementById('fs-m');
+    const fs = document.getElementById('fs-s');
+    if (fh) fh.textContent = pad(h);
+    if (fm) fm.textContent = pad(m);
+    if (fs) fs.textContent = pad(s);
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
+
+// ── SCROLL HELPERS ───────────────────────────────────────
+function scrollToFlash() {
+  const el = document.getElementById('flash-section');
+  if (el) el.scrollIntoView({ behavior: 'smooth' });
+}
+function scrollToSection(id) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: 'smooth' });
+}
+
+// ── HEADER SEARCH BRIDGE ─────────────────────────────────
+function onHdrSearch(val) {
+  const input = document.getElementById('productSearchInput');
+  if (input) {
+    input.value = val;
+    input.dispatchEvent(new Event('input'));
+  }
+  if (val.length > 0) {
+    document.getElementById('products-section').scrollIntoView({ behavior: 'smooth' });
+  }
+}
+
+// ── FILTER BY TYPE (dropdown links) ─────────────────────
+function filterByType(type) {
+  document.getElementById('products-section').scrollIntoView({ behavior: 'smooth' });
+  // Falls through to existing renderProducts logic via search
+  const input = document.getElementById('productSearchInput');
+  if (input) { input.value = type; input.dispatchEvent(new Event('input')); }
+}
+function filterBySize(range) {
+  document.getElementById('products-section').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ── CATEGORY STRIP FILTER ────────────────────────────────
+let _catFilter = 'all';
+function setCatFilter(brand, el) {
+  _catFilter = brand;
+  document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
+  if (el) el.classList.add('active');
+  newFilterProducts(brand, null);
+}
+
+// ── PRODUCTS FILTER (new pill UI) ────────────────────────
+let _newFilter = 'all';
+let _newPage = 1;
+const _pageSize = 10;
+let _allProducts = [];
+
+function newFilterProducts(filter, btn) {
+  _newFilter = filter;
+  _newPage = 1;
+  if (btn) {
+    document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  renderNewProducts();
+}
+
+function renderNewProducts() {
+  const grid = document.getElementById('productsGridNew');
+  if (!grid) return;
+  let list = _allProducts;
+  if (_newFilter && _newFilter !== 'all') {
+    if (_newFilter === 'sale') {
+      list = list.filter(p => p.old && p.old > p.price);
+    } else {
+      list = list.filter(p => (p.brand||'').toLowerCase() === _newFilter.toLowerCase());
+    }
+  }
+  // Search filter
+  const searchVal = (document.getElementById('hdrSearch') || {value:''}).value.trim().toLowerCase();
+  if (searchVal) {
+    list = list.filter(p => p.name.toLowerCase().includes(searchVal) || (p.brand||'').toLowerCase().includes(searchVal));
+  }
+  const shown = list.slice(0, _newPage * _pageSize);
+  const loadMoreBtn = document.getElementById('loadMoreBtn');
+  if (loadMoreBtn) {
+    document.getElementById('loadMoreWrap').style.display = list.length > shown.length ? 'block' : 'none';
+  }
+  if (!shown.length) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px;color:#aaa;">
+      <div style="font-size:48px;margin-bottom:12px;">📭</div>
+      <div>Không tìm thấy sản phẩm phù hợp</div>
+    </div>`;
+    return;
+  }
+  grid.innerHTML = shown.map(p => buildProductCardNew(p)).join('');
+}
+
+function loadMoreProducts() {
+  _newPage++;
+  renderNewProducts();
+}
+
+function buildProductCardNew(p) {
+  const fmt = n => Number(n).toLocaleString('vi-VN') + 'đ';
+  const discount = p.old && p.old > p.price ? Math.round((1 - p.price/p.old) * 100) : 0;
+  const sizes = (p.allSizes || []).slice(0,4).map(s => `<span class="pcard-size">${s.s||s}</span>`).join('');
+  const imgHtml = p.imgUrl
+    ? `<img src="${p.imgUrl}" alt="${p.name}" loading="lazy" onerror="this.style.display='none';this.nextSibling.style.display='flex'">`
+    : '';
+  const emojiHtml = `<div class="pcard-emoji-fallback" style="${p.imgUrl?'display:none':'display:flex'};align-items:center;justify-content:center;width:100%;height:100%;">👟</div>`;
+  const badgesHtml = discount >= 10 ? `<span class="pcard-badge sale">-${discount}%</span>` : '';
+  return `
+    <div class="product-card-new" onclick="openPdp('${p.id}')">
+      <div class="pcard-img">
+        ${imgHtml}${emojiHtml}
+        <div class="pcard-badges">${badgesHtml}</div>
+        <button class="pcard-wishlist" onclick="event.stopPropagation();showToast('Yêu Thích ❤️','Đã thêm vào danh sách yêu thích')">♡</button>
+      </div>
+      <div class="pcard-body">
+        <div class="pcard-brand">${p.brand}</div>
+        <div class="pcard-name">${p.name}</div>
+        <div class="pcard-price-row">
+          <span class="pcard-price">${fmt(p.price)}</span>
+          ${p.old && p.old > p.price ? `<span class="pcard-old">${fmt(p.old)}</span>` : ''}
+        </div>
+        <div class="pcard-sizes">${sizes}</div>
+        <button class="pcard-add-btn" onclick="event.stopPropagation();addToCart('${p.id}')">+ Thêm Vào Giỏ</button>
+      </div>
+    </div>`;
+}
+
+// ── RENDER VOUCHERS ───────────────────────────────────────
+function renderVouchers(extra) {
+  const grid = document.getElementById('voucherGrid');
+  if (!grid) return;
+  const staticVouchers = [
+    { code:'FREESHIP24', discount:'FREE', unit:'SHIP', type:'Miễn phí vận chuyển', name:'Miễn Phí Vận Chuyển', cond:'Đơn hàng từ 1.500.000đ', exp:'31/12/2025', color:'#111' },
+    { code:'SNEAKER15', discount:'15', unit:'%', type:'Giảm phần trăm', name:'Giảm 15% Toàn Bộ', cond:'Đơn hàng từ 2.000.000đ', exp:'30/06/2025', color:'#e62020' },
+    { code:'LIXI100K', discount:'100K', unit:'đ', type:'Giảm tiền mặt', name:'Giảm 100.000đ', cond:'Đơn hàng bất kỳ', exp:'28/02/2025', color:'#ff6b00' },
+    { code:'SAVE10', discount:'10', unit:'%', type:'Thành viên mới', name:'Ưu Đãi Thành Viên', cond:'Áp dụng lần đầu', exp:'Không giới hạn', color:'#1976d2' },
+  ];
+  const all = [...staticVouchers, ...(extra||[])];
+  grid.innerHTML = all.map(v => `
+    <div class="voucher-card" onclick="copyVoucher('${v.code}',this)">
+      <div class="voucher-left" style="background:${v.color};">
+        <div class="voucher-discount">${v.discount}</div>
+        <div class="voucher-unit">${v.unit}</div>
+        <div class="voucher-type">${v.type}</div>
+      </div>
+      <div class="voucher-right">
+        <div class="voucher-name">${v.name}</div>
+        <div class="voucher-code-wrap">
+          <span class="voucher-code">${v.code}</span>
+          <button class="voucher-copy-btn">Sao Chép</button>
+        </div>
+        <div class="voucher-cond">🎯 ${v.cond}</div>
+        <div class="voucher-exp">⏰ HSD: ${v.exp}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function copyVoucher(code, cardEl) {
+  navigator.clipboard?.writeText(code).catch(()=>{});
+  showToast('Đã Sao Chép! 🎉', `Mã ${code} đã được copy vào clipboard`);
+  const btn = cardEl.querySelector('.voucher-copy-btn');
+  if (btn) { btn.textContent = '✓ Đã Copy'; setTimeout(() => btn.textContent = 'Sao Chép', 2000); }
+}
+
+// ── FLASH SALE PRODUCTS ───────────────────────────────────
+function renderFlashSale(allProds) {
+  const grid = document.getElementById('flashSaleGrid');
+  if (!grid) return;
+  // Pick products with stock > 0, shuffle, take 5
+  const avail = allProds.filter(p => p.stock > 0);
+  const shuffled = avail.sort(() => Math.random() - 0.5).slice(0, 5);
+  if (!shuffled.length) { grid.style.display = 'none'; return; }
+  // Give them fake "original" prices for flash sale effect
+  grid.innerHTML = shuffled.map(p => {
+    const fakeOld = Math.round(p.price * (1 + (0.2 + Math.random() * 0.25)));
+    const pWithOld = { ...p, old: fakeOld };
+    return buildProductCardNew(pWithOld);
+  }).join('');
+}
+
+// ── LOAD ALL DATA ─────────────────────────────────────────
+async function loadHomepageNew() {
+  try {
+    // 1. Fetch all products
+    const res = await fetch('/api/sanpham?limit=200');
+    const json = await res.json();
+    const raw = json.data || json || [];
+
+    // 2. Map to home product format
+    let prods = raw.map(dbProdToHomeProd);
+
+    // 3. Batch load images
+    try {
+      const ids = prods.map(p => p.id);
+      const imgRes = await fetch('/api/sanpham-images/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids })
+      });
+      const imgData = await imgRes.json();
+      const imgMap = imgData.images || {};
+      prods.forEach(p => { if (imgMap[p.id]) p.imgUrl = imgMap[p.id]; });
+    } catch(e) { /* fallback to hinhanh */ }
+
+    // Save globally (for existing openPdp compat)
+    _allProducts = prods;
+    products = prods;
+
+    // 4. Render products
+    renderNewProducts();
+
+    // 5. Render flash sale
+    renderFlashSale(prods);
+
+    // 6. Update brand counts
+    const brandCounts = {};
+    prods.forEach(p => { const b = p.brand||''; brandCounts[b] = (brandCounts[b]||0)+1; });
+    const total = prods.length;
+
+    const brands = ['Nike','Adidas','MLB','Puma','New Balance','Fila'];
+    brands.forEach(b => {
+      const cnt = brandCounts[b] || 0;
+      ['count-'+b, 'count-'+b.replace(' ','')].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = cnt + ' sp';
+      });
+    });
+    const countNB = document.getElementById('catCount-NB');
+    if (countNB) countNB.textContent = (brandCounts['New Balance']||0) + ' sp';
+    const countAll = document.getElementById('catCount-all');
+    if (countAll) countAll.textContent = total + ' sp';
+    brands.forEach(b => {
+      const el = document.getElementById('catCount-'+b);
+      if (el) el.textContent = (brandCounts[b]||0) + ' sp';
+    });
+
+  } catch(e) {
+    const grid = document.getElementById('productsGridNew');
+    if (grid) grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px;color:#aaa;">
+      <div style="font-size:48px;margin-bottom:12px;">🔌</div>
+      <div style="font-weight:700;color:#333;margin-bottom:8px;">Không thể kết nối server</div>
+      <div style="font-size:13px;margin-bottom:16px;">${e.message}</div>
+      <button onclick="loadHomepageNew()" style="background:var(--red);color:#fff;border:none;padding:10px 24px;border-radius:6px;font-weight:700;cursor:pointer;">🔄 Thử Lại</button>
+    </div>`;
+  }
+}
+
+// ── INIT ─────────────────────────────────────────────────
+// Defer init so all <script> blocks in document are parsed first
+window.addEventListener('load', function() {
+  if (typeof renderVouchers === 'function') renderVouchers();
+  if (typeof renderStores === 'function') renderStores('all');
+  if (typeof startCountdown === 'function') startCountdown();
+  if (typeof initReveal === 'function') initReveal();
+  loadHomepageNew();
+});
+</script>
+
 
 <!-- CART SIDEBAR -->
 <div class="cart-overlay" id="cartOverlay" onclick="toggleCart()"></div>
@@ -1960,8 +3300,8 @@ function addToCart(id) {
 
 function updateCartUI() {
   const total = cart.reduce((a,b) => a + b.qty, 0);
-  document.getElementById('cartCount').textContent = total;
-  document.getElementById('cartItemCount').textContent = total;
+  const _cc=document.getElementById('cartCount'); if(_cc)_cc.textContent=total;
+  const _ci=document.getElementById('cartItemCount'); if(_ci)_ci.textContent=total;
 
   const cartItems = document.getElementById('cartItems');
   if (cart.length === 0) {
@@ -1986,12 +3326,12 @@ function updateCartUI() {
   }
 
   const subtotal = cart.reduce((a,b) => a + b.price * b.qty, 0);
-  document.getElementById('cartSubtotal').textContent = formatPrice(subtotal);
-  document.getElementById('cartTotal').textContent = formatPrice(subtotal);
+  (document.getElementById('cartSubtotal')||{}).textContent = formatPrice(subtotal);
+  (document.getElementById('cartTotal')||{}).textContent = formatPrice(subtotal);
   if (subtotal >= 1500000) {
-    document.getElementById('cartShipping').textContent = 'Miễn phí';
+    (document.getElementById('cartShipping')||{}).textContent = 'Miễn phí';
   } else {
-    document.getElementById('cartShipping').textContent = '30.000đ';
+    (document.getElementById('cartShipping')||{}).textContent = '30.000đ';
   }
 }
 
@@ -2017,22 +3357,22 @@ function applyCoupon() {
   const code = document.getElementById('couponInput').value.toUpperCase();
   const sub = cart.reduce((a,b) => a + b.price * b.qty, 0);
   if (code === 'FREESHIP24' || code === 'FS2025') {
-    document.getElementById('cartShipping').textContent = 'Miễn phí';
-    document.getElementById('cartDiscount').textContent = '-30.000đ';
+    (document.getElementById('cartShipping')||{}).textContent = 'Miễn phí';
+    (document.getElementById('cartDiscount')||{}).textContent = '-30.000đ';
     showToast('Áp Dụng Thành Công! 🎉', 'Miễn phí vận chuyển đã được kích hoạt');
   } else if (code === 'SNEAKER24') {
     const disc = Math.round(sub * 0.15);
-    document.getElementById('cartDiscount').textContent = `-${formatPrice(disc)}`;
-    document.getElementById('cartTotal').textContent = formatPrice(sub * 0.85);
+    (document.getElementById('cartDiscount')||{}).textContent = `-${formatPrice(disc)}`;
+    (document.getElementById('cartTotal')||{}).textContent = formatPrice(sub * 0.85);
     showToast('Giảm 15%! 💰', 'Mã SNEAKER24 đã được áp dụng');
   } else if (code === 'LIXI') {
-    document.getElementById('cartDiscount').textContent = '-100.000đ';
-    document.getElementById('cartTotal').textContent = formatPrice(Math.max(0, sub - 100000));
+    (document.getElementById('cartDiscount')||{}).textContent = '-100.000đ';
+    (document.getElementById('cartTotal')||{}).textContent = formatPrice(Math.max(0, sub - 100000));
     showToast('Chúc Mừng Năm Mới! 🧧', 'Mã LIXI - Giảm 100.000đ');
   } else if (code === 'SAVE10') {
     const sub = cart.reduce((a,b) => a + b.price * b.qty, 0);
-    document.getElementById('cartDiscount').textContent = `-${formatPrice(sub * 0.1)}`;
-    document.getElementById('cartTotal').textContent = formatPrice(sub * 0.9);
+    (document.getElementById('cartDiscount')||{}).textContent = `-${formatPrice(sub * 0.1)}`;
+    (document.getElementById('cartTotal')||{}).textContent = formatPrice(sub * 0.9);
     showToast('Giảm 10%! 💰', 'Mã giảm giá đã được áp dụng');
   } else {
     showToast('Mã Không Hợp Lệ -', 'Vui lòng kiểm tra lại mã giảm giá');
@@ -3003,7 +4343,7 @@ function saFilterOrderTab(btn, key) {
 
 // -- SA PROFILE FUNCTIONS --
 // -- SA PROFILE — load + save thực ----------------------------
-async // ============================================================
+// ============================================================
 // ADMIN LOAD PROFILE — Unified dashboard (shop / accountant / admin)
 // Đọc JWT hiện tại, fetch thông tin từ server, render đúng theo role
 // ============================================================
@@ -3558,7 +4898,7 @@ function formatPrice(n) {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n).replace('₫', 'đ');
 }
 
-// --- COUNTDOWN ---
+// --- COUNTDOWN --- (legacy hero card countdown, elements may not exist)
 function startCountdown() {
   let total = 2 * 3600 + 45 * 60 + 30;
   setInterval(() => {
@@ -3567,9 +4907,12 @@ function startCountdown() {
     const h = Math.floor(total / 3600);
     const m = Math.floor((total % 3600) / 60);
     const s = total % 60;
-    document.getElementById('cd-h').textContent = String(h).padStart(2,'0');
-    document.getElementById('cd-m').textContent = String(m).padStart(2,'0');
-    document.getElementById('cd-s').textContent = String(s).padStart(2,'0');
+    const eh = document.getElementById('cd-h');
+    const em = document.getElementById('cd-m');
+    const es = document.getElementById('cd-s');
+    if (eh) eh.textContent = String(h).padStart(2,'0');
+    if (em) em.textContent = String(m).padStart(2,'0');
+    if (es) es.textContent = String(s).padStart(2,'0');
   }, 1000);
 }
 
@@ -3584,7 +4927,7 @@ function initReveal() {
 }
 
 // --- INIT ---
-loadHomepageProducts('all');
+// loadHomepageNew() already handles product loading
 renderStores('all');
 startCountdown();
 initReveal();

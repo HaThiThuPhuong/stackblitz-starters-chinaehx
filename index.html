@@ -2876,14 +2876,59 @@ function scrollToSection(id) {
 }
 
 // ── HEADER SEARCH BRIDGE ─────────────────────────────────
+let _hdrSearchTimer = null;
 function onHdrSearch(val) {
-  const input = document.getElementById('productSearchInput');
-  if (input) {
-    input.value = val;
-    input.dispatchEvent(new Event('input'));
-  }
+  // Sync với filter local ngay lập tức để UX mượt
+  _newPage = 1;
+  renderNewProducts();
   if (val.length > 0) {
     document.getElementById('products-section').scrollIntoView({ behavior: 'smooth' });
+  }
+  // Debounce 400ms gọi API DB để bổ sung kết quả từ server
+  clearTimeout(_hdrSearchTimer);
+  if (val.trim().length >= 2) {
+    _hdrSearchTimer = setTimeout(async () => {
+      try {
+        const res = await fetch('/api/sanpham?search=' + encodeURIComponent(val.trim()) + '&limit=50');
+        const data = await res.json();
+        const serverProds = (data.data || []).map(p => ({
+          id: p.masanpham,
+          name: p.tensanpham || '',
+          brand: p.thuonghieu || '',
+          desc: p.motasanpham || '',
+          price: Number(p.giaban) || 0,
+          old: 0,
+          imgUrl: p.hinhanh || '',
+          allSizes: (p.size || '').split(',').filter(Boolean).map(s => ({ s: s.trim(), avail: true })),
+        }));
+        if (!serverProds.length) return; // Không có thêm → giữ nguyên kết quả local
+        // Merge: ưu tiên server, loại trùng id
+        const localIds = new Set((_allProducts || []).map(p => p.id));
+        const newOnes = serverProds.filter(p => !localIds.has(p.id));
+        const merged = [..._allProducts, ...newOnes];
+        // Tạo danh sách kết quả từ API khớp với từ khóa
+        const q = val.trim().toLowerCase();
+        const matched = merged.filter(p =>
+          p.name.toLowerCase().includes(q) ||
+          (p.brand||'').toLowerCase().includes(q)
+        );
+        const grid = document.getElementById('productsGridNew');
+        if (!grid) return;
+        if (matched.length === 0) {
+          // Vẫn không có → gợi ý sản phẩm
+          const suggestions = [..._allProducts].sort(() => Math.random() - 0.5).slice(0, 8);
+          grid.innerHTML =
+            `<div style="grid-column:1/-1;text-align:center;padding:28px 20px 16px;">
+              <div style="font-size:40px;margin-bottom:8px;">🔍</div>
+              <div style="font-size:15px;font-weight:700;color:#333;margin-bottom:4px;">Không tìm thấy "<em style='color:var(--red)'>${val}</em>"</div>
+              <div style="font-size:12px;color:#999;margin-bottom:16px;">Có thể bạn sẽ thích những sản phẩm này:</div>
+            </div>` +
+            suggestions.map(p => buildProductCardNew(p)).join('');
+        } else {
+          grid.innerHTML = matched.slice(0, 20).map(p => buildProductCardNew(p)).join('');
+        }
+      } catch(e) { /* Lỗi mạng: giữ kết quả local */ }
+    }, 400);
   }
 }
 
@@ -2944,10 +2989,22 @@ function renderNewProducts() {
   if (loadMoreBtn) {
     document.getElementById('loadMoreWrap').style.display = list.length > shown.length ? 'block' : 'none';
   }
+  if (!shown.length && searchVal) {
+    // Không tìm thấy → gợi ý ngẫu nhiên từ toàn bộ sản phẩm
+    const suggestions = [..._allProducts].sort(() => Math.random() - 0.5).slice(0, 8);
+    grid.innerHTML =
+      `<div style="grid-column:1/-1;text-align:center;padding:28px 20px 16px;color:#aaa;">
+        <div style="font-size:40px;margin-bottom:8px;">🔍</div>
+        <div style="font-size:15px;font-weight:700;color:#333;margin-bottom:4px;">Không tìm thấy "<em style='color:var(--red)'>${searchVal}</em>"</div>
+        <div style="font-size:12px;color:#999;margin-bottom:16px;">Có thể bạn sẽ thích những sản phẩm này:</div>
+      </div>` +
+      suggestions.map(p => buildProductCardNew(p)).join('');
+    return;
+  }
   if (!shown.length) {
     grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px;color:#aaa;">
       <div style="font-size:48px;margin-bottom:12px;">📭</div>
-      <div>Không tìm thấy sản phẩm phù hợp</div>
+      <div>Không có sản phẩm trong danh mục này</div>
     </div>`;
     return;
   }
@@ -20345,6 +20402,10 @@ async function imgSearchSubmit() {
   btn.disabled = true; btn.textContent = '⏳ Đang phân tích...';
   status.style.color = 'rgba(255,255,255,0.7)';
   status.textContent = '🤖 Đang nhận diện sản phẩm...';
+
+  let query = '';
+  let description = '';
+
   try {
     const res = await fetch('/api/search/image', {
       method: 'POST',
@@ -20353,36 +20414,76 @@ async function imgSearchSubmit() {
     });
     const ct = res.headers.get('content-type') || '';
     if (!ct.includes('application/json')) {
-      const text = await res.text();
-      status.style.color = '#f44336';
-      status.textContent = 'Server lỗi: ' + text.substring(0, 80);
-      return;
-    }
-    const json = await res.json();
-    if (!res.ok || json.error) {
-      status.style.color = '#f44336';
-      status.textContent = json.error || 'Lỗi phân tích ảnh';
-      return;
-    }
-    if (json.fallback) {
+      // Server lỗi nhưng vẫn hiện toàn bộ sản phẩm
       status.style.color = '#ff9800';
-      status.textContent = '-️ Chưa cấu hình Gemini API — hiện toàn bộ sản phẩm';
-      setTimeout(() => { imgSearchClose(); document.getElementById('products')?.scrollIntoView({behavior:'smooth'}); }, 1000);
-      return;
+      status.textContent = '⚠️ Không phân tích được ảnh — hiển thị toàn bộ sản phẩm';
+      query = '';
+      description = 'Toàn bộ sản phẩm';
+    } else {
+      const json = await res.json();
+      if (!res.ok || json.error) {
+        status.style.color = '#ff9800';
+        status.textContent = '⚠️ ' + (json.error || 'Không nhận diện được') + ' — hiển thị sản phẩm gợi ý';
+        query = '';
+      } else if (json.fallback) {
+        status.style.color = '#ff9800';
+        status.textContent = '⚡ Chưa cấu hình Vision AI — hiển thị toàn bộ sản phẩm';
+        query = '';
+      } else {
+        status.style.color = '#4caf50';
+        description = json.description || '';
+        query = json.query || json.brand || json.model || '';
+        status.textContent = '✅ ' + (description || ('Tìm: ' + query));
+      }
     }
-    status.style.color = '#4caf50';
-    status.textContent = '- ' + json.description;
-    setTimeout(() => {
-      imgSearchClose();
-      const input = document.getElementById('productSearchInput');
-      if (input) { input.value = json.query; searchProducts(json.query); document.getElementById('products')?.scrollIntoView({behavior:'smooth'}); }
-    }, 1200);
   } catch(e) {
-    status.style.color = '#f44336';
-    status.textContent = 'Lỗi kết nối: ' + e.message;
-  } finally {
-    btn.disabled = false; btn.textContent = '🔍 Tìm Kiếm';
+    status.style.color = '#ff9800';
+    status.textContent = '⚠️ Lỗi kết nối — hiển thị sản phẩm gợi ý';
+    query = '';
   }
+
+  // Luôn hiện kết quả sau 900ms dù tìm được hay không
+  setTimeout(() => {
+    imgSearchClose();
+    const grid = document.getElementById('productsGridNew');
+    document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth' });
+
+    if (query) {
+      // Có keyword → filter sản phẩm local
+      document.getElementById('hdrSearch').value = query;
+      const matched = _allProducts.filter(p =>
+        p.name.toLowerCase().includes(query.toLowerCase()) ||
+        (p.brand||'').toLowerCase().includes(query.toLowerCase()) ||
+        (p.desc||'').toLowerCase().includes(query.toLowerCase())
+      );
+
+      if (matched.length > 0) {
+        // Có kết quả khớp
+        const header = `<div style="grid-column:1/-1;padding:0 0 12px;">
+          <div style="font-size:13px;color:#888;">🖼️ Kết quả tìm theo ảnh · <strong style="color:var(--red)">${matched.length} sản phẩm</strong>${description ? ' · ' + description : ''}</div>
+        </div>`;
+        if (grid) grid.innerHTML = header + matched.slice(0, 20).map(p => buildProductCardNew(p)).join('');
+      } else {
+        // Không khớp → gợi ý ngẫu nhiên
+        const suggestions = [..._allProducts].sort(() => Math.random() - 0.5).slice(0, 8);
+        const header = `<div style="grid-column:1/-1;text-align:center;padding:20px 20px 16px;">
+          <div style="font-size:36px;margin-bottom:8px;">🔍</div>
+          <div style="font-size:14px;font-weight:700;color:#333;">Không tìm thấy sản phẩm khớp với ảnh này</div>
+          <div style="font-size:12px;color:#999;margin-top:4px;">Có thể bạn sẽ thích những sản phẩm dưới đây:</div>
+        </div>`;
+        if (grid) grid.innerHTML = header + suggestions.map(p => buildProductCardNew(p)).join('');
+      }
+    } else {
+      // Không có keyword → hiện toàn bộ sản phẩm với banner thông báo
+      document.getElementById('hdrSearch').value = '';
+      const header = `<div style="grid-column:1/-1;padding:0 0 12px;">
+        <div style="font-size:13px;color:#888;">🖼️ Tìm theo ảnh · Hiển thị toàn bộ <strong style="color:var(--red)">${_allProducts.length} sản phẩm</strong></div>
+      </div>`;
+      if (grid) grid.innerHTML = header + _allProducts.slice(0, 20).map(p => buildProductCardNew(p)).join('');
+    }
+  }, 900);
+
+  btn.disabled = false; btn.textContent = '🔍 Tìm Kiếm';
 }
 
 // Đóng modal khi click ngoài

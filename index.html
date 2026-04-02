@@ -1619,6 +1619,43 @@ footer {
 }
 .hdr-login-btn:hover { background: #c00; }
 
+/* ── MEMBER NAV VISIBILITY FIX ── */
+#userNavWrap {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background .15s;
+}
+#userNavWrap.visible {
+  display: flex !important;
+}
+#userNavWrap:hover { background: #f5f5f5; }
+#userNavAvatar {
+  width: 36px !important; height: 36px !important;
+  border-radius: 50% !important;
+  background: var(--red) !important;
+  border: 2px solid var(--red) !important;
+  color: #fff !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  display: flex !important; align-items: center !important; justify-content: center !important;
+  overflow: hidden !important;
+  flex-shrink: 0;
+}
+#userNavName {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #111 !important;
+  max-width: 110px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.user-nav-caret { color: #666 !important; }
+
 /* ── NEW HOMEPAGE SECTIONS ── */
 
 /* HERO SLIDER */
@@ -2429,7 +2466,7 @@ footer {
       <!-- Nút đăng nhập (ẩn khi đã login) -->
       <button class="hdr-login-btn" id="navLoginBtn" onclick="openModal()">Đăng Nhập</button>
       <!-- User dropdown (hiện khi đã login là member) -->
-      <div class="user-nav-wrap" id="userNavWrap" onclick="toggleUserDropdown()" style="display:none;">
+      <div class="user-nav-wrap" id="userNavWrap" onclick="toggleUserDropdown()">
         <div class="user-nav-avatar" id="userNavAvatar">KH</div>
         <span class="user-nav-name" id="userNavName"></span>
         <span class="user-nav-caret">▼</span>
@@ -9368,29 +9405,30 @@ table.db-table { width:100%; border-collapse:collapse; }
   gap: 10px;
   cursor: pointer;
 }
-.user-nav-wrap.visible { display: flex; }
+.user-nav-wrap.visible { display: flex !important; }
 .user-nav-avatar {
-  width: 34px; height: 34px;
+  width: 36px; height: 36px;
   border-radius: 50%;
-  background: rgba(230,32,32,0.25);
+  background: var(--red);
   border: 2px solid var(--red);
-  color: var(--red);
+  color: #fff;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 800;
   display: flex; align-items: center; justify-content: center;
   transition: all .2s;
+  overflow: hidden;
 }
-.user-nav-wrap:hover .user-nav-avatar { background: var(--red); color: #fff; }
+.user-nav-wrap:hover .user-nav-avatar { background: #c00; border-color: #c00; }
 .user-nav-name {
   font-size: 13px;
   font-weight: 600;
-  color: var(--white);
-  max-width: 110px;
+  color: #111;
+  max-width: 120px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.user-nav-caret { font-size: 10px; color: var(--gray-light); }
+.user-nav-caret { font-size: 10px; color: #888; }
 .user-dropdown {
   position: absolute;
   top: calc(100% + 14px);

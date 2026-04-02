@@ -2430,18 +2430,20 @@ footer {
       <button class="hdr-login-btn" id="navLoginBtn" onclick="openModal()">Đăng Nhập</button>
       <!-- User dropdown (hiện khi đã login là member) -->
       <div class="user-nav-wrap" id="userNavWrap" onclick="toggleUserDropdown()" style="display:none;">
-        <div class="user-nav-avatar" id="userNavAvatar">NH</div>
+        <div class="user-nav-avatar" id="userNavAvatar">KH</div>
         <span class="user-nav-name" id="userNavName"></span>
         <span class="user-nav-caret">▼</span>
         <div class="user-dropdown" id="userDropdown">
           <div class="user-dropdown-header">
             <div class="user-dropdown-name" id="ddName"></div>
-            <div class="user-dropdown-badge">⭐ Thành Viên &nbsp;·&nbsp; <span id="ddPoints">0</span> điểm</div>
+            <div class="user-dropdown-badge" id="ddTierBadge">⭐ Thành Viên &nbsp;·&nbsp; <span id="ddPoints">0</span> điểm</div>
           </div>
           <div class="user-dropdown-menu">
+            <button class="user-dropdown-item" onclick="openMemberPanel('overview');event.stopPropagation()">🏠 Tổng Quan Tài Khoản</button>
             <button class="user-dropdown-item" onclick="openMemberPanel('orders');event.stopPropagation()">📦 Đơn Hàng Của Tôi</button>
+            <button class="user-dropdown-item" onclick="openMemberPanel('points');event.stopPropagation()">💎 Điểm &amp; Ưu Đãi Thành Viên</button>
             <button class="user-dropdown-item" onclick="openMemberPanel('wishlist');event.stopPropagation()">❤️ Danh Sách Yêu Thích</button>
-            <button class="user-dropdown-item" onclick="openMemberPanel('profile');event.stopPropagation()">⚙️ Hồ Sơ Cá Nhân</button>
+            <button class="user-dropdown-item" onclick="openMemberPanel('profile');event.stopPropagation()">⚙️ Chỉnh Sửa Thông Tin</button>
             <div class="user-dropdown-divider"></div>
             <button class="user-dropdown-item danger" onclick="logoutMember();event.stopPropagation()">🚪 Đăng Xuất</button>
           </div>
@@ -22603,12 +22605,109 @@ document.addEventListener('DOMContentLoaded', () => {
     const btn = document.createElement('button');
     btn.className = 'user-dropdown-item';
     btn.id = 'dd-benefits-btn';
-    btn.innerHTML = " Ưu Đãi Thành Viên';
+    btn.innerHTML = '🏆 Ưu Đãi Thành Viên';
     btn.onclick = function() { openMemberPanel('points'); event.stopPropagation(); };
     ddMenu.insertBefore(btn, ddMenu.children[2]); // after wishlist
   }
 });
 
+})();
+</script>
+
+<!-- ═══ SESSION RESTORE + LOGOUT FIX v5 ═══ -->
+<script>
+(function() {
+  // ── Khởi phục session khách hàng khi load trang ──
+  function v5RestoreSession() {
+    const custToken = localStorage.getItem('customer_token') || sessionStorage.getItem('customer_token');
+    if (!custToken) return; // chưa đăng nhập
+
+    // Lấy thông tin profile đã lưu
+    const profile = (typeof SVN !== 'undefined') ? SVN.getProfile() : null;
+    const name = (profile && profile.name) ? profile.name : 'Khách Hàng';
+
+    // Hiện user nav, ẩn nút đăng nhập
+    const loginBtn = document.getElementById('navLoginBtn');
+    const wrap     = document.getElementById('userNavWrap');
+    if (!wrap || !loginBtn) return;
+
+    loginBtn.style.display = 'none';
+    wrap.classList.add('visible');
+
+    // Set initials
+    const words = name.trim().split(/\s+/).filter(Boolean);
+    const initials = words.length >= 2 ? (words[0][0] + words[words.length-1][0]).toUpperCase() : (words[0]||'K')[0].toUpperCase();
+
+    // Avatar: ảnh hoặc chữ tắt
+    const savedAvatar = localStorage.getItem('svn_avatar_b64');
+    const avatarEl = document.getElementById('userNavAvatar');
+    if (avatarEl) {
+      if (savedAvatar) {
+        avatarEl.innerHTML = '<img src="' + savedAvatar + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+      } else {
+        avatarEl.textContent = initials;
+      }
+    }
+
+    const nameEl   = document.getElementById('userNavName');
+    const ddNameEl = document.getElementById('ddName');
+    if (nameEl)   nameEl.textContent = words.slice(-2).join(' ');
+    if (ddNameEl) ddNameEl.textContent = name;
+
+    // Điểm + tier badge
+    const pts = (profile && profile.points) ? profile.points : 0;
+    const ddPtsEl = document.getElementById('ddPoints');
+    if (ddPtsEl) ddPtsEl.textContent = pts.toLocaleString('vi-VN');
+
+    // Cập nhật tier badge
+    const orders = (typeof SVN !== 'undefined') ? SVN.getOrders() : [];
+    const spent = orders.reduce(function(s,o){ return s + (parseFloat((o.total||'').replace(/[^\d]/g,''))||0); }, 0);
+    const TIERS = [
+      {name:'ĐỒNG', icon:'🥉', min:0},
+      {name:'BẠC',  icon:'🥈', min:5e6},
+      {name:'VÀNG', icon:'⭐', min:10e6},
+      {name:'KIM CƯƠNG', icon:'💎', min:15e6},
+    ];
+    const tier = TIERS.slice().reverse().find(function(t){ return spent >= t.min; }) || TIERS[0];
+    const tierBadgeEl = document.getElementById('ddTierBadge');
+    if (tierBadgeEl) {
+      tierBadgeEl.innerHTML = tier.icon + ' ' + tier.name + ' &nbsp;·&nbsp; <span id="ddPoints">' + pts.toLocaleString('vi-VN') + '</span> điểm';
+    }
+
+    // Sync currentUser
+    if (window.currentUser === undefined || window.currentUser === null) {
+      window.currentUser = { role: 'member', name: name };
+    }
+
+    // Refresh v5 header nếu đã inject
+    if (typeof v5RefreshHeader === 'function') setTimeout(v5RefreshHeader, 100);
+  }
+
+  // ── Patch logoutMember để xóa cả customer_token ──
+  const _origLogout = window.logoutMember;
+  window.logoutMember = function() {
+    localStorage.removeItem('customer_token');
+    sessionStorage.removeItem('customer_token');
+    localStorage.removeItem('svn_member_token');
+    sessionStorage.removeItem('svn_member_token');
+    // reset avatar
+    const avatarEl = document.getElementById('userNavAvatar');
+    if (avatarEl) { avatarEl.innerHTML = ''; avatarEl.textContent = 'KH'; }
+    if (typeof _origLogout === 'function') _origLogout();
+    // Đảm bảo nav reset
+    const loginBtn = document.getElementById('navLoginBtn');
+    const wrap     = document.getElementById('userNavWrap');
+    if (loginBtn) loginBtn.style.display = '';
+    if (wrap)     wrap.classList.remove('visible');
+    if (window.currentUser) window.currentUser = null;
+  };
+
+  // ── Chạy restore khi DOM sẵn sàng ──
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', v5RestoreSession);
+  } else {
+    v5RestoreSession();
+  }
 })();
 </script>
 </html>

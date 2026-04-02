@@ -1420,10 +1420,12 @@ footer {
   position: relative;
   flex: 1;
   max-width: 360px;
+  display: flex;
+  align-items: center;
 }
 .hdr-search-input {
   width: 100%;
-  padding: 9px 16px 9px 40px;
+  padding: 9px 44px 9px 40px;
   border: 1.5px solid #e8e8e8;
   border-radius: 24px;
   font-size: 13px;
@@ -1444,6 +1446,163 @@ footer {
   color: #aaa;
   font-size: 14px;
   pointer-events: none;
+}
+.hdr-camera-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #aaa;
+  font-size: 17px;
+  transition: color 0.2s, transform 0.15s;
+  border-radius: 50%;
+  line-height: 1;
+}
+.hdr-camera-btn:hover {
+  color: var(--red);
+  transform: translateY(-50%) scale(1.15);
+}
+/* ── Modal tìm kiếm bằng hình ảnh ── */
+#img-search-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(0,0,0,0.75);
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  backdrop-filter: blur(4px);
+}
+.img-search-box {
+  background: #1c1c1c;
+  border-radius: 18px;
+  width: 100%;
+  max-width: 420px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.img-search-header {
+  background: linear-gradient(135deg, #b01208, #e62020);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.img-search-header h3 {
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0;
+}
+.img-search-close {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+  opacity: 0.8;
+  line-height: 1;
+}
+.img-search-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+#img-search-drop {
+  border: 2px dashed rgba(255,255,255,0.2);
+  border-radius: 12px;
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+#img-search-drop:hover {
+  border-color: #e62020;
+  background: rgba(230,32,32,0.05);
+}
+#img-search-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255,255,255,0.4);
+  font-size: 13px;
+  text-align: center;
+  padding: 20px;
+  pointer-events: none;
+}
+#img-search-placeholder .is-icon { font-size: 40px; }
+#img-search-preview-wrap {
+  display: none;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+}
+#img-search-preview {
+  width: 100%;
+  height: 180px;
+  object-fit: contain;
+  background: #111;
+}
+.img-search-actions {
+  display: flex;
+  gap: 9px;
+}
+.img-search-pick-btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: 9px;
+  border: 1.5px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.06);
+  color: #ddd;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+.img-search-pick-btn:hover {
+  background: rgba(230,32,32,0.15);
+  border-color: #e62020;
+  color: #fff;
+}
+#img-search-btn {
+  width: 100%;
+  padding: 12px;
+  background: #e62020;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+}
+#img-search-btn:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
+#img-search-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+#img-search-status {
+  font-size: 12px;
+  text-align: center;
+  min-height: 18px;
+  color: rgba(255,255,255,0.6);
 }
 .hdr-login-btn {
   padding: 8px 20px;
@@ -2259,6 +2418,7 @@ footer {
     <div class="hdr-search-wrap">
       <span class="hdr-search-icon">🔍</span>
       <input class="hdr-search-input" id="hdrSearch" placeholder="Tìm giày, thương hiệu..." oninput="onHdrSearch(this.value)">
+      <button class="hdr-camera-btn" onclick="imgSearchOpen()" title="Tìm kiếm bằng hình ảnh">📷</button>
     </div>
 
     <div class="header-right">
@@ -21164,5 +21324,47 @@ async function checkDbStatus() {
   }
 })();
 </script>
+
+<!-- ── Modal tìm kiếm bằng hình ảnh ── -->
+<div id="img-search-modal">
+  <div class="img-search-box">
+    <div class="img-search-header">
+      <h3>📷 Tìm kiếm bằng hình ảnh</h3>
+      <button class="img-search-close" onclick="imgSearchClose()">✕</button>
+    </div>
+    <div class="img-search-body">
+      <!-- Vùng kéo thả / preview ảnh -->
+      <div id="img-search-drop"
+           onclick="document.getElementById('img-search-file').click()"
+           ondragover="event.preventDefault();this.style.borderColor='#e62020'"
+           ondragleave="this.style.borderColor='rgba(255,255,255,0.2)'"
+           ondrop="imgSearchHandleDrop(event)">
+        <div id="img-search-placeholder">
+          <span class="is-icon">👟</span>
+          <strong style="color:rgba(255,255,255,0.7);font-size:13px;">Kéo thả ảnh vào đây</strong>
+          <span>hoặc bấm để chọn ảnh / chụp ảnh</span>
+        </div>
+        <div id="img-search-preview-wrap">
+          <img id="img-search-preview" src="" alt="preview">
+        </div>
+      </div>
+      <!-- Nút chọn ảnh & chụp ảnh -->
+      <div class="img-search-actions">
+        <button class="img-search-pick-btn" onclick="document.getElementById('img-search-file').click()">
+          🖼️ Chọn ảnh
+        </button>
+        <button class="img-search-pick-btn" onclick="imgSearchCamera()">
+          📸 Chụp ảnh
+        </button>
+      </div>
+      <input type="file" id="img-search-file" accept="image/*" style="display:none" onchange="imgSearchHandleFile(this)">
+      <!-- Nút tìm kiếm -->
+      <button id="img-search-btn" onclick="imgSearchSubmit()" disabled style="opacity:0.4">
+        🔍 Tìm sản phẩm tương tự
+      </button>
+      <div id="img-search-status"></div>
+    </div>
+  </div>
+</div>
 </body>
 </html>

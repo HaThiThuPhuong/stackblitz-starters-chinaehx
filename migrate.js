@@ -329,12 +329,20 @@ Lưu ý:
   `);
   console.log('  ✅ Bảng chiphi OK');
 
-  // ── Patch: thêm cột ghichu vào hoadonbanhang nếu chưa có ──
-  await pool.query(`
-    ALTER TABLE hoadonbanhang
-    ADD COLUMN IF NOT EXISTS ghichu TEXT DEFAULT ''
-  `);
-  console.log('  ✅ Cột ghichu trong hoadonbanhang OK');
+  // ── Patch: thêm các cột có thể thiếu vào hoadonbanhang ──
+  const alterCols = [
+    `ALTER TABLE hoadonbanhang ADD COLUMN IF NOT EXISTS ghichu TEXT DEFAULT ''`,
+    `ALTER TABLE hoadonbanhang ADD COLUMN IF NOT EXISTS customerid VARCHAR(50)`,
+    `ALTER TABLE hoadonbanhang ADD COLUMN IF NOT EXISTS hotennguoinhan VARCHAR(200)`,
+    `ALTER TABLE hoadonbanhang ADD COLUMN IF NOT EXISTS sodienthoainhan VARCHAR(20)`,
+    `ALTER TABLE hoadonbanhang ADD COLUMN IF NOT EXISTS diachigiao TEXT`,
+    `ALTER TABLE hoadonbanhang ADD COLUMN IF NOT EXISTS tongtien NUMERIC(15,2) DEFAULT 0`,
+    `ALTER TABLE hoadonbanhang ADD COLUMN IF NOT EXISTS trangthai VARCHAR(50) DEFAULT 'Chờ xử lý'`,
+    `ALTER TABLE hoadonbanhang ADD COLUMN IF NOT EXISTS phuongthuctt VARCHAR(100) DEFAULT 'Tiền mặt'`,
+    `ALTER TABLE hoadonbanhang ADD COLUMN IF NOT EXISTS ngayban TIMESTAMP DEFAULT NOW()`,
+  ];
+  for (const sql of alterCols) await pool.query(sql);
+  console.log('  ✅ Các cột hoadonbanhang OK');
 
   await pool.end();
 }

@@ -329,6 +329,13 @@ Lưu ý:
   `);
   console.log('  ✅ Bảng chiphi OK');
 
+  // ── Patch: thêm cột ghichu vào hoadonbanhang nếu chưa có ──
+  await pool.query(`
+    ALTER TABLE hoadonbanhang
+    ADD COLUMN IF NOT EXISTS ghichu TEXT DEFAULT ''
+  `);
+  console.log('  ✅ Cột ghichu trong hoadonbanhang OK');
+
   await pool.end();
 }
 

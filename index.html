@@ -21468,4 +21468,1147 @@ async function checkDbStatus() {
   </div>
 </div>
 </body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SNEAKERVN PATCH v5 — MEMBER ACCOUNT FULL UPGRADE
+     ✅ Ưu đãi thành viên theo cấp bậc (Đồng/Bạc/Vàng/Kim Cương)
+     ✅ Điểm tích lũy & đổi voucher
+     ✅ Chỉnh sửa thông tin cá nhân real-time
+     ✅ Theo dõi đơn hàng với timeline trạng thái
+═══════════════════════════════════════════════════════════ -->
+<style>
+/* ─── MEMBER PANEL UPGRADE v5 ─── */
+.mp-v5-header {
+  background: linear-gradient(135deg, #1a0000 0%, #2d0808 50%, #141414 100%);
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(230,32,32,0.2);
+  position: relative;
+  overflow: hidden;
+}
+.mp-v5-header::before {
+  content: '';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 120px; height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(230,32,32,0.15) 0%, transparent 70%);
+}
+.mp-v5-tier-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.mp-v5-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+.mp-v5-avatar {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: rgba(230,32,32,0.2);
+  border: 2.5px solid var(--red);
+  color: var(--red);
+  font-weight: 800; font-size: 20px;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  transition: border-color .3s;
+}
+.mp-v5-avatar img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+.mp-v5-tier-icon-badge {
+  position: absolute;
+  bottom: -3px; right: -3px;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: #141414;
+  border: 2px solid #141414;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px;
+}
+.mp-v5-info { flex: 1; min-width: 0; }
+.mp-v5-name {
+  font-size: 16px; font-weight: 800;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.mp-v5-tier-row {
+  display: flex; align-items: center; gap: 8px; margin-top: 3px;
+}
+.mp-v5-tier-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 10px;
+  border-radius: 100px;
+  font-size: 10px; font-weight: 800; letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.tier-dong  { background: rgba(205,127,50,.2);  color: #cd7f32; border: 1px solid rgba(205,127,50,.4); }
+.tier-bac   { background: rgba(192,192,192,.15); color: #c0c0c0; border: 1px solid rgba(192,192,192,.3); }
+.tier-vang  { background: rgba(240,180,41,.15);  color: var(--gold); border: 1px solid rgba(240,180,41,.3); }
+.tier-kim   { background: rgba(0,212,255,.1);    color: #00d4ff; border: 1px solid rgba(0,212,255,.3); }
+.mp-v5-pts-pill {
+  font-size: 11px; color: var(--gold); font-weight: 700;
+}
+.mp-v5-progress-wrap {
+  margin-top: 10px;
+  background: rgba(255,255,255,0.07);
+  height: 5px; border-radius: 3px; overflow: hidden;
+}
+.mp-v5-progress-bar {
+  height: 100%; border-radius: 3px;
+  background: linear-gradient(90deg, var(--red), var(--gold));
+  transition: width .6s ease;
+}
+.mp-v5-progress-label {
+  display: flex; justify-content: space-between;
+  font-size: 10px; color: var(--gray-light);
+  margin-top: 5px;
+}
+
+/* ─── STATS GRID v5 ─── */
+.mp-v5-stats {
+  display: grid; grid-template-columns: repeat(2,1fr); gap: 8px;
+  margin-bottom: 18px;
+}
+.mp-v5-stat {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  padding: 13px 14px;
+  border-radius: 4px;
+  transition: border-color .2s;
+  cursor: default;
+}
+.mp-v5-stat:hover { border-color: rgba(230,32,32,0.25); }
+.mp-v5-stat-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--gray-light); margin-bottom: 5px; }
+.mp-v5-stat-val { font-size: 22px; font-weight: 800; line-height: 1; }
+.mp-v5-stat-sub { font-size: 10px; color: var(--gray-light); margin-top: 3px; }
+
+/* ─── SECTION HEADERS ─── */
+.mp-v5-section-hdr {
+  font-size: 11px; font-weight: 800; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--red);
+  margin-bottom: 12px; padding-bottom: 7px;
+  border-bottom: 1px solid rgba(230,32,32,0.2);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.mp-v5-section-hdr span { font-size: 10px; color: var(--gray-light); font-weight: 600; letter-spacing: 0; text-transform: none; cursor: pointer; }
+.mp-v5-section-hdr span:hover { color: var(--white); }
+
+/* ─── TIER BENEFITS ─── */
+.mp-v5-benefits-grid {
+  display: flex; flex-direction: column; gap: 8px;
+  margin-bottom: 20px;
+}
+.mp-v5-benefit-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 13px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 4px;
+  font-size: 12px;
+}
+.mp-v5-benefit-icon { font-size: 18px; flex-shrink: 0; }
+.mp-v5-benefit-name { font-weight: 700; font-size: 12px; }
+.mp-v5-benefit-desc { font-size: 11px; color: var(--gray-light); margin-top: 1px; }
+.mp-v5-benefit-active { border-color: rgba(240,180,41,.3); background: rgba(240,180,41,.04); }
+.mp-v5-benefit-locked { opacity: .45; }
+.mp-v5-benefit-lock { margin-left: auto; font-size: 10px; color: var(--gray-light); white-space: nowrap; }
+
+/* ─── ORDER TRACKING TIMELINE ─── */
+.mp-v5-order-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 4px;
+  padding: 14px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+}
+.mp-v5-order-card:hover { border-color: rgba(230,32,32,0.35); background: rgba(230,32,32,0.02); }
+.mp-v5-order-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.mp-v5-order-id { font-size: 13px; font-weight: 800; color: var(--red); font-family: monospace; }
+.mp-v5-order-status {
+  font-size: 10px; font-weight: 700;
+  padding: 3px 9px; border-radius: 100px;
+}
+.v5-st-pending  { background: rgba(255,152,0,.15); color: #ff9800; border: 1px solid rgba(255,152,0,.3); }
+.v5-st-shipping { background: rgba(33,150,243,.15); color: #2196f3; border: 1px solid rgba(33,150,243,.3); }
+.v5-st-done     { background: rgba(76,175,80,.15);  color: #4caf50; border: 1px solid rgba(76,175,80,.3); }
+.v5-st-cancel   { background: rgba(244,67,54,.12);  color: #f44336; border: 1px solid rgba(244,67,54,.25); }
+.mp-v5-order-items { font-size: 12px; color: var(--white); margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mp-v5-order-meta { font-size: 11px; color: var(--gray-light); display: flex; gap: 12px; }
+.mp-v5-order-total { font-size: 13px; font-weight: 800; color: var(--red); margin-top: 4px; }
+
+/* ─── ORDER TIMELINE ─── */
+.mp-v5-timeline {
+  padding: 8px 0;
+}
+.mp-v5-tl-step {
+  display: flex; gap: 12px; padding-bottom: 18px;
+  position: relative;
+}
+.mp-v5-tl-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 12px; top: 26px;
+  width: 2px; bottom: 0;
+  background: rgba(255,255,255,0.08);
+}
+.mp-v5-tl-step.active::after { background: rgba(230,32,32,0.3); }
+.mp-v5-tl-dot {
+  width: 26px; height: 26px; border-radius: 50%;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px;
+  background: rgba(255,255,255,0.06);
+  border: 2px solid rgba(255,255,255,0.12);
+  z-index: 1;
+}
+.mp-v5-tl-step.active .mp-v5-tl-dot {
+  background: rgba(230,32,32,0.2);
+  border-color: var(--red);
+}
+.mp-v5-tl-step.done .mp-v5-tl-dot {
+  background: rgba(76,175,80,0.2);
+  border-color: #4caf50;
+}
+.mp-v5-tl-content { padding-top: 3px; }
+.mp-v5-tl-title { font-size: 12px; font-weight: 700; }
+.mp-v5-tl-date { font-size: 10px; color: var(--gray-light); margin-top: 2px; }
+.mp-v5-tl-step.active .mp-v5-tl-title { color: var(--white); }
+.mp-v5-tl-step.done .mp-v5-tl-title { color: #4caf50; }
+
+/* ─── POINTS v5 ─── */
+.mp-v5-pts-hero {
+  text-align: center;
+  padding: 20px 0 16px;
+  position: relative;
+}
+.mp-v5-pts-number {
+  font-size: 52px; font-weight: 900;
+  color: var(--gold);
+  line-height: 1;
+  font-family: 'Bebas Neue', cursive;
+  letter-spacing: 2px;
+}
+.mp-v5-pts-sub { font-size: 12px; color: var(--gray-light); margin-top: 4px; }
+.mp-v5-pts-progress-wrap {
+  background: rgba(255,255,255,0.07);
+  height: 10px; border-radius: 5px;
+  margin: 12px 0 6px; overflow: hidden;
+}
+.mp-v5-pts-progress-bar {
+  height: 100%; border-radius: 5px;
+  background: linear-gradient(90deg, var(--red), var(--gold));
+  transition: width .8s cubic-bezier(.34,1.56,.64,1);
+}
+
+.mp-v5-redeem-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  margin-bottom: 20px;
+}
+.mp-v5-redeem-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 4px;
+  padding: 12px;
+  text-align: center;
+  transition: border-color .2s, background .2s;
+}
+.mp-v5-redeem-card.can-redeem {
+  border-color: rgba(240,180,41,.25);
+  background: rgba(240,180,41,.03);
+}
+.mp-v5-redeem-icon { font-size: 24px; margin-bottom: 6px; }
+.mp-v5-redeem-name { font-size: 11px; font-weight: 700; margin-bottom: 4px; line-height: 1.3; }
+.mp-v5-redeem-cost { font-size: 11px; color: var(--gold); margin-bottom: 8px; }
+.mp-v5-redeem-btn {
+  width: 100%; padding: 6px 0;
+  font-size: 11px; font-weight: 800; letter-spacing: .5px;
+  border-radius: 2px; cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: none; color: var(--gray-light);
+  transition: all .2s;
+}
+.mp-v5-redeem-btn.active {
+  background: var(--gold); color: #111; border-color: var(--gold);
+}
+.mp-v5-redeem-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+.mp-v5-voucher-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 13px;
+  background: rgba(230,32,32,0.04);
+  border: 1px solid rgba(230,32,32,0.2);
+  border-radius: 4px;
+  margin-bottom: 7px;
+}
+.mp-v5-voucher-code { font-family: monospace; font-size: 15px; font-weight: 900; color: var(--red); }
+.mp-v5-voucher-desc { font-size: 11px; color: var(--gray-light); margin-top: 2px; }
+.mp-v5-copy-btn {
+  padding: 5px 12px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: none; color: var(--gray-light);
+  font-size: 11px; font-weight: 700;
+  cursor: pointer; border-radius: 2px;
+  transition: all .2s; white-space: nowrap;
+}
+.mp-v5-copy-btn:hover { border-color: var(--red); color: var(--white); }
+
+/* ─── PROFILE v5 ─── */
+.mp-v5-profile-avatar-wrap {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 20px 0 18px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  margin-bottom: 22px;
+}
+.mp-v5-prof-avatar {
+  position: relative; width: 80px; height: 80px; margin-bottom: 12px;
+}
+.mp-v5-prof-avatar-img {
+  width: 80px; height: 80px; border-radius: 50%;
+  background: rgba(230,32,32,0.2);
+  border: 3px solid var(--red);
+  color: var(--red); font-weight: 800; font-size: 26px;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.mp-v5-prof-avatar-img img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+.mp-v5-cam-btn {
+  position: absolute; bottom: 0; right: 0;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--red); border: 2px solid #111;
+  color: #fff; font-size: 12px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .2s;
+}
+.mp-v5-cam-btn:hover { background: var(--accent); }
+.mp-v5-prof-name { font-size: 17px; font-weight: 800; margin-bottom: 4px; }
+.mp-v5-prof-badge { font-size: 12px; color: var(--gold); }
+
+.mp-v5-field { margin-bottom: 14px; }
+.mp-v5-field-label {
+  font-size: 10px; font-weight: 800; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--gray-light);
+  display: block; margin-bottom: 6px;
+}
+.mp-v5-input {
+  width: 100%; padding: 10px 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: var(--white); font-size: 13px;
+  font-family: 'Barlow', sans-serif;
+  border-radius: 3px; outline: none;
+  transition: border-color .2s, background .2s;
+}
+.mp-v5-input:focus { border-color: var(--red); background: rgba(230,32,32,0.04); }
+.mp-v5-input:disabled { opacity: .4; cursor: not-allowed; }
+.mp-v5-input-row { display: flex; gap: 8px; }
+.mp-v5-input-row .mp-v5-input { flex: 1; }
+.mp-v5-inline-btn {
+  padding: 10px 14px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: none; color: var(--gray-light);
+  font-size: 12px; font-weight: 700;
+  cursor: pointer; border-radius: 3px;
+  white-space: nowrap; transition: all .2s;
+}
+.mp-v5-inline-btn:hover { border-color: var(--red); color: var(--white); }
+.mp-v5-save-btn {
+  width: 100%; padding: 13px;
+  background: var(--red); color: #fff;
+  border: none; border-radius: 3px;
+  font-size: 13px; font-weight: 800; letter-spacing: 1.5px;
+  text-transform: uppercase; cursor: pointer;
+  transition: all .2s; margin-top: 6px;
+}
+.mp-v5-save-btn:hover { background: var(--accent); transform: translateY(-1px); }
+.mp-v5-save-btn:active { transform: translateY(0); }
+.mp-v5-save-feedback {
+  display: none; text-align: center;
+  padding: 8px; font-size: 12px; color: #4caf50;
+  margin-top: 6px;
+}
+
+/* ─── ORDER FILTER TABS ─── */
+.mp-v5-order-filters {
+  display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap;
+}
+.mp-v5-filter-btn {
+  padding: 5px 12px; font-size: 11px; font-weight: 700;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: none; color: var(--gray-light);
+  cursor: pointer; border-radius: 100px;
+  transition: all .2s; letter-spacing: .5px;
+}
+.mp-v5-filter-btn:hover { border-color: rgba(255,255,255,0.3); color: var(--white); }
+.mp-v5-filter-btn.active { background: var(--red); color: #fff; border-color: var(--red); }
+
+/* ─── EMPTY STATES ─── */
+.mp-v5-empty {
+  text-align: center; padding: 36px 0;
+  color: var(--gray-light);
+}
+.mp-v5-empty-icon { font-size: 36px; margin-bottom: 10px; }
+.mp-v5-empty-txt { font-size: 13px; }
+
+/* ─── PANEL HEADER UPGRADE ─── */
+#memberPanelOverlay .member-panel-header { display: none; }
+.mp-v5-panel-close {
+  position: absolute; top: 16px; right: 16px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: var(--gray-light); width: 32px; height: 32px;
+  border-radius: 50%; font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .2s; z-index: 10;
+}
+.mp-v5-panel-close:hover { color: var(--white); background: rgba(230,32,32,0.2); border-color: var(--red); }
+
+/* ─── POINTS HISTORY TABLE ─── */
+.mp-v5-hist-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-size: 12px;
+}
+.mp-v5-hist-row:last-child { border-bottom: none; }
+.mp-v5-hist-desc { color: var(--gray-light); }
+.mp-v5-hist-pts-earn { font-weight: 800; color: #4caf50; }
+.mp-v5-hist-pts-spend { font-weight: 800; color: #f44336; }
+</style>
+
+<script>
+(function() {
+'use strict';
+
+// ─── TIER CONFIG ───────────────────────────────────────────
+const V5_TIERS = [
+  { id:'dong', name:'ĐỒNG',     icon:'🥉', cls:'tier-dong', min:0,        max:5e6,   rate:1,   color:'#cd7f32' },
+  { id:'bac',  name:'BẠC',      icon:'🥈', cls:'tier-bac',  min:5e6,      max:10e6,  rate:1.2, color:'#c0c0c0' },
+  { id:'vang', name:'VÀNG',     icon:'⭐', cls:'tier-vang', min:10e6,     max:15e6,  rate:1.5, color:'#f0b429' },
+  { id:'kim',  name:'KIM CƯƠNG',icon:'💎', cls:'tier-kim',  min:15e6,     max:Infinity, rate:2, color:'#00d4ff' },
+];
+const V5_BENEFITS = [
+  { icon:'🎯', name:'Tích 1 điểm/10.000đ',     unlock:'dong', desc:'Cơ bản với mọi đơn hàng' },
+  { icon:'🚚', name:'Miễn phí ship đơn +500k', unlock:'bac',  desc:'Đối với thành viên Bạc trở lên' },
+  { icon:'🎂', name:'Ưu đãi sinh nhật x2 điểm',unlock:'bac',  desc:'Mua hàng trong tháng sinh nhật' },
+  { icon:'💎', name:'Tích 1.5 điểm/10.000đ',   unlock:'vang', desc:'Hệ số điểm tăng cho Vàng' },
+  { icon:'🎟️', name:'Voucher 100k chào tháng', unlock:'vang', desc:'Cấp tự động đầu mỗi tháng' },
+  { icon:'⚡', name:'Tích 2 điểm/10.000đ',     unlock:'kim',  desc:'Hệ số điểm cao nhất' },
+  { icon:'👑', name:'Xếp hàng ưu tiên & hotline riêng', unlock:'kim', desc:'CSKH dành riêng kim cương' },
+];
+
+// ─── VOUCHERS CÓ THỂ ĐỔI ──────────────────────────────────
+const V5_VOUCHERS_CATALOG = [
+  { id:'SHIP', icon:'🚚', name:'Miễn Phí Ship',    detail:'1 đơn bất kỳ',        cost:300,  code:'FREESHIP' },
+  { id:'V50',  icon:'🎟️', name:'Giảm 50.000đ',    detail:'Đơn tối thiểu 500k',  cost:500,  code:'SVN50K'   },
+  { id:'V100', icon:'💰', name:'Giảm 100.000đ',   detail:'Đơn tối thiểu 900k',  cost:1000, code:'SVN100K'  },
+  { id:'V200', icon:'🎁', name:'Giảm 200.000đ',   detail:'Đơn tối thiểu 1.5tr', cost:2000, code:'SVN200K'  },
+];
+
+// ─── HELPERS ───────────────────────────────────────────────
+function v5Fmt(n) {
+  if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
+  return n.toLocaleString('vi-VN') + 'đ';
+}
+function v5Total(str) { return parseFloat((str||'').replace(/[^\d]/g,'')) || 0; }
+function v5Initials(name) {
+  const w = (name||'').trim().split(/\s+/).filter(Boolean);
+  if (w.length >= 2) return (w[0][0] + w[w.length-1][0]).toUpperCase();
+  return (w[0]||'?')[0].toUpperCase();
+}
+function v5GetTier(spent) {
+  return V5_TIERS.slice().reverse().find(t => spent >= t.min) || V5_TIERS[0];
+}
+function v5GetNextTier(tier) {
+  const idx = V5_TIERS.findIndex(t => t.id === tier.id);
+  return idx < V5_TIERS.length - 1 ? V5_TIERS[idx+1] : null;
+}
+function v5TierProgress(spent, tier, next) {
+  if (!next) return 100;
+  return Math.min(100, Math.round((spent - tier.min) / (next.min - tier.min) * 100));
+}
+
+// ─── INJECT UPGRADED HEADER ───────────────────────────────
+function v5InjectHeader() {
+  const panelEl = document.querySelector('#memberPanelOverlay .member-panel');
+  if (!panelEl || document.getElementById('mp-v5-hdr')) return;
+
+  // Close button
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'mp-v5-panel-close';
+  closeBtn.id = 'mp-v5-close-btn';
+  closeBtn.innerHTML = '✕';
+  closeBtn.onclick = () => closeMemberPanelBtn && closeMemberPanelBtn();
+  panelEl.style.position = 'relative';
+  panelEl.insertBefore(closeBtn, panelEl.firstChild);
+
+  // Header
+  const hdr = document.createElement('div');
+  hdr.className = 'mp-v5-header';
+  hdr.id = 'mp-v5-hdr';
+  panelEl.insertBefore(hdr, panelEl.querySelector('.member-panel-tabs'));
+
+  v5RefreshHeader();
+}
+
+function v5RefreshHeader() {
+  const hdr = document.getElementById('mp-v5-hdr');
+  if (!hdr) return;
+  const profile = (typeof SVN !== 'undefined') ? SVN.getProfile() : {};
+  const orders  = (typeof SVN !== 'undefined') ? SVN.getOrders() : [];
+  const name = profile.name || window.currentUser?.name || 'Khách Hàng';
+  const pts  = profile.points || 0;
+  const spent = orders.reduce((s,o) => s + v5Total(o.total), 0);
+  const tier = v5GetTier(spent);
+  const next = v5GetNextTier(tier);
+  const pct  = v5TierProgress(spent, tier, next);
+
+  // Avatar
+  let avatarContent = `<span id="mp-v5-av-initials">${v5Initials(name)}</span>`;
+  const savedAvatar = localStorage.getItem('svn_avatar_b64');
+  if (savedAvatar) avatarContent = `<img src="${savedAvatar}" alt="avatar">`;
+
+  hdr.innerHTML = `
+    <div class="mp-v5-tier-banner">
+      <div class="mp-v5-avatar-wrap">
+        <div class="mp-v5-avatar">${avatarContent}</div>
+        <div class="mp-v5-tier-icon-badge">${tier.icon}</div>
+      </div>
+      <div class="mp-v5-info">
+        <div class="mp-v5-name">${name}</div>
+        <div class="mp-v5-tier-row">
+          <span class="mp-v5-tier-chip ${tier.cls}">${tier.icon} ${tier.name}</span>
+          <span class="mp-v5-pts-pill">· ${pts.toLocaleString('vi-VN')} điểm</span>
+        </div>
+        <div class="mp-v5-progress-wrap">
+          <div class="mp-v5-progress-bar" style="width:${pct}%"></div>
+        </div>
+        <div class="mp-v5-progress-label">
+          <span>${v5Fmt(spent)}</span>
+          <span>${next ? 'Còn ' + v5Fmt(next.min - spent) + ' → ' + next.name : '🏆 Đỉnh cấp!'}</span>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ─── OVERVIEW TAB ─────────────────────────────────────────
+function v5RenderOverview() {
+  const ovTab = document.getElementById('mp-tab-overview');
+  if (!ovTab) return;
+  const profile = (typeof SVN !== 'undefined') ? SVN.getProfile() : {};
+  const orders  = (typeof SVN !== 'undefined') ? SVN.getOrders() : [];
+  const vouchers= (typeof SVN !== 'undefined') ? SVN.getVouchers() : [];
+  const pts = profile.points || 0;
+  const spent = orders.reduce((s,o) => s + v5Total(o.total), 0);
+  const tier = v5GetTier(spent);
+  const next = v5GetNextTier(tier);
+  const pct  = v5TierProgress(spent, tier, next);
+
+  const recentOrders = orders.slice(0,3).map(o => {
+    const [lbl, cls] = V5_STATUS_MAP[o.status] || V5_STATUS_MAP.pending;
+    const prod = (o.items||[]).map(i=>i.name).join(', ') || '—';
+    return `<div class="mp-v5-order-card" onclick="v5ShowOrderDetail('${o.id}')">
+      <div class="mp-v5-order-top">
+        <span class="mp-v5-order-id">${o.id}</span>
+        <span class="mp-v5-order-status ${cls}">${lbl}</span>
+      </div>
+      <div class="mp-v5-order-items">👟 ${prod}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
+        <span class="mp-v5-order-meta">${o.date}</span>
+        <span class="mp-v5-order-total">${o.total}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Active benefits
+  const activeBenefits = V5_BENEFITS
+    .filter(b => V5_TIERS.findIndex(t=>t.id===b.unlock) <= V5_TIERS.findIndex(t=>t.id===tier.id))
+    .slice(0,3)
+    .map(b => `<div class="mp-v5-benefit-row mp-v5-benefit-active">
+      <div class="mp-v5-benefit-icon">${b.icon}</div>
+      <div><div class="mp-v5-benefit-name">${b.name}</div><div class="mp-v5-benefit-desc">${b.desc}</div></div>
+    </div>`).join('');
+
+  ovTab.innerHTML = `
+    <div class="mp-v5-stats">
+      <div class="mp-v5-stat">
+        <div class="mp-v5-stat-lbl">Đơn Hàng</div>
+        <div class="mp-v5-stat-val" style="color:var(--red)">${orders.length}</div>
+        <div class="mp-v5-stat-sub">${orders.filter(o=>o.status==='shipping').length} đang giao</div>
+      </div>
+      <div class="mp-v5-stat">
+        <div class="mp-v5-stat-lbl">Điểm Thưởng</div>
+        <div class="mp-v5-stat-val" style="color:var(--gold)">${pts.toLocaleString('vi-VN')}</div>
+        <div class="mp-v5-stat-sub">= ${(pts*100).toLocaleString('vi-VN')}đ</div>
+      </div>
+      <div class="mp-v5-stat">
+        <div class="mp-v5-stat-lbl">Chi Tiêu</div>
+        <div class="mp-v5-stat-val">${v5Fmt(spent)}</div>
+        <div class="mp-v5-stat-sub">Tổng tích lũy</div>
+      </div>
+      <div class="mp-v5-stat">
+        <div class="mp-v5-stat-lbl">Voucher</div>
+        <div class="mp-v5-stat-val" style="color:#e91e63">${vouchers.length}</div>
+        <div class="mp-v5-stat-sub">Chưa sử dụng</div>
+      </div>
+    </div>
+
+    <div class="mp-v5-section-hdr">
+      Đơn Hàng Gần Đây
+      <span onclick="switchMemberTab('orders',document.querySelectorAll('.member-panel-tab')[1])">Xem tất cả →</span>
+    </div>
+    ${orders.length ? recentOrders : '<div class="mp-v5-empty"><div class="mp-v5-empty-icon">📦</div><div class="mp-v5-empty-txt">Chưa có đơn hàng nào</div></div>'}
+
+    <div class="mp-v5-section-hdr" style="margin-top:18px">
+      Ưu Đãi Đang Có
+      <span onclick="switchMemberTab('points',document.querySelectorAll('.member-panel-tab')[3])">Đổi điểm →</span>
+    </div>
+    ${activeBenefits || '<div style="font-size:12px;color:var(--gray-light)">Chưa có ưu đãi</div>'}
+
+    <button onclick="logoutMember()" style="width:100%;margin-top:22px;padding:11px;background:rgba(244,67,54,0.08);border:1px solid rgba(244,67,54,0.25);color:#f44336;font-weight:700;font-size:12px;cursor:pointer;letter-spacing:1px;border-radius:3px;transition:all .2s" onmouseover="this.style.background='rgba(244,67,54,0.16)'" onmouseout="this.style.background='rgba(244,67,54,0.08)'">🚪 Đăng Xuất</button>`;
+}
+
+// ─── STATUS MAP ────────────────────────────────────────────
+const V5_STATUS_MAP = {
+  pending:  ['⏳ Chờ Xử Lý', 'v5-st-pending'],
+  shipping: ['🚚 Đang Giao',  'v5-st-shipping'],
+  done:     ['✅ Hoàn Thành', 'v5-st-done'],
+  cancel:   ['❌ Đã Hủy',    'v5-st-cancel'],
+};
+
+// ─── ORDERS TAB ────────────────────────────────────────────
+let _v5OrderFilter = 'all';
+
+function v5RenderOrders() {
+  const tab = document.getElementById('mp-tab-orders');
+  if (!tab) return;
+  const allOrders = (typeof SVN !== 'undefined') ? SVN.getOrders() : [];
+  const filtered = _v5OrderFilter === 'all' ? allOrders : allOrders.filter(o => o.status === _v5OrderFilter);
+
+  const filterBtns = ['all','pending','shipping','done','cancel'].map(f => {
+    const labels = {all:'Tất Cả', pending:'Chờ xử lý', shipping:'Đang giao', done:'Hoàn thành', cancel:'Đã hủy'};
+    return `<button class="mp-v5-filter-btn${_v5OrderFilter===f?' active':''}" onclick="_v5SetOrderFilter('${f}',this)">${labels[f]}</button>`;
+  }).join('');
+
+  const cards = filtered.length ? filtered.map(o => {
+    const [lbl, cls] = V5_STATUS_MAP[o.status] || V5_STATUS_MAP.pending;
+    const prod = (o.items||[]).map(i=>i.name).join(', ') || '—';
+    return `<div class="mp-v5-order-card" onclick="v5ShowOrderDetail('${o.id}')">
+      <div class="mp-v5-order-top">
+        <span class="mp-v5-order-id">${o.id}</span>
+        <span class="mp-v5-order-status ${cls}">${lbl}</span>
+      </div>
+      <div class="mp-v5-order-items">👟 ${prod}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px">
+        <span class="mp-v5-order-meta">📅 ${o.date}</span>
+        <span class="mp-v5-order-total">${o.total}</span>
+      </div>
+      <div class="mp-v5-order-meta" style="margin-top:3px">🚚 ${o.shipping||'—'} · 💳 ${o.payment||'—'}</div>
+    </div>`;
+  }).join('') : `<div class="mp-v5-empty"><div class="mp-v5-empty-icon">📦</div><div class="mp-v5-empty-txt">Không có đơn hàng nào</div></div>`;
+
+  tab.innerHTML = `
+    <div class="mp-v5-section-hdr">Đơn Hàng (${filtered.length})</div>
+    <div class="mp-v5-order-filters">${filterBtns}</div>
+    ${cards}`;
+}
+
+window._v5SetOrderFilter = function(f, btn) {
+  _v5OrderFilter = f;
+  v5RenderOrders();
+};
+
+// ─── ORDER DETAIL with TIMELINE ───────────────────────────
+window.v5ShowOrderDetail = function(id) {
+  const orders = (typeof SVN !== 'undefined') ? SVN.getOrders() : [];
+  const o = orders.find(x => x.id === id);
+  if (!o) return;
+  const [lbl, cls] = V5_STATUS_MAP[o.status] || V5_STATUS_MAP.pending;
+
+  // Timeline
+  const STEPS = [
+    { key:'confirmed', label:'Đặt hàng thành công', icon:'✅', alwaysDone: true },
+    { key:'processing', label:'Đang chuẩn bị hàng', icon:'📦', doneStatuses:['shipping','done'] },
+    { key:'shipping',   label:'Đang giao hàng',     icon:'🚚', doneStatuses:['done'], activeStatuses:['shipping'] },
+    { key:'done',       label:'Giao hàng thành công',icon:'🎉', doneStatuses:['done'] },
+  ];
+  const timelineHtml = STEPS.map((step, i) => {
+    let cls2 = '';
+    if (step.alwaysDone || (step.doneStatuses||[]).includes(o.status)) cls2 = 'done';
+    else if ((step.activeStatuses||[]).includes(o.status)) cls2 = 'active';
+    if (o.status === 'cancel' && i > 0) cls2 = '';
+    return `<div class="mp-v5-tl-step ${cls2}">
+      <div class="mp-v5-tl-dot">${cls2==='done'?'✓':step.icon}</div>
+      <div class="mp-v5-tl-content">
+        <div class="mp-v5-tl-title">${step.label}</div>
+        <div class="mp-v5-tl-date">${cls2==='done'?o.date:cls2==='active'?'Đang tiến hành...':'Chờ cập nhật'}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const trackSection = o.trackingCode
+    ? `<div style="padding:10px 12px;background:rgba(76,175,80,.07);border:1px solid rgba(76,175,80,.2);border-radius:4px;margin-bottom:12px">
+        <div style="font-size:10px;font-weight:800;color:#4caf50;letter-spacing:1px;margin-bottom:3px">📮 MÃ VẬN ĐƠN</div>
+        <div style="font-size:16px;font-weight:900;font-family:monospace;color:#4caf50">${o.trackingCode}</div>
+        <div style="font-size:11px;color:var(--gray-light)">${o.carrier||'J&T Express'}</div>
+      </div>` : '';
+
+  const itemsHtml = (o.items||[]).map(i =>
+    `<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+      <div>
+        <div style="font-size:13px;font-weight:600">👟 ${i.name}</div>
+        <div style="font-size:11px;color:var(--gray-light)">Size ${i.size||'—'} · SL: ${i.qty}</div>
+      </div>
+      <div style="font-size:13px;font-weight:700;color:var(--red)">${((i.price||0)*i.qty).toLocaleString('vi-VN')}đ</div>
+    </div>`).join('');
+
+  let footerBtn = '';
+  if (o.status === 'pending') {
+    footerBtn = `<button onclick="v5CancelOrder('${o.id}')" style="width:100%;margin-top:12px;padding:11px;background:rgba(244,67,54,.08);border:1px solid rgba(244,67,54,.3);color:#f44336;font-weight:700;font-size:13px;cursor:pointer;border-radius:3px;transition:all .2s" onmouseover="this.style.background='rgba(244,67,54,.16)'" onmouseout="this.style.background='rgba(244,67,54,.08)'">Hủy Đơn Hàng</button>`;
+  } else if (o.status === 'done') {
+    footerBtn = `<button onclick="v5Reorder('${o.id}')" style="width:100%;margin-top:12px;padding:11px;background:var(--red);border:none;color:#fff;font-weight:800;font-size:13px;cursor:pointer;border-radius:3px;letter-spacing:1px;transition:all .2s">🔄 Mua Lại Đơn Này</button>`;
+  }
+
+  let modal = document.getElementById('v5OrderModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'v5OrderModal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;transition:opacity .2s';
+    modal.addEventListener('click', e => { if(e.target===modal) v5CloseOrderModal(); });
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML = `<div style="background:#1a1a1a;border:1px solid rgba(255,255,255,0.1);border-radius:8px;width:100%;max-width:460px;max-height:88vh;overflow-y:auto;transform:scale(.96);transition:transform .2s">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,0.08);position:sticky;top:0;background:#1a1a1a;z-index:1">
+      <div>
+        <div style="font-size:15px;font-weight:800;color:var(--red);font-family:monospace">${o.id}</div>
+        <div style="font-size:11px;color:var(--gray-light)">Đặt ngày ${o.date}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span class="mp-v5-order-status ${cls}">${lbl}</span>
+        <button onclick="v5CloseOrderModal()" style="background:none;border:none;color:var(--gray-light);font-size:22px;cursor:pointer;line-height:1">×</button>
+      </div>
+    </div>
+    <div style="padding:18px">
+      ${trackSection}
+      <div style="font-size:11px;font-weight:800;letter-spacing:1.5px;color:var(--red);margin-bottom:10px">THEO DÕI ĐƠN HÀNG</div>
+      <div class="mp-v5-timeline">${timelineHtml}</div>
+      <div style="font-size:11px;font-weight:800;letter-spacing:1.5px;color:var(--gray-light);margin:14px 0 8px">SẢN PHẨM</div>
+      ${itemsHtml}
+      <div style="margin-top:12px;padding:12px;background:rgba(255,255,255,0.02);border-radius:4px;font-size:12px;line-height:2.4">
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--gray-light)">Giao đến</span><span style="text-align:right;max-width:58%">${o.address||'—'}</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--gray-light)">Vận chuyển</span><span>${o.shipping||'—'}</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--gray-light)">Thanh toán</span><span>${o.payment||'—'}</span></div>
+        <div style="display:flex;justify-content:space-between;border-top:1px solid rgba(255,255,255,0.06);padding-top:6px;font-weight:800;font-size:14px"><span>Tổng</span><span style="color:var(--red)">${o.total}</span></div>
+      </div>
+      ${footerBtn}
+    </div>
+  </div>`;
+  modal.style.display = 'flex';
+  requestAnimationFrame(() => {
+    modal.style.opacity = '1';
+    modal.querySelector('div').style.transform = 'scale(1)';
+  });
+};
+
+window.v5CloseOrderModal = function() {
+  const m = document.getElementById('v5OrderModal');
+  if (m) { m.style.opacity = '0'; setTimeout(() => { m.style.display = 'none'; }, 200); }
+};
+window.v5CancelOrder = function(id) {
+  if (!confirm(`Bạn có chắc muốn hủy đơn ${id}?`)) return;
+  const orders = SVN.getOrders();
+  const idx = orders.findIndex(o => o.id === id);
+  if (idx < 0 || orders[idx].status !== 'pending') { showToast('Không thể hủy', 'Chỉ hủy được đơn chờ xử lý'); return; }
+  orders[idx].status = 'cancel';
+  localStorage.setItem('svn_orders', JSON.stringify(orders));
+  v5CloseOrderModal();
+  showToast('Đã Hủy Đơn', id);
+  v5RenderOrders();
+  v5RefreshHeader();
+  v5RenderOverview();
+};
+window.v5Reorder = function(id) {
+  const o = (SVN.getOrders()||[]).find(x=>x.id===id);
+  if (!o) return;
+  (o.items||[]).forEach(item => { if(typeof addToCart==='function') addToCart(item.id); });
+  showToast('Đã Thêm Vào Giỏ 🛒', `${(o.items||[]).length} sản phẩm`);
+  v5CloseOrderModal();
+};
+
+// ─── POINTS TAB ────────────────────────────────────────────
+function v5RenderPoints() {
+  const tab = document.getElementById('mp-tab-points');
+  if (!tab) return;
+  const profile = (typeof SVN !== 'undefined') ? SVN.getProfile() : {};
+  const pts = profile.points || 0;
+  const orders = (typeof SVN !== 'undefined') ? SVN.getOrders() : [];
+  const vouchers = (typeof SVN !== 'undefined') ? SVN.getVouchers() : [];
+  const totalEarned = orders.reduce((s,o) => s + Math.floor(v5Total(o.total)/10000), 0);
+  const spent = orders.reduce((s,o) => s + v5Total(o.total), 0);
+  const tier = v5GetTier(spent);
+  const NEXT_GOAL = 1500;
+  const pct = Math.min(100, Math.round(pts / NEXT_GOAL * 100));
+  const hist = JSON.parse(localStorage.getItem('svn_point_history') || '[]');
+
+  // Merge order history
+  const allHist = [
+    ...orders.map(o => ({ date:o.date, desc:`Mua hàng ${o.id}`, pts: Math.floor(v5Total(o.total)/10000), type:'earn' })),
+    ...hist
+  ].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,8);
+
+  const catalogHtml = V5_VOUCHERS_CATALOG.map(v => {
+    const can = pts >= v.cost;
+    return `<div class="mp-v5-redeem-card${can?' can-redeem':''}">
+      <div class="mp-v5-redeem-icon">${v.icon}</div>
+      <div class="mp-v5-redeem-name">${v.name}</div>
+      <div class="mp-v5-redeem-cost">${v.cost.toLocaleString('vi-VN')} điểm</div>
+      <button class="mp-v5-redeem-btn${can?' active':''}" ${can?'':'disabled'} onclick="v5RedeemVoucher('${v.id}')">${can?'Đổi Ngay':'Cần thêm '+(v.cost-pts)+' điểm'}</button>
+    </div>`;
+  }).join('');
+
+  const myVouchersHtml = vouchers.length
+    ? vouchers.map(v => `<div class="mp-v5-voucher-item">
+        <div>
+          <div class="mp-v5-voucher-code">${v.code}</div>
+          <div class="mp-v5-voucher-desc">${v.name} · ${v.date}</div>
+        </div>
+        <button class="mp-v5-copy-btn" onclick="navigator.clipboard.writeText('${v.code}').then(()=>showToast('Đã Copy 📋','${v.code}'))">📋 Copy</button>
+      </div>`).join('')
+    : `<div style="text-align:center;padding:16px;color:var(--gray-light);font-size:12px">Chưa có voucher nào · Đổi điểm để nhận ngay!</div>`;
+
+  const histHtml = allHist.length
+    ? allHist.map(h => `<div class="mp-v5-hist-row">
+        <div>
+          <div style="font-size:12px;font-weight:600">${h.desc}</div>
+          <div class="mp-v5-hist-desc">${h.date}</div>
+        </div>
+        <div class="${h.type==='earn'?'mp-v5-hist-pts-earn':'mp-v5-hist-pts-spend'}">${h.type==='earn'?'+':''}${h.pts}</div>
+      </div>`).join('')
+    : `<div style="color:var(--gray-light);font-size:12px;padding:8px 0">Chưa có lịch sử điểm</div>`;
+
+  tab.innerHTML = `
+    <div class="mp-v5-pts-hero">
+      <div class="mp-v5-pts-number">${pts.toLocaleString('vi-VN')}</div>
+      <div class="mp-v5-pts-sub">điểm tích lũy · = ${(pts*100).toLocaleString('vi-VN')}đ</div>
+      <div class="mp-v5-pts-progress-wrap">
+        <div class="mp-v5-pts-progress-bar" id="v5-pts-bar" style="width:0%"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--gray-light)">
+        <span>${tier.icon} ${tier.name}</span>
+        <span>Kim Cương 💎 (${NEXT_GOAL} điểm)</span>
+      </div>
+    </div>
+
+    <div class="mp-v5-section-hdr" style="margin-top:4px">Đổi Điểm Lấy Voucher</div>
+    <div class="mp-v5-redeem-grid">${catalogHtml}</div>
+
+    <div class="mp-v5-section-hdr">Voucher Của Tôi (${vouchers.length})</div>
+    ${myVouchersHtml}
+
+    <div class="mp-v5-section-hdr" style="margin-top:18px">Lịch Sử Điểm</div>
+    ${histHtml}`;
+
+  // Animate progress bar
+  requestAnimationFrame(() => {
+    const bar = document.getElementById('v5-pts-bar');
+    if (bar) setTimeout(() => { bar.style.width = pct + '%'; }, 50);
+  });
+}
+
+window.v5RedeemVoucher = function(id) {
+  const v = V5_VOUCHERS_CATALOG.find(x=>x.id===id);
+  const p = SVN.getProfile();
+  if (!v || (p.points||0) < v.cost) { showToast('Không đủ điểm', `Cần ${v?.cost} điểm`); return; }
+  p.points -= v.cost;
+  SVN.saveProfile(p);
+  const d = new Date(), ds = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+  SVN.addVoucher({ code:v.code, name:v.name, detail:v.detail, date:ds });
+  const hist = JSON.parse(localStorage.getItem('svn_point_history')||'[]');
+  hist.unshift({ date:ds, desc:`Đổi điểm — ${v.name}`, pts:-v.cost, type:'spend' });
+  localStorage.setItem('svn_point_history', JSON.stringify(hist));
+  showToast('Đổi Thành Công 🎉', `${v.name} · Mã: ${v.code}`);
+  v5RenderPoints();
+  v5RefreshHeader();
+  v5RenderOverview();
+  // Sync ddPoints
+  const ddPts = document.getElementById('ddPoints');
+  if (ddPts) ddPts.textContent = p.points.toLocaleString('vi-VN');
+};
+
+// ─── BENEFITS TAB (added to overview + overview shows top perks) ──
+function v5RenderBenefits(containerEl, tier) {
+  if (!containerEl) return;
+  const tierIdx = V5_TIERS.findIndex(t => t.id === tier.id);
+  containerEl.innerHTML = V5_BENEFITS.map(b => {
+    const bIdx = V5_TIERS.findIndex(t => t.id === b.unlock);
+    const unlocked = bIdx <= tierIdx;
+    return `<div class="mp-v5-benefit-row ${unlocked?'mp-v5-benefit-active':'mp-v5-benefit-locked'}">
+      <div class="mp-v5-benefit-icon">${b.icon}</div>
+      <div style="flex:1">
+        <div class="mp-v5-benefit-name">${b.name}</div>
+        <div class="mp-v5-benefit-desc">${b.desc}</div>
+      </div>
+      ${!unlocked ? `<div class="mp-v5-benefit-lock">${V5_TIERS.find(t=>t.id===b.unlock)?.name}</div>` : '<div style="font-size:14px">✓</div>'}
+    </div>`;
+  }).join('');
+}
+
+// ─── PROFILE TAB UPGRADE ──────────────────────────────────
+function v5RenderProfile() {
+  const tab = document.getElementById('mp-tab-profile');
+  if (!tab) return;
+  const profile = (typeof SVN !== 'undefined') ? SVN.getProfile() : {};
+  const name  = profile.name  || window.currentUser?.name || '';
+  const email = profile.email || '';
+  const phone = profile.phone || '';
+  const orders = (typeof SVN !== 'undefined') ? SVN.getOrders() : [];
+  const spent = orders.reduce((s,o) => s + v5Total(o.total), 0);
+  const tier = v5GetTier(spent);
+
+  let avatarContent = `<span id="v5prof-initials">${v5Initials(name)||'KH'}</span>`;
+  const saved = localStorage.getItem('svn_avatar_b64');
+  if (saved) avatarContent = `<img src="${saved}" alt="avatar">`;
+
+  tab.innerHTML = `
+    <div class="mp-v5-profile-avatar-wrap">
+      <div class="mp-v5-prof-avatar">
+        <div class="mp-v5-prof-avatar-img" id="v5profAvatarImg">${avatarContent}</div>
+        <button class="mp-v5-cam-btn" onclick="document.getElementById('v5AvatarInput').click()" title="Đổi ảnh">📷</button>
+        <input type="file" id="v5AvatarInput" accept="image/*" style="display:none" onchange="v5HandleAvatarUpload(event)">
+      </div>
+      <div class="mp-v5-prof-name" id="v5prof-display-name">${name||'—'}</div>
+      <div class="mp-v5-prof-badge">${tier.icon} ${tier.name} &nbsp;·&nbsp; ID: #SNK-${Math.floor(Math.random()*90000+10000)}</div>
+    </div>
+
+    <div class="mp-section">
+      <div class="mp-v5-section-hdr">👤 Thông Tin Cá Nhân</div>
+
+      <div class="mp-v5-field">
+        <label class="mp-v5-field-label">Họ &amp; Tên</label>
+        <input class="mp-v5-input" id="v5pf-name" type="text" value="${name}" placeholder="Nhập họ tên đầy đủ">
+      </div>
+
+      <div class="mp-v5-field">
+        <label class="mp-v5-field-label">Giới Tính</label>
+        <div style="display:flex;gap:8px;margin-top:2px">
+          ${['Nam','Nữ','Khác'].map((g,i) => `<label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:7px 13px;border:1px solid rgba(255,255,255,0.1);border-radius:3px;font-size:12px;transition:all .2s;color:var(--gray-light)" id="v5-gender-lbl-${i}">
+            <input type="radio" name="v5gender" value="${g}" style="accent-color:var(--red)" ${(profile.gender||'Nam')===g?'checked':''}> ${g}
+          </label>`).join('')}
+        </div>
+      </div>
+    </div>
+
+    <div class="mp-section">
+      <div class="mp-v5-section-hdr">📞 Liên Hệ &amp; Bảo Mật</div>
+
+      <div class="mp-v5-field">
+        <label class="mp-v5-field-label">Email</label>
+        <div class="mp-v5-input-row">
+          <input class="mp-v5-input" id="v5pf-email" type="email" value="${email}" placeholder="email@example.com" disabled>
+          <button class="mp-v5-inline-btn" onclick="v5ToggleField('v5pf-email',this)">Đổi</button>
+        </div>
+        <div style="font-size:10px;color:var(--gray-light);margin-top:4px">Email dùng để đăng nhập · Đổi email cần xác minh OTP</div>
+      </div>
+
+      <div class="mp-v5-field">
+        <label class="mp-v5-field-label">Số Điện Thoại</label>
+        <div class="mp-v5-input-row">
+          <input class="mp-v5-input" id="v5pf-phone" type="tel" value="${phone}" placeholder="0912 345 678" disabled>
+          <button class="mp-v5-inline-btn" onclick="v5ToggleField('v5pf-phone',this)">Đổi</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="mp-section">
+      <div class="mp-v5-section-hdr">🏆 Ưu Đãi Thành Viên</div>
+      <div id="v5-benefits-container"></div>
+    </div>
+
+    <div class="mp-section">
+      <div class="mp-v5-section-hdr">🔒 Đổi Mật Khẩu</div>
+      <div id="v5pw-collapsed">
+        <button class="mp-v5-inline-btn" style="width:100%;text-align:center;padding:11px" onclick="v5TogglePwForm(true)">Thay Đổi Mật Khẩu →</button>
+      </div>
+      <div id="v5pw-form" style="display:none">
+        <div class="mp-v5-field">
+          <label class="mp-v5-field-label">Mật Khẩu Hiện Tại</label>
+          <input class="mp-v5-input" id="v5pw-old" type="password" placeholder="••••••••">
+        </div>
+        <div class="mp-v5-field">
+          <label class="mp-v5-field-label">Mật Khẩu Mới</label>
+          <input class="mp-v5-input" id="v5pw-new" type="password" placeholder="Tối thiểu 8 ký tự" oninput="v5UpdatePwStrength(this.value)">
+          <div style="height:4px;border-radius:2px;background:rgba(255,255,255,0.07);margin-top:6px"><div id="v5pw-strength-bar" style="height:4px;border-radius:2px;width:0;transition:all .3s"></div></div>
+        </div>
+        <div class="mp-v5-field">
+          <label class="mp-v5-field-label">Xác Nhận Mật Khẩu Mới</label>
+          <input class="mp-v5-input" id="v5pw-confirm" type="password" placeholder="Nhập lại mật khẩu mới">
+        </div>
+        <button class="mp-v5-save-btn" style="background:none;border:1px solid rgba(255,255,255,0.15);color:var(--gray-light);margin-bottom:6px" onclick="v5TogglePwForm(false)">Hủy</button>
+        <button class="mp-v5-save-btn" onclick="v5SavePassword()">Xác Nhận Đổi Mật Khẩu</button>
+      </div>
+    </div>
+
+    <button class="mp-v5-save-btn" id="v5-main-save-btn" onclick="v5SaveProfile()">💾 Lưu Thông Tin</button>
+    <div class="mp-v5-save-feedback" id="v5-save-feedback">✅ Đã lưu thành công!</div>`;
+
+  // Render benefits
+  const bc = document.getElementById('v5-benefits-container');
+  if (bc) v5RenderBenefits(bc, v5GetTier(orders.reduce((s,o)=>s+v5Total(o.total),0)));
+
+  // Style gender radios on check
+  tab.querySelectorAll('input[name="v5gender"]').forEach((inp,i) => {
+    const lbl = document.getElementById('v5-gender-lbl-'+i);
+    if (lbl && inp.checked) { lbl.style.borderColor='var(--red)'; lbl.style.color='var(--white)'; lbl.style.background='rgba(230,32,32,0.08)'; }
+    inp.addEventListener('change', () => {
+      tab.querySelectorAll('[id^="v5-gender-lbl-"]').forEach(el => { el.style.borderColor='rgba(255,255,255,0.1)'; el.style.color='var(--gray-light)'; el.style.background='none'; });
+      if (inp.checked && lbl) { lbl.style.borderColor='var(--red)'; lbl.style.color='var(--white)'; lbl.style.background='rgba(230,32,32,0.08)'; }
+    });
+  });
+}
+
+window.v5ToggleField = function(id, btn) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const disabled = el.disabled;
+  el.disabled = !disabled;
+  if (!disabled) { btn.textContent = 'Đổi'; el.style.borderColor = ''; }
+  else { btn.textContent = 'Hủy'; el.focus(); el.style.borderColor = 'rgba(230,32,32,.5)'; }
+};
+window.v5TogglePwForm = function(show) {
+  document.getElementById('v5pw-collapsed').style.display = show ? 'none' : 'block';
+  document.getElementById('v5pw-form').style.display = show ? 'block' : 'none';
+};
+window.v5UpdatePwStrength = function(pw) {
+  const bar = document.getElementById('v5pw-strength-bar');
+  if (!bar) return;
+  let score = 0;
+  if (pw.length >= 8) score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/\d/.test(pw)) score++;
+  if (/[^A-Za-z\d]/.test(pw)) score++;
+  const colors = ['#f44336','#ff9800','#ffc107','#4caf50'];
+  bar.style.width = (score * 25) + '%';
+  bar.style.background = colors[score-1] || '#f44336';
+};
+window.v5SavePassword = function() {
+  const oldPw = document.getElementById('v5pw-old')?.value;
+  const newPw = document.getElementById('v5pw-new')?.value;
+  const confirmPw = document.getElementById('v5pw-confirm')?.value;
+  if (!oldPw || !newPw || !confirmPw) { showToast('Lỗi', 'Vui lòng điền đầy đủ'); return; }
+  if (newPw.length < 8) { showToast('Mật khẩu quá ngắn', 'Tối thiểu 8 ký tự'); return; }
+  if (newPw !== confirmPw) { showToast('Không khớp', 'Mật khẩu xác nhận không đúng'); return; }
+  // Check old password
+  const storedHash = localStorage.getItem('svn_pw_hash');
+  if (storedHash && storedHash !== btoa(oldPw)) { showToast('Sai mật khẩu', 'Mật khẩu hiện tại không đúng'); return; }
+  localStorage.setItem('svn_pw_hash', btoa(newPw));
+  v5TogglePwForm(false);
+  showToast('Đổi Mật Khẩu Thành Công 🔒', 'Mật khẩu mới đã được lưu');
+};
+window.v5SaveProfile = function() {
+  const name  = document.getElementById('v5pf-name')?.value?.trim();
+  const email = document.getElementById('v5pf-email')?.value?.trim();
+  const phone = document.getElementById('v5pf-phone')?.value?.trim();
+  const gender = document.querySelector('input[name="v5gender"]:checked')?.value || 'Nam';
+  if (!name) { showToast('Thiếu thông tin', 'Vui lòng nhập họ tên'); return; }
+  const p = SVN.getProfile();
+  p.name = name; p.email = email; p.phone = phone; p.gender = gender;
+  SVN.saveProfile(p);
+
+  // Sync header
+  v5RefreshHeader();
+  // Sync nav
+  const initials = v5Initials(name);
+  const avatarEl = document.getElementById('userNavAvatar');
+  const nameEl   = document.getElementById('userNavName');
+  const ddNameEl = document.getElementById('ddName');
+  if (avatarEl && !localStorage.getItem('svn_avatar_b64')) avatarEl.textContent = initials;
+  if (nameEl)   nameEl.textContent = name.split(' ').slice(-2).join(' ');
+  if (ddNameEl) ddNameEl.textContent = name;
+  // Sync profile display
+  const dispName = document.getElementById('v5prof-display-name');
+  if (dispName) dispName.textContent = name;
+  // Sync mp-avatar-big
+  const mpBig = document.getElementById('profileAvatarBig');
+  const mpV5Initials = document.getElementById('mp-v5-av-initials');
+  if (mpBig) mpBig.textContent = initials;
+  if (mpV5Initials) mpV5Initials.textContent = initials;
+  if (window.currentUser) window.currentUser.name = name;
+
+  const feedback = document.getElementById('v5-save-feedback');
+  if (feedback) { feedback.style.display = 'block'; setTimeout(() => { feedback.style.display='none'; }, 2500); }
+  showToast('Đã Lưu Thành Công ✅', name);
+};
+window.v5HandleAvatarUpload = function(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const b64 = e.target.result;
+    localStorage.setItem('svn_avatar_b64', b64);
+    // Update all avatars
+    document.querySelectorAll('.mp-v5-avatar, .mp-v5-prof-avatar-img').forEach(el => {
+      el.innerHTML = `<img src="${b64}" alt="avatar">`;
+    });
+    const navAv = document.getElementById('userNavAvatar');
+    if (navAv) navAv.innerHTML = `<img src="${b64}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+    showToast('Ảnh đã cập nhật 📸', 'Avatar mới đã lưu');
+  };
+  reader.readAsDataURL(file);
+};
+
+// ─── PATCH SWITCH TAB ─────────────────────────────────────
+const _v5OrigSwitch = window.switchMemberTab;
+window.switchMemberTab = function(tab, btn) {
+  if (typeof _v5OrigSwitch === 'function') _v5OrigSwitch(tab, btn);
+  if (tab === 'overview') setTimeout(v5RenderOverview, 30);
+  if (tab === 'orders')   setTimeout(v5RenderOrders,   30);
+  if (tab === 'points')   setTimeout(v5RenderPoints,   30);
+  if (tab === 'profile')  setTimeout(v5RenderProfile,  30);
+};
+
+const _v5OrigOpenMP = window.openMemberPanel;
+window.openMemberPanel = function(tab) {
+  if (typeof _v5OrigOpenMP === 'function') _v5OrigOpenMP(tab);
+  v5InjectHeader();
+  setTimeout(() => {
+    v5RefreshHeader();
+    if (tab === 'overview' || !tab) v5RenderOverview();
+    if (tab === 'orders')   v5RenderOrders();
+    if (tab === 'points')   v5RenderPoints();
+    if (tab === 'profile')  v5RenderProfile();
+  }, 80);
+};
+
+// ─── PATCH LOGIN to refresh v5 header ─────────────────────
+const _v5OrigHandleLogin = window.handleLogin;
+if (_v5OrigHandleLogin) {
+  window.handleLogin = async function() {
+    await _v5OrigHandleLogin.apply(this, arguments);
+    setTimeout(v5RefreshHeader, 300);
+  };
+}
+
+// ─── INIT ─────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  v5InjectHeader();
+  v5RefreshHeader();
+  // If already logged in, refresh points in dropdown
+  const ddPts = document.getElementById('ddPoints');
+  if (ddPts && typeof SVN !== 'undefined') {
+    const pts = SVN.getProfile().points || 0;
+    ddPts.textContent = pts.toLocaleString('vi-VN');
+  }
+  // Add "Ưu Đãi" to user dropdown if not already there
+  const ddMenu = document.querySelector('.user-dropdown-menu');
+  if (ddMenu && !document.getElementById('dd-benefits-btn')) {
+    const btn = document.createElement('button');
+    btn.className = 'user-dropdown-item';
+    btn.id = 'dd-benefits-btn';
+    btn.innerHTML = " Ưu Đãi Thành Viên';
+    btn.onclick = function() { openMemberPanel('points'); event.stopPropagation(); };
+    ddMenu.insertBefore(btn, ddMenu.children[2]); // after wishlist
+  }
+});
+
+})();
+</script>
 </html>
